@@ -1,0 +1,11 @@
+{
+    "Image_OS": "ubuntu18",
+    "Additional_tag": "sdk-18",
+    "eSDK_path": "<path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk/",
+    "eSDK_shell_file": "fullstack-debug-x86_64-qti-robotics-image-aarch64-qrb5165-rb5-toolchain-ext-<AU-ID>.sh",
+    "Tflite_path": "<path-to-the-directory-where-the-prebuild-tflite-dev-archive-is-located>",
+    "Tflite_prebuilt_file": "<tf-lite-prebuild-file>",
+    "Host_dir_mounted_in_container": "",
+    "Sync_URL_prefix": "",
+    "Deploy_URL": ""
+}

@@ -1,0 +1,103 @@
+#!/bin/bash
+
+# Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# Propagate errors from adb shell
+function qimsdk-device-command ()
+{
+    local rc
+
+    adb shell "$1 && echo 0 > /data/rc.txt"
+    rc=$?
+    [ $rc -ne 0 ] && print-red "Executing Command $1 failed !!!" && return $rc
+
+    adb pull /data/rc.txt /tmp/rc.txt 2>&1 > /dev/null
+    rc=$?
+    adb shell "rm -f /data/rc.txt"
+    [ $rc -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command $1 failed !!!") && return $rc
+
+    rc=`cat /tmp/rc.txt`
+    rm -f /tmp/rc.txt
+    [ $rc -ne 0 ] && print-red "Command $1 return code is not 0 !!!" && return $rc
+
+    return $rc
+}
+
+# Prepare device
+function qimsdk-device-prepare() {
+    local rc
+
+    echo "Waiting for device"
+    adb wait-for-device root
+    rc=$?
+    [ $rc -ne 0 ] && print-red "adb root failed !!!" && return -1
+
+    adb wait-for-device remount wait-for-device
+    rc=$?
+    [ $rc -ne 0 ] && print-red "adb remount failed !!!" && return -2
+
+    qimsdk-device-command "mount -o remount,rw / > /dev/null"
+    rc=$?
+    [ $rc -ne 0 ] && print-red "adb file system remount failed !!!" && return -3
+
+    qimsdk-device-command "setenforce 0"
+    rc=$?
+    [ $rc -ne 0 ] && print-red "adb disable SE linux failed !!!" && return -4
+
+    print-green "Device prepared successfully !!!"
+}
+
+# Sync compiled package with the device
+#   $1 - (mandatory) path to the package to be synced
+function qimsdk-device-pkg-sync() {
+    local PATH_TO_PACKAGE=$1
+    [ -z "${PATH_TO_PACKAGE}" ] && print-red "Package name must be provided as first argument !!!" && return -1
+
+    [ ! -f "${PATH_TO_PACKAGE}" ] && print-red "File "${PATH_TO_PACKAGE}" does not exist !!!" && return -2
+
+    local PACKAGE_NAME=$(basename "${PATH_TO_PACKAGE}")
+    adb push "${PATH_TO_PACKAGE}" /tmp/                                                         || \
+        {
+            print-red "Push package to device /tmp directory failed !!!";
+            return -3;
+        }
+
+    qimsdk-device-command "opkg --force-depends --force-reinstall --force-overwrite install /tmp/${PACKAGE_NAME}" || \
+        {
+            qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
+            print-red "Install package to device failed !!!";
+            return -4;
+        }
+
+    qimsdk-device-command "rm /tmp/${PACKAGE_NAME}"                                       || \
+        {
+            print-red "Remove package from device /tmp directory failed !!!";
+            return -5;
+        }
+
+    return 0
+}
+
+# Clear device sync log to update all packets on next device sync
+function qimsdk-device-sync-log-clear() {
+    rm -f ${QIMSDK_WORK_FOLDER}/device_sync.log
+}
+
+# Sync compiled release packages with the device
+function qimsdk-device-sync-rel() {
+    qimsdk-target-sync rel device
+}
+
+# Sync compiled debug packages with the device
+function qimsdk-device-sync-dbg() {
+    qimsdk-target-sync dbg device
+}
+
+# Print help
+print-red "qimsdk-device-prepare"
+echo "    must be invoked to prepare device for pkg installation"
+print-red "qimsdk-device-sync-rel"
+echo "    must be invoked to sync release packages with the device"
+print-red "qimsdk-device-sync-dbg"
+echo "    must be invoked to sync debug packages with the device"
