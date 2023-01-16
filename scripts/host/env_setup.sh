@@ -49,6 +49,7 @@ function qimsdk-docker-build-image() {
     local QIMSDK_ARG_BASE_FOLDER=/mnt/qimsdk
     local GROUP=$(getent group $(id -g ${USER}) | cut -d ':' -f 1)
 
+    rm -rf ${QIMSDK_DOCKER_FOLDER}/tmp
     mkdir -p ${QIMSDK_DOCKER_FOLDER}/tmp
     ln ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_DOCKER_FOLDER}/tmp/                   || \
         rsync -a ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_DOCKER_FOLDER}/tmp/         || \
@@ -60,9 +61,10 @@ function qimsdk-docker-build-image() {
     local TFLITE_FILE_PATH=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Tflite_path' | tr -d '"'`
     local TFLITE_FILENAME=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Tflite_prebuilt_file' | tr -d '"'`
     local TFLITE_FILE=${TFLITE_FILE_PATH}/${TFLITE_FILENAME}
+
     [ -f "${TFLITE_FILE}" ]                                                                     && \
         local QIMSDK_ARG_TFLITE_FILE=${TFLITE_FILENAME}                                         && \
-            ( ln ${TFLITE_FILE} ${QIMSDK_DOCKER_FOLDER}/tmp/                                    || \
+            ( ln ${TFLITE_FILE} ${QIMSDK_DOCKER_FOLDER}/tmp/ 2>/dev/null                        || \
                 rsync -a ${TFLITE_FILE} ${QIMSDK_DOCKER_FOLDER}/tmp/                            || \
                 {
                     print-red "Cannot add tflite dev archive to tmp folder !!!"

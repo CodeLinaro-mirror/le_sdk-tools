@@ -22,6 +22,17 @@ function qimsdk-gst-plugins-qti-prepare() {
     # Remove gstreamer from BBMASK
     sed -i "s/meta\/recipes-multimedia\/gstreamer\///g" ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
 
+    # Setup tf lite prebuilt, if available
+    [ "${QIMSDK_ESDK_TFLITE_FILE}" != "no-tflite-dev-archive-available" ]                       && \
+        {
+            git -C ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst am --reject --whitespace=fix            \
+                ${QIMSDK_PATCHES}/poky/meta-qti-gst/0001-meta-qti-ml-Add-Tensorflow-Lite-Prebuilt-recipe.patch ||
+            {
+                print-red "Git apply additing tf lite prebuilt recipe failed !!!"
+                return -1
+            }
+        }
+
     qimsdk-gst-plugins-qti-add-layers                                                           && \
         qimsdk-gst-plugins-qti-prepare-layer
 }

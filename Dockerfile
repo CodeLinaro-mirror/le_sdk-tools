@@ -123,6 +123,11 @@ RUN rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-gst
 RUN rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-gst-prop
 RUN rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/layers/src/vendor/qcom/opensource/gst-plugins-qti-oss
 
+# Add patches
+ENV QIMSDK_PATCHES=${QIMSDK_BASE_FOLDER}/patches
+ADD patches ${QIMSDK_PATCHES}
+RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_PATCHES}
+
 # Add image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_FOLDER}/scripts
 ADD scripts/image ${QIMSDK_SCRIPTS}
