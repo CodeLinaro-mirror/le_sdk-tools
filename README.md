@@ -133,18 +133,18 @@ The json file must contain certain data :
  8. ***OPTIONAL*** - **Sync_URL_prefix** - This enables the use of a mirror URL - The URL, from which repositories will be cloned. If no URL is set, the default URL is: ```https://git.codelinaro.org/clo/le```
  9. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send ipk packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
 
-The json files must be created in the ```<snapdragon-iot-qimsdk>/targets/``` directory. ```<snapdragon-iot-qimsdk>/targets/LE.UM.6.4.2.json``` can be used as an example.
+The json files must be created in the ```<snapdragon-iot-qimsdk>/sdk-tools/targets/``` directory. ```<snapdragon-iot-qimsdk>/sdk-tools/targets/LE.UM.6.4.2.json``` can be used as an example.
 
-***Once you have created the configuration file in ```<snapdragon-iot-qimsdk>/targets/```, the image can be built***
+***Once you have created the configuration file in ```<snapdragon-iot-qimsdk>/sdk-tools/targets/```, the image can be built***
 
-The functions in ```<snapdragon-iot-qimsdk>/scripts/host/env_setup.sh``` provide the necessary build, run, start, stop and remove commands. All of them receive the path to the configuration json file as their first and only argument, as shown in the examples bellow:
+The functions in ```<snapdragon-iot-qimsdk>/sdk-tools/scripts/host/env_setup.sh``` provide the necessary build, run, start, stop and remove commands. All of them receive the path to the configuration json file as their first and only argument, as shown in the examples bellow:
 
 ### Host Side Helper Scripts
 
 ***In order for the functions inside env_setup.sh to work on the host, the script must be sourced***
 
 ```bash
-source <snapdragon-iot-qimsdk>/scripts/host/env_setup.sh
+source <snapdragon-iot-qimsdk>/sdk-tools/scripts/host/env_setup.sh
 ```
 
 The developer generally needs to build the image and run the container.
@@ -218,11 +218,11 @@ If ipk files needs to be deployed to device connected to another pc, then ipk fi
 
 ### Linux
 
-Script location: <snapdragon-iot-qimsdk>/scripts/local/linux.sh
+Script location: <snapdragon-iot-qimsdk>/sdk-tools/scripts/local/linux.sh
 Sync cmd: qimsdk-local-sync - Sync packages with the device from specified folder
 
 ```bash
-source <snapdragon-iot-qimsdk>/scripts/local/linux.sh
+source <snapdragon-iot-qimsdk>/sdk-tools/scripts/local/linux.sh
 qimsdk-local-sync <folder to sync>
 ```
 
@@ -234,11 +234,11 @@ Example for adding adb to powershell path
 $Env:PATH += ";<path to adb>"
 ```
 
-Script location: <snapdragon-iot-qimsdk>/scripts/local/win.ps1
+Script location: <snapdragon-iot-qimsdk>/sdk-tools/scripts/local/win.ps1
 Sync cmd: qimsdk-local-sync - Sync packages with the device from specified folder
 
 ```powershell
-.\<snapdragon-iot-qimsdk>\scripts\local\win.ps1
+.\<snapdragon-iot-qimsdk>\sdk-tools\scripts\local\win.ps1
 qimsdk-local-sync <folder to sync>
 ```
 
@@ -564,7 +564,7 @@ qimsdk-layers-build && qimsdk-layers-package && qimsdk-remote-sync-dbg
 Update device ipk from remote Windows
 
 ```powershell
-.\<snapdragon-iot-qimsdk>\scripts\local\win.ps1
+.\<snapdragon-iot-qimsdk>\sdk-tools\scripts\local\win.ps1
 qimsdk-local-sync <folder to sync>
 ```
 

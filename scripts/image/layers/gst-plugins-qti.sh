@@ -6,48 +6,6 @@
 # Register layer
 QIMSDK_ALL_LAYERS+=("gst-plugins-qti")
 
-# Sync gst-plugins-qti
-function qimsdk-gst-plugins-qti-sync() {
-    # Remove meta layers to be cloned
-    rm -rf ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst*
-    rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/layers/src/vendor/qcom/opensource/gst-plugins-qti-oss
-
-    #Remove gstreamer from BBMAKS
-    sed -i "s/meta\/recipes-multimedia\/gstreamer\///g" ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
-
-    [ "${QIMSDK_ESDK_TFLITE_FILE}" != "no-tflite-dev-archive-available" ]                       && \
-        rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-ml
-
-    # Clone required repositories
-    git clone "${QIMSDK_ESDK_SYNC_URL_PREFIX}"/platform/vendor/qcom-opensource/gst-plugins-qti-oss \
-        ${QIMSDK_ESDK_BASE_FOLDER}/layers/src/vendor/qcom/opensource/gst-plugins-qti-oss           \
-        --branch=LE.UM.6.4.2 --single-branch                                                    && \
-    git clone "${QIMSDK_ESDK_SYNC_URL_PREFIX}"/meta-qti-gst                                        \
-        ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst                                                    \
-        --branch=LE.UM.6.4.2 --single-branch                                                    || \
-        {
-            print-red "git clone failed !!!";
-            return -1;
-        }
-
-    # Setup tf lite prebuilt, if available
-    [ "${QIMSDK_ESDK_TFLITE_FILE}" != "no-tflite-dev-archive-available" ]                       && \
-        {
-            rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-ml
-            git clone "${QIMSDK_ESDK_SYNC_URL_PREFIX}"/meta-qti-ml                                 \
-                ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-ml                                 \
-                --branch=iot-ml.lnx.3.0 --single-branch                                         || \
-                {
-                    print-red "git clone of meta-qti-ml failed !!!";
-                    return -2;
-                }
-        }
-    [ "${QIMSDK_ESDK_TFLITE_FILE}" != "no-tflite-dev-archive-available" ]                       && \
-        sed -i "s/tensorflow-lite/tensorflow-lite-prebuilt/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-mltflite.bb
-
-    return 0
-}
-
 # Add meta-qti-gst layer
 function qimsdk-gst-plugins-qti-add-layers() {
     qimsdk-bitbake-add-layers ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst
@@ -60,6 +18,10 @@ function qimsdk-gst-plugins-qti-prepare-layer() {
 
 # Prepare gst-plugins-qti
 function qimsdk-gst-plugins-qti-prepare() {
+
+    # Remove gstreamer from BBMASK
+    sed -i "s/meta\/recipes-multimedia\/gstreamer\///g" ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
+
     qimsdk-gst-plugins-qti-add-layers                                                           && \
         qimsdk-gst-plugins-qti-prepare-layer
 }

@@ -11,21 +11,16 @@ function qimsdk-layers-prepare() {
     local LAYER
 
     # Check whether code was already prepared
-    [ -f ${QIMSDK_WORK_FOLDER}/sync ] && print-red "Layers are already prepared" && return -1
-
-    # Sync all layers
-    for LAYER in "${QIMSDK_ALL_LAYERS[@]}"; do
-        qimsdk-${LAYER}-sync || return -2
-    done
+    [ -f ${QIMSDK_WORK_FOLDER}/prepared ] && print-red "Layers are already prepared" && return -1
 
     # Prepare all layers
     for LAYER in "${QIMSDK_ALL_LAYERS[@]}"; do
         qimsdk-${LAYER}-prepare || return -3
     done
 
-    # Mark that code is already synced
+    # Mark that code is already prepared
     [ ! -d ${QIMSDK_WORK_FOLDER} ] && mkdir -p ${QIMSDK_WORK_FOLDER}/
-    touch ${QIMSDK_WORK_FOLDER}/sync
+    touch ${QIMSDK_WORK_FOLDER}/prepared
 
     print-green "All layers prepared successfully !!!"
 }

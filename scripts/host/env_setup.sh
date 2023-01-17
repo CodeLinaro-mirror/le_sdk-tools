@@ -123,19 +123,32 @@ function qimsdk-docker-run-container() {
     local DIR_TO_BE_MOUNTED=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Host_dir_mounted_in_container' | tr -d '"'`
     [[ ! -z "${DIR_TO_BE_MOUNTED}" ]] && DIR_TO_BE_MOUNTED="-v ${DIR_TO_BE_MOUNTED}:/home/${USER}/work"
 
+    local QIMSDK_ARG_BASE_FOLDER=/mnt/qimsdk
+    local QIMSDK_REPO_BASE_FOLDER=${QIMSDK_DOCKER_FOLDER}/..
+
     docker run ${DIR_TO_BE_MOUNTED}                                                                \
         -v /dev/bus/usb:/dev/bus/usb:ro                                                            \
         -v /etc/timezone:/etc/timezone:ro                                                          \
         -v /etc/localtime:/etc/localtime:ro                                                        \
+        -v ${QIMSDK_REPO_BASE_FOLDER}:${QIMSDK_ARG_BASE_FOLDER}/repo                               \
         -it -d --privileged -h qimsdk-${TAG} --user ${USER}                                        \
         --name ${CONTAINER} qimsdk:${TAG}
+
     local rc=$?
     [ $rc -ne 0 ] && print-red "docker run failed !!!" && return -3
+
+    # Add soft link to src and poky
+    docker exec --user ${USER} ${CONTAINER} ln -s ${QIMSDK_ARG_BASE_FOLDER}/repo/src ${QIMSDK_ARG_BASE_FOLDER}/esdk/layers/src
+    rc=$?
+    [ $rc -ne 0 ] && print-red "docker ln -s ${QIMSDK_ARG_BASE_FOLDER}/repo/src ${QIMSDK_ARG_BASE_FOLDER}/esdk/layers/src !!!" && return -4
+    docker exec --user ${USER} ${CONTAINER} ln -s ${QIMSDK_ARG_BASE_FOLDER}/repo/poky ${QIMSDK_ARG_BASE_FOLDER}/poky
+    rc=$?
+    [ $rc -ne 0 ] && print-red "docker ln -s ${QIMSDK_ARG_BASE_FOLDER}/repo/poky ${QIMSDK_ARG_BASE_FOLDER}/poky !!!" && return -5
 
     # Propagate ssh and gitconfig to container
     docker exec --user ${USER} ${CONTAINER} mkdir /home/${USER}/.ssh
     rc=$?
-    [ $rc -ne 0 ] && print-red "docker mkdir ~/.ssh failed !!!" && return -4
+    [ $rc -ne 0 ] && print-red "docker mkdir ~/.ssh failed !!!" && return -6
 
     if [ -d ~/.ssh/ ]; then
         local f
@@ -144,32 +157,32 @@ function qimsdk-docker-run-container() {
             test "${f}" = ~/.ssh/known_hosts && continue
             docker cp $f ${CONTAINER}:/home/${USER}/.ssh/${BASE_NAME}
             rc=$?
-            [ $rc -ne 0 ] && print-red "Propagating .ssh/ to docker failed !!!" && return -5
+            [ $rc -ne 0 ] && print-red "Propagating .ssh/ to docker failed !!!" && return -7
         done
         docker exec --user root ${CONTAINER} chown -R ${USER}:${GROUP} /home/${USER}/.ssh
         rc=$?
-        [ $rc -ne 0 ] && print-red "Propagating .ssh/ to docker failed !!!" && return -6
+        [ $rc -ne 0 ] && print-red "Propagating .ssh/ to docker failed !!!" && return -8
     fi
 
     if [ -f ~/.gitconfig ]; then
         docker cp ~/.gitconfig ${CONTAINER}:/home/${USER}/.gitconfig                            && \
             docker exec --user root ${CONTAINER} chown -R ${USER}:${GROUP} /home/${USER}/.gitconfig
         rc=$?
-        [ $rc -ne 0 ] && print-red "Propagating .gitconfig to docker failed !!!" && return -7
+        [ $rc -ne 0 ] && print-red "Propagating .gitconfig to docker failed !!!" && return -9
     fi
 
     if [ -f /etc/gitconfig ]; then
         docker cp /etc/gitconfig ${CONTAINER}:/etc/gitconfig
         rc=$?
-        [ $rc -ne 0 ] && print-red "Propagating .gitconfig to docker failed !!!" && return -8
+        [ $rc -ne 0 ] && print-red "Propagating .gitconfig to docker failed !!!" && return -10
     fi
 
     docker exec --user ${USER} ${CONTAINER} mkdir -p /mnt/qimsdk/targets
     docker cp ${PATH_TO_CONFIG_JSON} ${CONTAINER}:/mnt/qimsdk/targets/config.json               && \
         docker exec --user root ${CONTAINER} chown -R ${USER}:${GROUP} /mnt/qimsdk/targets      || \
         {
-            print-red "Propagating config json to docker failed !!!";
-            return -9;
+            print-red "Propagating config json to docker failed !!!"
+            return -11
         }
 
     print-green "Docker ${CONTAINER} run successfull !!!"
