@@ -4,24 +4,39 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # Propagate errors from adb shell
-function qimsdk-device-command ()
+#   $1 - (mandatory) device command to be executed
+function qimsdk-device-command()
 {
+    local CMD=$1
     local rc
 
-    adb shell "$1 && echo 0 > /data/rc.txt"
+    adb shell "${CMD} && echo 0 > /data/rc.txt"
     rc=$?
-    [ $rc -ne 0 ] && print-red "Executing Command $1 failed !!!" && return $rc
+    [ $rc -ne 0 ] && print-red "Executing Command ${CMD} failed !!!" && return $rc
 
     adb pull /data/rc.txt /tmp/rc.txt 2>&1 > /dev/null
     rc=$?
     adb shell "rm -f /data/rc.txt"
-    [ $rc -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command $1 failed !!!") && return $rc
+    [ $rc -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command ${CMD} failed !!!") && return $rc
 
     rc=`cat /tmp/rc.txt`
     rm -f /tmp/rc.txt
-    [ $rc -ne 0 ] && print-red "Command $1 return code is not 0 !!!" && return $rc
+    [ $rc -ne 0 ] && print-red "Command ${CMD} return code is not 0 !!!" && return $rc
 
     return $rc
+}
+
+# Invoke script file on the device
+#   $1 - (mandatory) path to script file to be invoked
+function qimsdk-device-script-invoke() {
+    local SCRIPT_PATH=$1
+
+    [ ! -f "${SCRIPT_PATH}" ]                                                                   && \
+        print-red "Path to target script file must be provided as first argument !!!"           && \
+        return -1
+
+    # Invoke script file
+    source ${SCRIPT_PATH}
 }
 
 # Prepare device
@@ -46,6 +61,23 @@ function qimsdk-device-prepare() {
     [ $rc -ne 0 ] && print-red "adb disable SE linux failed !!!" && return -4
 
     print-green "Device prepared successfully !!!"
+}
+
+# Check whether compiled package is already present on the device
+#   $1 - (mandatory) package to be cheked
+function qimsdk-device-pkg-check() {
+    local FULL_PACKAGE=$1
+    local PACKAGE=`echo ${FULL_PACKAGE} | cut -d '_' -f 1`
+
+    adb shell "opkg list ${PACKAGE} > /tmp/log.txt"
+    adb pull /tmp/log.txt /tmp/log.txt 1>/dev/null
+    local rc=$?
+    [ -s /tmp/log.txt ] && rc=-1
+
+    adb shell "rm -f /tmp/log.txt"
+    rm -f /tmp/log.txt
+
+    return $rc
 }
 
 # Sync compiled package with the device
@@ -94,6 +126,11 @@ function qimsdk-device-sync-dbg() {
     qimsdk-target-sync dbg device
 }
 
+# Remove installed packages from the device
+function qimsdk-device-packages-remove() {
+    qimsdk-target-packages-remove device
+}
+
 # Print help
 print-red "qimsdk-device-prepare"
 echo "    must be invoked to prepare device for pkg installation"
@@ -101,3 +138,5 @@ print-red "qimsdk-device-sync-rel"
 echo "    must be invoked to sync release packages with the device"
 print-red "qimsdk-device-sync-dbg"
 echo "    must be invoked to sync debug packages with the device"
+print-red "qimsdk-device-packages-remove"
+echo "    must be invoked to remove installed packages from the device"

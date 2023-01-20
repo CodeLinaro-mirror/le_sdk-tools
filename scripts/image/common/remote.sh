@@ -3,6 +3,27 @@
 # Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
+# Send script file to the remote
+#   $1 - (mandatory) path to script file to be sent to the remote
+function qimsdk-remote-script-invoke() {
+    local SCRIPT_PATH=$1
+
+    [ ! -f "${SCRIPT_PATH}" ]                                                                   && \
+        print-red "Path to target script file must be provided as first argument !!!"           && \
+        return -1
+
+    # Send script file to the remote
+    rsync -a --progress ${SCRIPT_PATH} ${QIMSDK_ESDK_DEPLOY_URL}                                || \
+        {
+            print-red "rsync script file to deploy URL failed !!!";
+            return -2;
+        }
+
+    # Notify that script needs to be invoked on the remote, cannot do it from this machine
+    local SCRIPT_FILE=$(basename "${SCRIPT_PATH}")
+    print-blue "Please note that ${SCRIPT_FILE} must be invoked on the host computer";
+}
+
 # Sync compiled package with the remote
 #   $1 - (mandatory) path to the package to be synced
 function qimsdk-remote-pkg-sync() {
@@ -37,10 +58,17 @@ function qimsdk-remote-sync-dbg() {
     qimsdk-target-sync dbg remote
 }
 
+# Send remove installed packages script the remote target
+function qimsdk-remote-packages-remove() {
+    qimsdk-target-packages-remove remote
+}
+
 [ ! -z ${QIMSDK_ESDK_DEPLOY_URL} ]                                                              && \
     {
         print-blue "qimsdk-remote-sync-rel";
         echo "    must be invoked to sync release packages with the remote target";
         print-blue "qimsdk-remote-sync-dbg";
         echo "    must be invoked to sync debug packages with the remote target";
+        print-blue "qimsdk-remote-packages-remove";
+        echo "    must be invoked to send remove installed packages script the remote target";
     }

@@ -62,18 +62,43 @@ function qimsdk-target-sync() {
     # Sync only new packages
     local PKG
     local SYNC_FILE="${QIMSDK_WORK_FOLDER}/${TARGET}_sync.log"
+    local REMOVE_PKG_FILE="${QIMSDK_WORK_FOLDER}/${TARGET}_packages_remove.sh"
 
     for PKG in "${PKGS[@]}"; do
         local DATE=`date -r ${PKG}`
         local LOG="Pushing ${PKG} ${DATE}"
+        local PKG_NAME=`echo $(basename ${PKG}) | cut -d '_' -f 1`
 
         cat ${SYNC_FILE} 2>/dev/null | grep "${LOG}" 1>/dev/null            || \
-            qimsdk-${TARGET}-pkg-sync ${PKG}                                || \
-            return -5
+            {
+                qimsdk-${TARGET}-pkg-sync ${PKG}                                && \
+                {
+                    sed -i "/${PKG_NAME}/d" ${REMOVE_PKG_FILE} 2>/dev/null
+                    echo "adb shell \"opkg remove --force-depends ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE}
+                }                                                               || \
+                return -5
+            }
         PKG=$(basename ${PKG})
         sed -i "/${PKG}/d" ${SYNC_FILE} 2>/dev/null
         echo "${LOG}" >> ${SYNC_FILE}
     done
 
     print-green "Packages synced successfully !!!"
+}
+
+# Remove installed packages from the target
+#   $1 - (mandatory) target: device or remote
+function qimsdk-target-packages-remove() {
+    local TARGET=$1
+
+    [ ! "${TARGET}" == "device" ] && [ ! "${TARGET}" == "remote" ]          && \
+        print-red "Target input argument device or remote is required" && return -1
+
+    local REMOVE_PKG_FILE="${QIMSDK_WORK_FOLDER}/${TARGET}_packages_remove.sh"
+
+    # Remove packages and clear sync log
+    qimsdk-${TARGET}-script-invoke ${REMOVE_PKG_FILE}                       && \
+        qimsdk-${TARGET}-sync-log-clear
+
+    print-green "Packages removed successfully !!!"
 }

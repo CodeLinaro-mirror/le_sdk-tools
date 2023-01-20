@@ -1,10 +1,42 @@
 # IM SDK Docker
 
+## Table of Contents
+
+* [Prerequisites](#Prerequisites)
+  * [Ubuntu Version](#Ubuntu_Version)
+  * [Ubuntu Packages](#Ubuntu_Packages)
+  * [How to increase Max user watches and max user instances on host system](#Max_user_watches_and_max_user_instances_must_be_increased_on_the_host_system)
+  * [Docker Must Be Configured On The Host System (one time)](#Docker_Must_Be_Configured_On_The_Host_System_(one_time))
+* [About the QIMSDK Docker Image](#About_the_QIMSDK_Docker_Image)
+  * [Stage 0 - Base Image](#Stage_0_-_Base_Image)
+  * [Stage 1 - QIMSDK Image](#Stage_1_-_QIMSDK_Image)
+* [Host Side Helper Scripts And Configuration](#Host_Side_Helper_Scripts_And_Configuration)
+  * [How to fill out Configuration JSON File](#Every_Docker_Container_Is_Configured_With_The_Help_Of_A_Configuration_JSON_File)
+  * [Host Side Helper Scripts](#Host_Side_Helper_Scripts)
+* [Local Sync Scripts](#Local_Sync_Scripts)
+  * [Linux](#Linux)
+  * [Windows](#Windows)
+* [Development Workflow](#Development_Workflow)
+  * [Initial One Time Setup](#Initial_One_Time_Setup)
+  * [Continuous Development After Initial Setup](#Continuous_Development_After_Initial_Setup)
+* [Examples For Development](#Examples_For_Development)
+  * [Modifications In OMX Gst Plugin (remote src)](#Modifications_In_OMX_Gst_Plugin_(remote_src))
+  * [Modifications In QMMF Gst Plugin (local src)](#Modifications_In_QMMF_Gst_Plugin_(local_src))
+  * [Modifications in QMMF SDK](#Modifications_in_QMMF_SDK)
+  * [Modifications in Weston](#Modifications_in_Weston)
+* [Compiling gst-plugins-qti-oss Against tflite-dev.tar.gz](#Compiling_gst-plugins-qti-oss_Against_tflite-dev.tar.gz)
+
+<div id="Prerequisites">
+
 ## Prerequisites
+
+<div id="Ubuntu_Version">
 
 ### Ubuntu Version
 
 Ubuntu 18.04 or Ubuntu 20.04 is required
+
+<div id="Ubuntu_Packages">
 
 ### Ubuntu Packages
 
@@ -13,6 +45,8 @@ jq must be installed on the host (one time)
 ```bash
 sudo apt install -y jq
 ```
+
+<div id="Max_user_watches_and_max_user_instances_must_be_increased_on_the_host_system">
 
 ### Max user watches and max user instances must be increased on the host system
 
@@ -23,9 +57,11 @@ fs.inotify.max_user_instances=8192
 fs.inotify.max_user_watches=542288
 ```
 
-### Docker Must Be Configured On Your Host System (one time)
+<div id="Docker_Must_Be_Configured_On_The_Host_System_(one_time)">
 
-***Before proceeding with Docker configuration on your PC, ensure CPU Virtualization is enabled from BIOS!***
+### Docker Must Be Configured On The Host System (one time)
+
+***Before proceeding with Docker configuration on the PC, ensure CPU Virtualization is enabled from BIOS!***
 
 #### Add User To kvm Group
 
@@ -117,7 +153,48 @@ service docker start
 
 ***Restart all containers after moving docker directory***
 
+<div id="About_the_QIMSDK_Docker_Image">
+
+## About the QIMSDK Docker Image
+
+The docker image is built using the Dockerfile found at the top of this repository.
+
+<div id="Stage_0_-_Base_Image">
+
+### Stage 0 - Base Image
+
+Two images are generated in stage 0. The base image for ubuntu 18 and base image for ubuntu 20.
+
+A. Ubuntu 18 Base Image
+
+1. Set ubuntu 18 alternatives priority for python
+
+B. Ubuntu 20 Base Image
+
+1. Set ubuntu 20 alternatives priority for python
+
+<div id="Stage_1_-_QIMSDK_Image">
+
+### Stage 1 - QIMSDK Image
+
+Depending on the selected Image OS, the QIMSDK Docker Image is based either on the Ubuntu 18 base image, or the Ubuntu 20 base image.
+
+A. QIMSDK Image
+
+1. Install needed ubuntu packets
+2. Install additional dependencies
+3. Set python alternatives, max user watches, etc. inside QIMSDK Docker
+4. Propagate user and group from host machine
+5. Set base and esdk directories
+6. Add all other optional environment variables to be used inside the container
+7. Setup eSDK as HOST user
+8. Propagate needed scripts, urls, patches to the container
+
+<div id="Host_Side_Helper_Scripts_And_Configuration">
+
 ## Host Side Helper Scripts And Configuration
+
+<div id="Every_Docker_Container_Is_Configured_With_The_Help_Of_A_Configuration_JSON_File">
 
 ### Every Docker Container Is Configured With The Help Of A Configuration JSON File
 
@@ -138,6 +215,8 @@ The json files must be created in the ```<snapdragon-iot-qimsdk>/sdk-tools/targe
 ***Once you have created the configuration file in ```<snapdragon-iot-qimsdk>/sdk-tools/targets/```, the image can be built***
 
 The functions in ```<snapdragon-iot-qimsdk>/sdk-tools/scripts/host/env_setup.sh``` provide the necessary build, run, start, stop and remove commands. All of them receive the path to the configuration json file as their first and only argument, as shown in the examples bellow:
+
+<div id="Host_Side_Helper_Scripts">
 
 ### Host Side Helper Scripts
 
@@ -165,6 +244,8 @@ Next step is to attach to the container and work with helper scripts inside the 
   - Right-click on the desired container to show all available commands (Start, Stop, Remove, Attach Shell, Attach Visual Studio Code, etc.)
 - Or you can attach to the container command line using
   - ```docker attach <container name>```
+
+<div id="Helper_Scripts_Inside_The_Container">
 
 ## Helper Scripts Inside The Container
 
@@ -198,6 +279,10 @@ Must be invoked to sync release packages with the device
 
 Must be invoked to sync debug packages with the device
 
+### qimsdk-device-packages-remove
+
+Must be invoked to remove installed packages from the device
+
 ### qimsdk-remote-sync-rel
 
 Must be invoked to sync release packages with the remote target
@@ -205,6 +290,16 @@ Must be invoked to sync release packages with the remote target
 ### qimsdk-remote-sync-dbg
 
 Must be invoked to sync debug packages with the remote target
+
+### qimsdk-remote-packages-remove
+
+must be invoked to send remove installed packages script the remote target
+
+***Please note that package remove script file must be invoked on the host computer***
+
+***Please note that script file extension must be renamed to bat when remote OS is windows***
+
+<div id="Local_Sync_Scripts">
 
 ## Local Sync Scripts
 
@@ -216,6 +311,8 @@ If ipk files needs to be deployed to device connected to another pc, then ipk fi
 
 ***Please note that adb needs to be available in the path variable for windows and linux***
 
+<div id="Linux">
+
 ### Linux
 
 Script location: <snapdragon-iot-qimsdk>/sdk-tools/scripts/local/linux.sh
@@ -225,6 +322,8 @@ Sync cmd: qimsdk-local-sync - Sync packages with the device from specified folde
 source <snapdragon-iot-qimsdk>/sdk-tools/scripts/local/linux.sh
 qimsdk-local-sync <folder to sync>
 ```
+
+<div id="Windows">
 
 ### Windows
 
@@ -242,7 +341,11 @@ Sync cmd: qimsdk-local-sync - Sync packages with the device from specified folde
 qimsdk-local-sync <folder to sync>
 ```
 
+<div id="Development_Workflow">
+
 ## Development Workflow
+
+<div id="Initial_One_Time_Setup">
 
 ### Initial One Time Setup
 
@@ -311,6 +414,8 @@ adb reboot
 ```bash
 qimsdk-device-prepare
 ```
+
+<div id="Continuous_Development_After_Initial_Setup">
 
 ### Continuous Development After Initial Setup
 
@@ -417,7 +522,7 @@ devtool reset <recipe>
 rm -rf <path to workspace folder>
 ```
 
-#### Update All Packages Recipes To the Device
+#### Update All Packages Recipes To the Device Or Remote PC
 
 In case something is messed up with packages to be updated, sync log can be reset. So all packages will be installed on the device or updated to the remote URL ot the nex sync command. Please note that there are separate sync log clear functions for local device *qimsdk-device-sync-log-clear* and for remote URL *qimsdk-remote-sync-log-clear*
 
@@ -435,7 +540,31 @@ qimsdk-remote-sync-log-clear
 qimsdk-remote-sync-rel
 ```
 
+#### Remove All Packages from the Device Or Remote PC
+
+In case device needs to be restored to previous state before any manipulation from qimsdk, all installed packages can be removed.
+
+Remove packages from device connected to local PC
+
+```bash
+qimsdk-device-packages-remove
+```
+
+Or, if the device is not attached to host PC
+
+```bash
+qimsdk-remote-packages-remove
+```
+
+***Please note that package remove script file must be invoked on the host computer***
+
+***Please note that script file extension must be renamed to bat when remote OS is windows***
+
+<div id="Examples_For_Development">
+
 ## Examples For Development
+
+<div id="Modifications_In_OMX_Gst_Plugin_(remote_src)">
 
 ### Modifications In OMX Gst Plugin (remote src)
 
@@ -473,6 +602,8 @@ Build, package code and update the device with release variant
 # Build, package code and update the device with release variant
 devtool build gstreamer1.0-omx && devtool package gstreamer1.0-omx && qimsdk-device-sync-rel
 ```
+
+<div id="Modifications_In_QMMF_Gst_Plugin_(local_src)">
 
 ### Modifications In QMMF Gst Plugin (local src)
 
@@ -513,9 +644,13 @@ Build, package code and update the device with release variant
 qimsdk-layers-build && qimsdk-layers-package && qimsdk-device-sync-rel
 ```
 
+<div id="Modifications_in_QMMF_SDK">
+
 ### Modifications in QMMF SDK
 
 QMMF SDK is one of the recipes where it is much faster to build it in Yocto and generate new esdk. The reason is that it depends on way too many recipes and for each one src code needs to be manually cloned. One of the dependencies is kernel. After it's compilation basically entire tree is rebuild.
+
+<div id="Modifications_in_Weston">
 
 ### Modifications in Weston
 
@@ -567,6 +702,8 @@ Update device ipk from remote Windows
 .\<snapdragon-iot-qimsdk>\sdk-tools\scripts\local\win.ps1
 qimsdk-local-sync <folder to sync>
 ```
+
+<div id="Compiling_gst-plugins-qti-oss_Against_tflite-dev.tar.gz">
 
 ## Compiling gst-plugins-qti-oss Against tflite-dev.tar.gz
 
