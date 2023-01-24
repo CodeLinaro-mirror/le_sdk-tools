@@ -74,6 +74,22 @@ function qimsdk-docker-build-image() {
                 local QIMSDK_ARG_TFLITE_FILE=no-tflite-dev-archive-available                    && \
                 touch ${QIMSDK_DOCKER_FOLDER}/tmp/${QIMSDK_ARG_TFLITE_FILE}
 
+    local SNPE_DIR=`cat ${PATH_TO_CONFIG_JSON} |  jq '.SNPE_path' | tr -d '"'`
+
+    [ -d "${SNPE_DIR}" ]                                                                         && \
+        local QIMSDK_ARG_SNPE_DIR=$(basename ${SNPE_DIR})                                        && \
+            ( ln ${SNPE_DIR} ${QIMSDK_DOCKER_FOLDER}/tmp/ 2>/dev/null                            || \
+                rsync -a ${SNPE_DIR} ${QIMSDK_DOCKER_FOLDER}/tmp/                                || \
+                {
+                    print-red "Cannot add snpe dir to tmp folder !!!"
+                    return -10
+                }
+            )                                                                                   || \
+                {
+                    local QIMSDK_ARG_SNPE_DIR=no-snpe-dir-available
+                    touch ${QIMSDK_DOCKER_FOLDER}/tmp/${QIMSDK_ARG_SNPE_DIR}
+                }
+
     local SYNC_URL_PREFIX=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Sync_URL_prefix' | tr -d '"'`
     local QIMSDK_ARG_SYNC_URL_PREFIX="https://git.codelinaro.org/clo/le"
     [ ! -z "${SYNC_URL_PREFIX}" ] && QIMSDK_ARG_SYNC_URL_PREFIX="${SYNC_URL_PREFIX}"
@@ -91,12 +107,13 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_BASE_FOLDER=${QIMSDK_ARG_BASE_FOLDER}                           \
             --build-arg QIMSDK_ARG_SYNC_URL_PREFIX=${QIMSDK_ARG_SYNC_URL_PREFIX}                   \
             --build-arg QIMSDK_ARG_TFLITE_FILE=${QIMSDK_ARG_TFLITE_FILE}                           \
+            --build-arg QIMSDK_ARG_SNPE_DIR=${QIMSDK_ARG_SNPE_DIR}                                 \
             --build-arg QIMSDK_ARG_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}                             \
             --progress=plain --target qimsdk ${QIMSDK_DOCKER_FOLDER} -t qimsdk:${TAG}
 
     local rc=$?
     rm -rf ${QIMSDK_DOCKER_FOLDER}/tmp
-    [ $rc -ne 0 ] && print-red "Build image failed !!!" && return -10
+    [ $rc -ne 0 ] && print-red "Build image failed !!!" && return -11
 
     print-green "Build image completed successfully !!!"
 }

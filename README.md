@@ -206,9 +206,10 @@ The json file must contain certain data :
  4. ***MANDATORY*** - **eSDK_shell_file** - name of the shell file inside eSDK directory
  5. ***OPTIONAL*** - **Tflite_path** - Path to the directory where the prebuild tflite dev archive is located ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
  6. ***OPTIONAL*** - **Tflite_prebuilt_file** - name of the prebuilt archive
- 7. ***OPTIONAL*** - **Host_dir_mounted_in_container** - A work environment directory to be exported inside the docker container (if mounting a directory is not necessary, just leave the value for this field empty)
- 8. ***OPTIONAL*** - **Sync_URL_prefix** - This enables the use of a mirror URL - The URL, from which repositories will be cloned. If no URL is set, the default URL is: ```https://git.codelinaro.org/clo/le```
- 9. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send ipk packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 7. ***OPTIONAL*** - **SNPE_path** - path to unzipped snpe archive directory - path to the "snpe-X.XX.X.XXXX" directory (name depends on snpe version) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 8. ***OPTIONAL*** - **Host_dir_mounted_in_container** - A work environment directory to be exported inside the docker container (if mounting a directory is not necessary, just leave the value for this field empty)
+ 9. ***OPTIONAL*** - **Sync_URL_prefix** - This enables the use of a mirror URL - The URL, from which repositories will be cloned. If no URL is set, the default URL is: ```https://git.codelinaro.org/clo/le```
+ 10. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send ipk packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
 
 The json files must be created in the ```<snapdragon-iot-qimsdk>/sdk-tools/targets/``` directory. ```<snapdragon-iot-qimsdk>/sdk-tools/targets/LE.UM.6.4.2.json``` can be used as an example.
 
@@ -315,7 +316,7 @@ If ipk files needs to be deployed to device connected to another pc, then ipk fi
 
 ### Linux
 
-Script location: <snapdragon-iot-qimsdk>/sdk-tools/scripts/local/linux.sh
+Script location: \<snapdragon-iot-qimsdk\>/sdk-tools/scripts/local/linux.sh
 Sync cmd: qimsdk-local-sync - Sync packages with the device from specified folder
 
 ```bash
@@ -333,7 +334,7 @@ Example for adding adb to powershell path
 $Env:PATH += ";<path to adb>"
 ```
 
-Script location: <snapdragon-iot-qimsdk>/sdk-tools/scripts/local/win.ps1
+Script location: \<snapdragon-iot-qimsdk\>/sdk-tools/scripts/local/win.ps1
 Sync cmd: qimsdk-local-sync - Sync packages with the device from specified folder
 
 ```powershell

@@ -33,6 +33,14 @@ function qimsdk-gst-plugins-qti-prepare() {
             }
         }
 
+    # Setup snpe dir, if available
+    [ "${QIMSDK_ESDK_SNPE_DIR}" != "no-snpe-dir-available" ]                       && \
+        {
+            mkdir -p /mnt/qimsdk/esdk/layers/poky/meta-qti-ml-prop/recipes/snpe-sdk/files/snpe
+            cp -r ${QIMSDK_ESDK_BASE_FOLDER}/downloads/${QIMSDK_ESDK_SNPE_DIR}/* /mnt/qimsdk/esdk/layers/poky/meta-qti-ml-prop/recipes/snpe-sdk/files/snpe
+            rm -f ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-ml-prop/recipes/snpe-sdk/files/snpe/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
+        }
+
     qimsdk-gst-plugins-qti-add-layers                                                           && \
         qimsdk-gst-plugins-qti-prepare-layer
 }
