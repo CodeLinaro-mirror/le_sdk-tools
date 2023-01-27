@@ -22,6 +22,12 @@ function qimsdk-gst-plugins-qti-prepare() {
     # Remove gstreamer from BBMASK
     sed -i "s/meta\/recipes-multimedia\/gstreamer\///g" ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
 
+    # Use kernel headers dir from local sysroot
+    sed -i "s/\${STAGING_KERNEL_BUILDDIR}/\${STAGING_INCDIR}\/linux-msm/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+
+    # Remove not needed dependency to kernel workdir
+    sed -i "s/do_configure\[depends\] += \"virtual\/kernel:do_shared_workdir\"//g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+
     # Setup tf lite prebuilt, if available
     [ "${QIMSDK_ESDK_TFLITE_FILE}" != "no-tflite-dev-archive-available" ]                       && \
         {
