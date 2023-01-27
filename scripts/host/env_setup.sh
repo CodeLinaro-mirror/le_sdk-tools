@@ -8,17 +8,23 @@ echo "========================"
 
 function print-red()
 {
-    tput setaf 1 && echo $1 && tput sgr0
+    tput setaf 1 2>/dev/null
+    echo $@
+    tput sgr0 2>/dev/null
 }
 
 function print-green()
 {
-    tput setaf 2 && echo $1 && tput sgr0
+    tput setaf 2 2>/dev/null
+    echo $@
+    tput sgr0 2>/dev/null
 }
 
 function print-blue()
 {
-    tput setaf 4 && echo $1 && tput sgr0
+    tput setaf 4 2>/dev/null
+    echo $@
+    tput sgr0 2>/dev/null
 }
 
 # Build docker image based on Dockerfile in folder $QIMSDK_DOCKER_FOLDER
@@ -51,7 +57,7 @@ function qimsdk-docker-build-image() {
 
     rm -rf ${QIMSDK_DOCKER_FOLDER}/tmp
     mkdir -p ${QIMSDK_DOCKER_FOLDER}/tmp
-    ln ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_DOCKER_FOLDER}/tmp/                   || \
+    ln ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_DOCKER_FOLDER}/tmp/ 2>/dev/null       || \
         rsync -a ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_DOCKER_FOLDER}/tmp/         || \
         {
             print-red "Cannot add sdk sh file to tmp folder !!!"
@@ -90,10 +96,6 @@ function qimsdk-docker-build-image() {
                     touch ${QIMSDK_DOCKER_FOLDER}/tmp/${QIMSDK_ARG_SNPE_DIR}
                 }
 
-    local SYNC_URL_PREFIX=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Sync_URL_prefix' | tr -d '"'`
-    local QIMSDK_ARG_SYNC_URL_PREFIX="https://git.codelinaro.org/clo/le"
-    [ ! -z "${SYNC_URL_PREFIX}" ] && QIMSDK_ARG_SYNC_URL_PREFIX="${SYNC_URL_PREFIX}"
-
     local QIMSDK_ARG_DEPLOY_URL=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_URL' | tr -d '"'`
     QIMSDK_ARG_DEPLOY_URL=`echo ${QIMSDK_ARG_DEPLOY_URL}/ | sed 's/\/\//\//g'`
 
@@ -105,7 +107,6 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_IMAGE_OS=${QIMSDK_ARG_IMAGE_OS}                                 \
             --build-arg QIMSDK_ARG_ESDK_SH=${QIMSDK_ARG_ESDK_SH}                                   \
             --build-arg QIMSDK_ARG_BASE_FOLDER=${QIMSDK_ARG_BASE_FOLDER}                           \
-            --build-arg QIMSDK_ARG_SYNC_URL_PREFIX=${QIMSDK_ARG_SYNC_URL_PREFIX}                   \
             --build-arg QIMSDK_ARG_TFLITE_FILE=${QIMSDK_ARG_TFLITE_FILE}                           \
             --build-arg QIMSDK_ARG_SNPE_DIR=${QIMSDK_ARG_SNPE_DIR}                                 \
             --build-arg QIMSDK_ARG_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}                             \
@@ -196,14 +197,6 @@ function qimsdk-docker-run-container() {
         [ $rc -ne 0 ] && print-red "Propagating .gitconfig to docker failed !!!" && return -10
     fi
 
-    docker exec --user ${USER} ${CONTAINER} mkdir -p /mnt/qimsdk/targets
-    docker cp ${PATH_TO_CONFIG_JSON} ${CONTAINER}:/mnt/qimsdk/targets/config.json               && \
-        docker exec --user root ${CONTAINER} chown -R ${USER}:${GROUP} /mnt/qimsdk/targets      || \
-        {
-            print-red "Propagating config json to docker failed !!!"
-            return -11
-        }
-
     print-green "Docker ${CONTAINER} run successfull !!!"
     print-green "Please attach to docker container with name: ${CONTAINER}"
 }
@@ -292,6 +285,7 @@ function qimsdk-docker-cleanup() {
 }
 
 QIMSDK_DOCKER_FOLDER="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/../.. && pwd )"
+[ -f ${QIMSDK_DOCKER_FOLDER}/Dockerfile ] || QIMSDK_DOCKER_FOLDER="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/sdk-tools && pwd )"
 
 echo -e "Docker environment setup ready !!!\n"
 

@@ -5,15 +5,21 @@
 
 function print-red()
 {
-    tput setaf 1 && echo $1 && tput sgr0
+    tput setaf 1 2>/dev/null
+    echo $@
+    tput sgr0 2>/dev/null
 }
 
 function print-green()
 {
-    tput setaf 2 && echo $1 && tput sgr0
+    tput setaf 2 2>/dev/null
+    echo $@
+    tput sgr0 2>/dev/null
 }
 
 function print-blue()
 {
-    tput setaf 4 && echo $1 && tput sgr0
+    tput setaf 4 2>/dev/null
+    echo $@
+    tput sgr0 2>/dev/null
 }
