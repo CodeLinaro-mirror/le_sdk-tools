@@ -11,7 +11,7 @@ function qimsdk-target-get-updated-packages-all() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*.ipk" \) -anewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*.ipk" \) -cnewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
 }
 
 # Get updated release packages
@@ -22,7 +22,7 @@ function qimsdk-target-get-updated-packages-rel() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*.ipk" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" ! -iname "*-dbg_*" \) -anewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*.ipk" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" ! -iname "*-dbg_*" \) -cnewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
 }
 
 # Get updated debug packages
@@ -33,7 +33,7 @@ function qimsdk-target-get-updated-packages-dbg() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*-dbg_*.ipk" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -anewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*-dbg_*.ipk" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
 }
 
 function qimsdk-target-get-updated-packages-dev() {
@@ -42,7 +42,7 @@ function qimsdk-target-get-updated-packages-dev() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*-dev_*.ipk" ! -iname "*-dbg_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -anewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*-dev_*.ipk" ! -iname "*-dbg_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
 }
 
 function qimsdk-target-get-updated-packages-staticdev() {

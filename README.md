@@ -190,6 +190,7 @@ A. QIMSDK Image
 6. Add all other optional environment variables to be used inside the container
 7. Setup eSDK as HOST user
 8. Propagate needed scripts, urls, patches to the container
+9. Sync the code, compile modified layers and package compiled recipes
 
 <div id="Host_Side_Helper_Scripts_And_Configuration">
 

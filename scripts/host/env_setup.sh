@@ -55,12 +55,16 @@ function qimsdk-docker-build-image() {
     local QIMSDK_ARG_BASE_FOLDER=/mnt/qimsdk
     local GROUP=$(getent group $(id -g ${USER}) | cut -d ':' -f 1)
 
-    rm -rf ${QIMSDK_DOCKER_FOLDER}/tmp
-    mkdir -p ${QIMSDK_DOCKER_FOLDER}/tmp
-    ln ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_DOCKER_FOLDER}/tmp/ 2>/dev/null       || \
-        rsync -a ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_DOCKER_FOLDER}/tmp/         || \
+    local QIMSDK_REPO_BASE_FOLDER=${QIMSDK_DOCKER_FOLDER}/..
+    local QIMSDK_TMP_FOLDER=${QIMSDK_REPO_BASE_FOLDER}/tmp
+
+    rm -rf ${QIMSDK_TMP_FOLDER}
+    mkdir -p ${QIMSDK_TMP_FOLDER}
+    ln ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_TMP_FOLDER}/ 2>/dev/null              || \
+        rsync -a ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_TMP_FOLDER}/                || \
         {
             print-red "Cannot add sdk sh file to tmp folder !!!"
+            rm -rf ${QIMSDK_TMP_FOLDER}
             return -8
         }
 
@@ -70,30 +74,32 @@ function qimsdk-docker-build-image() {
 
     [ -f "${TFLITE_FILE}" ]                                                                     && \
         local QIMSDK_ARG_TFLITE_FILE=${TFLITE_FILENAME}                                         && \
-            ( ln ${TFLITE_FILE} ${QIMSDK_DOCKER_FOLDER}/tmp/ 2>/dev/null                        || \
-                rsync -a ${TFLITE_FILE} ${QIMSDK_DOCKER_FOLDER}/tmp/                            || \
+            ( ln ${TFLITE_FILE} ${QIMSDK_TMP_FOLDER}/ 2>/dev/null                               || \
+                rsync -a ${TFLITE_FILE} ${QIMSDK_TMP_FOLDER}/                                   || \
                 {
                     print-red "Cannot add tflite dev archive to tmp folder !!!"
+                    rm -rf ${QIMSDK_TMP_FOLDER}
                     return -9
                 }
             )                                                                                   || \
                 local QIMSDK_ARG_TFLITE_FILE=no-tflite-dev-archive-available                    && \
-                touch ${QIMSDK_DOCKER_FOLDER}/tmp/${QIMSDK_ARG_TFLITE_FILE}
+                touch ${QIMSDK_TMP_FOLDER}/${QIMSDK_ARG_TFLITE_FILE}
 
     local SNPE_DIR=`cat ${PATH_TO_CONFIG_JSON} |  jq '.SNPE_path' | tr -d '"'`
 
-    [ -d "${SNPE_DIR}" ]                                                                         && \
-        local QIMSDK_ARG_SNPE_DIR=$(basename ${SNPE_DIR})                                        && \
-            ( ln ${SNPE_DIR} ${QIMSDK_DOCKER_FOLDER}/tmp/ 2>/dev/null                            || \
-                rsync -a ${SNPE_DIR} ${QIMSDK_DOCKER_FOLDER}/tmp/                                || \
+    [ -d "${SNPE_DIR}" ]                                                                        && \
+        local QIMSDK_ARG_SNPE_DIR=$(basename ${SNPE_DIR})                                       && \
+            ( ln ${SNPE_DIR} ${QIMSDK_TMP_FOLDER}/ 2>/dev/null                                  || \
+                rsync -a ${SNPE_DIR} ${QIMSDK_TMP_FOLDER}/                                      || \
                 {
                     print-red "Cannot add snpe dir to tmp folder !!!"
+                    rm -rf ${QIMSDK_TMP_FOLDER}
                     return -10
                 }
             )                                                                                   || \
                 {
                     local QIMSDK_ARG_SNPE_DIR=no-snpe-dir-available
-                    touch ${QIMSDK_DOCKER_FOLDER}/tmp/${QIMSDK_ARG_SNPE_DIR}
+                    touch ${QIMSDK_TMP_FOLDER}/${QIMSDK_ARG_SNPE_DIR}
                 }
 
     local QIMSDK_ARG_DEPLOY_URL=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_URL' | tr -d '"'`
@@ -114,10 +120,11 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_SNPE_DIR=${QIMSDK_ARG_SNPE_DIR}                                 \
             --build-arg QIMSDK_ARG_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}                             \
             --build-arg QIMSDK_ARG_DEPLOY_URL_DEV=${QIMSDK_ARG_DEPLOY_URL_DEV}                     \
-            --progress=plain --target qimsdk ${QIMSDK_DOCKER_FOLDER} -t qimsdk:${TAG}
+            -f ${QIMSDK_DOCKER_FOLDER}/Dockerfile                                                  \
+            --progress=plain --target qimsdk ${QIMSDK_REPO_BASE_FOLDER} -t qimsdk:${TAG}
 
     local rc=$?
-    rm -rf ${QIMSDK_DOCKER_FOLDER}/tmp
+    rm -rf ${QIMSDK_TMP_FOLDER}
     [ $rc -ne 0 ] && print-red "Build image failed !!!" && return -11
 
     print-green "Build image completed successfully !!!"
@@ -154,20 +161,11 @@ function qimsdk-docker-run-container() {
         -v /dev/bus/usb:/dev/bus/usb:ro                                                            \
         -v /etc/timezone:/etc/timezone:ro                                                          \
         -v /etc/localtime:/etc/localtime:ro                                                        \
-        -v ${QIMSDK_REPO_BASE_FOLDER}:${QIMSDK_ARG_BASE_FOLDER}/repo                               \
         -it -d --privileged -h qimsdk-${TAG} --user ${USER}                                        \
         --name ${CONTAINER} qimsdk:${TAG}
 
     local rc=$?
     [ $rc -ne 0 ] && print-red "docker run failed !!!" && return -3
-
-    # Add soft link to src and poky
-    docker exec --user ${USER} ${CONTAINER} ln -s ${QIMSDK_ARG_BASE_FOLDER}/repo/src ${QIMSDK_ARG_BASE_FOLDER}/esdk/layers/src
-    rc=$?
-    [ $rc -ne 0 ] && print-red "docker ln -s ${QIMSDK_ARG_BASE_FOLDER}/repo/src ${QIMSDK_ARG_BASE_FOLDER}/esdk/layers/src !!!" && return -4
-    docker exec --user ${USER} ${CONTAINER} ln -s ${QIMSDK_ARG_BASE_FOLDER}/repo/poky ${QIMSDK_ARG_BASE_FOLDER}/poky
-    rc=$?
-    [ $rc -ne 0 ] && print-red "docker ln -s ${QIMSDK_ARG_BASE_FOLDER}/repo/poky ${QIMSDK_ARG_BASE_FOLDER}/poky !!!" && return -5
 
     # Propagate ssh and gitconfig to container
     docker exec --user ${USER} ${CONTAINER} mkdir /home/${USER}/.ssh

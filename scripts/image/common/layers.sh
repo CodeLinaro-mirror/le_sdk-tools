@@ -49,6 +49,11 @@ function qimsdk-layers-package() {
     print-green "All layers packaged successfully !!!"
 }
 
+# Prepare, build and package all layers
+function qimsdk-layers-prepare-build-package() {
+    qimsdk-layers-prepare && qimsdk-layers-build && qimsdk-layers-package
+}
+
 # Print help
 print-green "qimsdk-layers-prepare"
 echo "    must be invoked initially to sync the code and prepare recipes"
@@ -56,3 +61,5 @@ print-green "qimsdk-layers-build"
 echo "    must be invoked after invoking qimsdk-layers-prepare to compile modified layers"
 print-green "qimsdk-layers-package"
 echo "    must be invoked after invoking qimsdk-layers-build to package compiled recipes"
+print-green "qimsdk-layers-prepare-build-package"
+echo "    must be invoked initially to sync the code, compile modified layers and package compiled recipes"

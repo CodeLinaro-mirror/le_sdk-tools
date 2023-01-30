@@ -113,7 +113,7 @@ RUN ln -sf ${QIMSDK_ESDK_BASE_FOLDER}/buildtools /usr/local/oe-sdk-hardcoded-bui
 RUN rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/${QIMSDK_ESDK_SH}
 
 # Add bash aliases
-ADD .bash_aliases /home/${QIMSDK_ARG_HOST_USER}/.bash_aliases
+ADD sdk-tools/.bash_aliases /home/${QIMSDK_ARG_HOST_USER}/.bash_aliases
 RUN chown ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} /home/${QIMSDK_ARG_HOST_USER}/.bash_aliases
 
 # Set deploy URL
@@ -131,15 +131,29 @@ RUN rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/layers/src/vendor/qcom/opensource/gst-plug
 
 # Add patches
 ENV QIMSDK_PATCHES=${QIMSDK_BASE_FOLDER}/patches
-ADD patches ${QIMSDK_PATCHES}
+ADD sdk-tools/patches ${QIMSDK_PATCHES}
 RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_PATCHES}
 
 # Add image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_FOLDER}/scripts
-ADD scripts/image ${QIMSDK_SCRIPTS}
+ADD sdk-tools/scripts/image ${QIMSDK_SCRIPTS}
 RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_SCRIPTS}
 
 # Set work folder
 ENV QIMSDK_WORK_FOLDER=${QIMSDK_BASE_FOLDER}/work
 
 WORKDIR ${QIMSDK_BASE_FOLDER}
+
+# Add src code
+ADD poky ${QIMSDK_ARG_BASE_FOLDER}/repo/poky
+ADD src ${QIMSDK_ARG_BASE_FOLDER}/repo/src
+RUN ln -s ${QIMSDK_ARG_BASE_FOLDER}/repo/src ${QIMSDK_ARG_BASE_FOLDER}/esdk/layers/src
+RUN ln -s ${QIMSDK_ARG_BASE_FOLDER}/repo/poky ${QIMSDK_ARG_BASE_FOLDER}/poky
+RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_FOLDER}/repo/poky   && \
+    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_FOLDER}/repo/src    && \
+    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_FOLDER}/poky        && \
+    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_FOLDER}/esdk/layers/src
+
+# Prepare, build and package all layers
+USER ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}
+RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-layers-prepare-build-package
