@@ -19,6 +19,7 @@
 * [Development Workflow](#Development_Workflow)
   * [Initial One Time Setup](#Initial_One_Time_Setup)
   * [Continuous Development After Initial Setup](#Continuous_Development_After_Initial_Setup)
+  * [Extracting gstreamer headers and dev packages](#Extracting_gstreamer_headers_and_dev_packages)
 * [Examples For Development](#Examples_For_Development)
   * [Modifications In OMX Gst Plugin (remote src)](#Modifications_In_OMX_Gst_Plugin_(remote_src))
   * [Modifications In QMMF Gst Plugin (local src)](#Modifications_In_QMMF_Gst_Plugin_(local_src))
@@ -209,6 +210,7 @@ The json file must contain certain data :
  7. ***OPTIONAL*** - **SNPE_path** - path to unzipped snpe archive directory - path to the "snpe-X.XX.X.XXXX" directory (name depends on snpe version) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
  8. ***OPTIONAL*** - **Host_dir_mounted_in_container** - A work environment directory to be exported inside the docker container (if mounting a directory is not necessary, just leave the value for this field empty)
  9. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send ipk packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 10. ***OPTIONAL*** - **Deploy_dev_URL** - This enables sending dev packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send dev packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
 
 The json files must be created in the ```<snapdragon-iot-qimsdk>/sdk-tools/targets/``` directory. ```<snapdragon-iot-qimsdk>/sdk-tools/targets/LE.UM.6.4.2.json``` can be used as an example.
 
@@ -291,9 +293,17 @@ Must be invoked to sync release packages with the remote target
 
 Must be invoked to sync debug packages with the remote target
 
+### qimsdk-remote-sync-dev
+
+Must be invoked to sync dev packages with the remote target
+
+### qimsdk-remote-sync-staticdev
+
+Must be invoked to sync staticdev packages with the remote target
+
 ### qimsdk-remote-packages-remove
 
-must be invoked to send remove installed packages script the remote target
+Must be invoked to remove packages, installed by the remote target script
 
 ***Please note that package remove script file must be invoked on the host computer***
 
@@ -559,6 +569,15 @@ qimsdk-remote-packages-remove
 ***Please note that package remove script file must be invoked on the host computer***
 
 ***Please note that script file extension must be renamed to bat when remote OS is windows***
+
+<div id="Extracting_gstreamer_headers_and_dev_packages">
+
+### Extracting gstreamer headers and dev packages
+
+When trying to compile using gstreamer headers:
+
+* Use the ***qimsdk-remote-sync-dev*** function to sync all dev packages containing the needed gstreamer headers to your remote target.
+* For information on how to select the target URL, refer to [How to fill out Configuration JSON File](#Every_Docker_Container_Is_Configured_With_The_Help_Of_A_Configuration_JSON_File)
 
 <div id="Examples_For_Development">
 

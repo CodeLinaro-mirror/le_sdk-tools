@@ -120,6 +120,10 @@ RUN chown ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} /home/${QIMSDK_ARG_HO
 ARG QIMSDK_ARG_DEPLOY_URL
 ENV QIMSDK_ESDK_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}
 
+# Set deploy dev URL
+ARG QIMSDK_ARG_DEPLOY_URL_DEV
+ENV QIMSDK_ESDK_DEPLOY_URL_DEV=${QIMSDK_ARG_DEPLOY_URL_DEV}
+
 # Remove meta layers and src code to be cloned
 RUN rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-gst
 RUN rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-gst-prop

@@ -36,16 +36,35 @@ function qimsdk-target-get-updated-packages-dbg() {
     done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*-dbg_*.ipk" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -anewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
 }
 
+function qimsdk-target-get-updated-packages-dev() {
+    local -n UPDATED_PACKAGES=$1
+
+    # Get packages to install since latest sync
+    while IFS= read -r -d $'\0'; do
+        UPDATED_PACKAGES+=("$REPLY")
+    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*-dev_*.ipk" ! -iname "*-dbg_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -anewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
+}
+
+function qimsdk-target-get-updated-packages-staticdev() {
+    local -n UPDATED_PACKAGES=$1
+
+    # Get packages to install since latest sync
+    while IFS= read -r -d $'\0'; do
+        UPDATED_PACKAGES+=("$REPLY")
+    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*-staticdev_*.ipk" ! -iname "*-dbg_*" ! -iname "*-doc_*" \) -anewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
+}
+
 # Sync compiled packages with the target
 #   $1 - (mandatory) variant: rel or dbg
 #   $2 - (mandatory) target: device or remote
 function qimsdk-target-sync() {
     local VARIANT=$1
     local TARGET=$2
-    [ ! "${VARIANT}" == "rel" ] && [ ! "${VARIANT}" == "dbg" ]              && \
-        print-red "Variant input argument rel or dev is required" && return -1
+    [ ! "${VARIANT}" == "rel" ] && [ ! "${VARIANT}" == "dbg" ]                                  && \
+        [ ! "${VARIANT}" == "dev" ] && [ ! "${VARIANT}" == "staticdev" ]                        && \
+        print-red "Variant input argument dbg, rel, dev or staticdev is required" && return -1
 
-    [ ! "${TARGET}" == "device" ] && [ ! "${TARGET}" == "remote" ]          && \
+    [ ! "${TARGET}" == "device" ] && [ ! "${TARGET}" == "remote" ]                              && \
         print-red "Target input argument device or remote is required" && return -2
 
     # Check whether code was already prepared
@@ -53,7 +72,7 @@ function qimsdk-target-sync() {
 
     # Get updated packages
     local PKGS
-    qimsdk-target-get-updated-packages-${VARIANT} PKGS                      || \
+    qimsdk-target-get-updated-packages-${VARIANT} PKGS                                          || \
         {
             print-red "Failed to get updated packages";
             return -4;
@@ -68,14 +87,19 @@ function qimsdk-target-sync() {
         local DATE=`date -r ${PKG}`
         local LOG="Pushing ${PKG} ${DATE}"
         local PKG_NAME=`echo $(basename ${PKG}) | cut -d '_' -f 1`
-
-        cat ${SYNC_FILE} 2>/dev/null | grep "${LOG}" 1>/dev/null            || \
+        local DEV=""
+        [ ${VARIANT} == "dev" ] || [ ${VARIANT} == "staticdev" ]                                && \
             {
-                qimsdk-${TARGET}-pkg-sync ${PKG}                                && \
+                DEV="-dev"
+            }
+
+        cat ${SYNC_FILE} 2>/dev/null | grep "${LOG}" 1>/dev/null                                || \
+            {
+                qimsdk-${TARGET}-pkg-sync${DEV} ${PKG}                                          && \
                 {
                     sed -i "/${PKG_NAME}/d" ${REMOVE_PKG_FILE} 2>/dev/null
                     echo "adb shell \"opkg remove --force-depends ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE}
-                }                                                               || \
+                }                                                                               || \
                 return -5
             }
         PKG=$(basename ${PKG})
@@ -91,13 +115,13 @@ function qimsdk-target-sync() {
 function qimsdk-target-packages-remove() {
     local TARGET=$1
 
-    [ ! "${TARGET}" == "device" ] && [ ! "${TARGET}" == "remote" ]          && \
+    [ ! "${TARGET}" == "device" ] && [ ! "${TARGET}" == "remote" ]                              && \
         print-red "Target input argument device or remote is required" && return -1
 
     local REMOVE_PKG_FILE="${QIMSDK_WORK_FOLDER}/${TARGET}_packages_remove.sh"
 
     # Remove packages and clear sync log
-    qimsdk-${TARGET}-script-invoke ${REMOVE_PKG_FILE}                       && \
+    qimsdk-${TARGET}-script-invoke ${REMOVE_PKG_FILE}                                           && \
         qimsdk-${TARGET}-sync-log-clear
 
     print-green "Packages removed successfully !!!"

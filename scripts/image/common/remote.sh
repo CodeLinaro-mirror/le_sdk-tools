@@ -34,7 +34,26 @@ function qimsdk-remote-pkg-sync() {
 
     [ ! -f "${PATH_TO_PACKAGE}" ] && print-red "File "${PATH_TO_PACKAGE}" does not exist !!!" && return -3
 
-    rsync -a --progress ${PATH_TO_PACKAGE} ${QIMSDK_ESDK_DEPLOY_URL}                             || \
+    rsync -a --progress ${PATH_TO_PACKAGE} ${QIMSDK_ESDK_DEPLOY_URL}                            || \
+        {
+            print-red "rsync package to deploy URL failed !!!";
+            return -4;
+        }
+
+    return 0
+}
+
+# Sync compiled package with the remote
+#   $1 - (mandatory) path to the package to be synced
+function qimsdk-remote-pkg-sync-dev() {
+    [ -z ${QIMSDK_ESDK_DEPLOY_URL_DEV} ] && print-red "Deploy URL must be provided in config json !!!" && return -1
+
+    local PATH_TO_PACKAGE=$1
+    [ -z "${PATH_TO_PACKAGE}" ] && print-red "Package name must be provided as first argument !!!" && return -2
+
+    [ ! -f "${PATH_TO_PACKAGE}" ] && print-red "File "${PATH_TO_PACKAGE}" does not exist !!!" && return -3
+
+    rsync -a --progress ${PATH_TO_PACKAGE} ${QIMSDK_ESDK_DEPLOY_URL_DEV}                        || \
         {
             print-red "rsync package to deploy URL failed !!!";
             return -4;
@@ -58,6 +77,14 @@ function qimsdk-remote-sync-dbg() {
     qimsdk-target-sync dbg remote
 }
 
+function qimsdk-remote-sync-dev() {
+    qimsdk-target-sync dev remote
+}
+
+function qimsdk-remote-sync-staticdev() {
+    qimsdk-target-sync staticdev remote
+}
+
 # Send remove installed packages script the remote target
 function qimsdk-remote-packages-remove() {
     qimsdk-target-packages-remove remote
@@ -69,6 +96,10 @@ function qimsdk-remote-packages-remove() {
         echo "    must be invoked to sync release packages with the remote target";
         print-blue "qimsdk-remote-sync-dbg";
         echo "    must be invoked to sync debug packages with the remote target";
+        print-blue "qimsdk-remote-sync-dev";
+        echo "    must be invoked to sync dev packages with the remote target";
+        print-blue "qimsdk-remote-sync-staticdev";
+        echo "    must be invoked to sync staticdev packages with the remote target";
         print-blue "qimsdk-remote-packages-remove";
-        echo "    must be invoked to send remove installed packages script the remote target";
+        echo "    must be invoked to remove packages, installed by the remote target script";
     }

@@ -7,5 +7,6 @@
     "Tflite_prebuilt_file": "<tf-lite-prebuild-file>",
     "SNPE_path":"",
     "Host_dir_mounted_in_container": "",
-    "Deploy_URL": ""
+    "Deploy_URL": "",
+    "Deploy_dev_URL": ""
 }
