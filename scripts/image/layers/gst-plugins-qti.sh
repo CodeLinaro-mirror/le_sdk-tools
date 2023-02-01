@@ -35,12 +35,19 @@ function qimsdk-gst-plugins-qti-prepare() {
         }
 
     # Setup snpe dir, if available
-    [ "${QIMSDK_ESDK_SNPE_DIR}" != "no-snpe-dir-available" ]                       && \
+    [ "${QIMSDK_ESDK_SNPE_DIR}" != "no-snpe-dir-available" ]                                    && \
         {
             mkdir -p /mnt/qimsdk/esdk/layers/poky/meta-qti-ml-prop/recipes/snpe-sdk/files/snpe
             cp -r ${QIMSDK_ESDK_BASE_FOLDER}/downloads/${QIMSDK_ESDK_SNPE_DIR}/* /mnt/qimsdk/esdk/layers/poky/meta-qti-ml-prop/recipes/snpe-sdk/files/snpe
             rm -f ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-ml-prop/recipes/snpe-sdk/files/snpe/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
-        }
+            [ -f /mnt/qimsdk/esdk/layers/poky/meta-qti-ml-prop/recipes/snpe-sdk/files/snpe/ReleaseNotes.txt ] && \
+                echo PV = \"$(grep -m 1 'SNPE [0-9].*' /mnt/qimsdk/esdk/layers/poky/meta-qti-ml-prop/recipes/snpe-sdk/files/snpe/ReleaseNotes.txt | awk '{print $2}')\" \
+                >> /mnt/qimsdk/esdk/layers/poky/meta-qti-ml-prop/recipes/snpe-sdk/snpe.bb
+        }                                                                                       || \
+            {
+                sed -i "/gstreamer1.0-plugins-qti-oss-mlsnpe:do_compile/d" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+                sed -i "/gstreamer1.0-plugins-qti-oss-mlsnpe:do_package_write_ipk/d" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+            }
 
     qimsdk-gst-plugins-qti-add-layers                                                           && \
         qimsdk-gst-plugins-qti-prepare-layer
