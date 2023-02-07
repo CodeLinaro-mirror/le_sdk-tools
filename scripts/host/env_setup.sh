@@ -88,14 +88,14 @@ function qimsdk-docker-build-image() {
     local SNPE_DIR=`cat ${PATH_TO_CONFIG_JSON} |  jq '.SNPE_path' | tr -d '"'`
 
     [ -d "${SNPE_DIR}" ]                                                                        && \
-        local QIMSDK_ARG_SNPE_DIR=$(basename ${SNPE_DIR})                                       && \
-            ( ln ${SNPE_DIR} ${QIMSDK_TMP_FOLDER}/ 2>/dev/null                                  || \
-                rsync -a ${SNPE_DIR} ${QIMSDK_TMP_FOLDER}/                                      || \
+        local QIMSDK_ARG_SNPE_DIR=snpe                                                          && \
+            ( rsync -a ${SNPE_DIR}/* ${QIMSDK_TMP_FOLDER}/snpe/                                 || \
                 {
                     print-red "Cannot add snpe dir to tmp folder !!!"
                     rm -rf ${QIMSDK_TMP_FOLDER}
                     return -10
                 }
+                rm -f ${QIMSDK_TMP_FOLDER}/${QIMSDK_ARG_SNPE_DIR}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
             )                                                                                   || \
                 {
                     local QIMSDK_ARG_SNPE_DIR=no-snpe-dir-available
