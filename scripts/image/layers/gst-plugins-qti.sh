@@ -13,7 +13,7 @@ function qimsdk-gst-plugins-qti-add-layers() {
 
 # Prepare all recipes in layer
 function qimsdk-gst-plugins-qti-prepare-layer() {
-    devtool modify gstreamer1.0-plugins-qti-oss-all
+    devtool modify packagegroup-qti-gst
 }
 
 # Prepare gst-plugins-qti
@@ -28,6 +28,18 @@ function qimsdk-gst-plugins-qti-prepare() {
     # Remove not needed dependency to kernel workdir
     sed -i "s/do_configure\[depends\] += \"virtual\/kernel:do_shared_workdir\"//g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
 
+    # Remove packagegroup class
+    sed -i "s/inherit packagegroup//g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+
+    # Transpose packagegroup specific RDEPENDS packages as do_package task dependencies
+    sed -i "s/RDEPENDS_packagegroup-qti-gst/do_package[depends]/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+
+    # Append do_package_write_ipk task to packages
+    sed -i 's/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:do_package_write_ipk/g' ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+
+    # Enable the compilation of mltflite plugin
+    echo -e '\nDISTRO_FEATURES += "tensorflow-lite"' >> ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
+
     # Setup tf lite prebuilt, if available
     [ "${QIMSDK_ESDK_TFLITE_FILE}" != "no-tflite-dev-archive-available" ]                       && \
         {
@@ -35,11 +47,13 @@ function qimsdk-gst-plugins-qti-prepare() {
         }
 
     # Setup snpe dir, if available
-    [ "${QIMSDK_ESDK_SNPE_DIR}" != "no-snpe-dir-available" ]                       && \
+    [ "${QIMSDK_ESDK_SNPE_DIR}" != "no-snpe-dir-available" ]                                    && \
         {
-            mkdir -p /mnt/qimsdk/esdk/layers/poky/meta-qti-ml-prop/recipes/snpe-sdk/files/snpe
-            cp -r ${QIMSDK_ESDK_BASE_FOLDER}/downloads/${QIMSDK_ESDK_SNPE_DIR}/* /mnt/qimsdk/esdk/layers/poky/meta-qti-ml-prop/recipes/snpe-sdk/files/snpe
-            rm -f ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-ml-prop/recipes/snpe-sdk/files/snpe/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
+            echo -e '\nDISTRO_FEATURES += "qti-snpe"' >> ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
+            mkdir -p ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-ml/recipes/snpe-sdk
+            [ -f ${QIMSDK_ESDK_BASE_FOLDER}/downloads/snpe/ReleaseNotes.txt ] && \
+                echo PV = \"$(grep -m 1 'SNPE [0-9].*' ${QIMSDK_ESDK_BASE_FOLDER}/downloads/snpe/ReleaseNotes.txt | awk '{print $2}')\" \
+                >> ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-ml/recipes/snpe-sdk/snpe.bbappend
         }
 
     qimsdk-gst-plugins-qti-add-layers                                                           && \
@@ -48,13 +62,13 @@ function qimsdk-gst-plugins-qti-prepare() {
 
 # Build gst-plugins-qti
 function qimsdk-gst-plugins-qti-build() {
-    devtool build gstreamer1.0-plugins-qti-oss-all
+    devtool build packagegroup-qti-gst
 }
 
 # Package gst-plugins-qti
 function qimsdk-gst-plugins-qti-package() {
     # Build task of that recipe generates all ipk files for dependent packages
-    devtool package gstreamer1.0-plugins-qti-oss-all
+    devtool package packagegroup-qti-gst
 }
 
 # Inspect plugins

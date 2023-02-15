@@ -8,6 +8,7 @@ function print-red()
     tput setaf 1 2>/dev/null
     echo $@
     tput sgr0 2>/dev/null
+    true
 }
 
 function print-green()
@@ -15,6 +16,7 @@ function print-green()
     tput setaf 2 2>/dev/null
     echo $@
     tput sgr0 2>/dev/null
+    true
 }
 
 function print-blue()
@@ -22,4 +24,5 @@ function print-blue()
     tput setaf 4 2>/dev/null
     echo $@
     tput sgr0 2>/dev/null
+    true
 }

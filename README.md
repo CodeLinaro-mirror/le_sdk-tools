@@ -190,6 +190,7 @@ A. QIMSDK Image
 6. Add all other optional environment variables to be used inside the container
 7. Setup eSDK as HOST user
 8. Propagate needed scripts, urls, patches to the container
+9. Sync the code, compile modified layers and package compiled recipes
 
 <div id="Host_Side_Helper_Scripts_And_Configuration">
 
@@ -230,7 +231,7 @@ source <snapdragon-iot-qimsdk>/sdk-tools/scripts/host/env_setup.sh
 
 The developer generally needs to build the image and run the container.
 
-- ```qimsdk-docker-build-image ./targets/<config.json>``` - This function propagates the user and the group and builds the docker image, using the data from the configuration json file.
+- ```qimsdk-docker-build-image ./targets/<config.json>``` - This function propagates the user and the group and builds the docker image, using the data from the configuration json file. During docker image build, it prepares, builds, and packages esdk gstreamer code.
 - ```qimsdk-docker-run-container ./targets/<config.json>``` - This function runs a container, where:
   - If an additional tag is provided in the json, it appends it to the name of the container
   - If a directory to mount is provided in the json, it mounts it in the container
@@ -257,53 +258,17 @@ source ${QIMSDK_BASE_FOLDER}/scripts/env_setup.sh
 
 The functions inside env_setup.sh are propagated through to .bashrc, so they are immediately available inside the container
 
-### qimsdk-layers-prepare
-
-Must be invoked initially to sync the code and prepare recipes
-
-### qimsdk-layers-build
-
-Must be invoked after invoking qimsdk-layers-prepare to compile modified layers in the container
-
-### qimsdk-layers-package
-
-Must be invoked after invoking qimsdk-layers-build to package compiled recipes in the container
-
-### qimsdk-device-prepare
-
-Must be invoked to prepare device for package sync
-
-### qimsdk-device-sync-rel
-
-Must be invoked to sync release packages with the device
-
-### qimsdk-device-sync-dbg
-
-Must be invoked to sync debug packages with the device
-
-### qimsdk-device-packages-remove
-
-Must be invoked to remove installed packages from the device
-
-### qimsdk-remote-sync-rel
-
-Must be invoked to sync release packages with the remote target
-
-### qimsdk-remote-sync-dbg
-
-Must be invoked to sync debug packages with the remote target
-
-### qimsdk-remote-sync-dev
-
-Must be invoked to sync dev packages with the remote target
-
-### qimsdk-remote-sync-staticdev
-
-Must be invoked to sync staticdev packages with the remote target
-
-### qimsdk-remote-packages-remove
-
-Must be invoked to remove packages, installed by the remote target script
+- ```qimsdk-layers-build``` - Must be invoked to compile modified layers in the container
+- ```qimsdk-layers-package``` - Must be invoked after invoking qimsdk-layers-build to package compiled recipes in the container
+- ```qimsdk-device-prepare``` - Must be invoked to prepare device for package sync
+- ```qimsdk-device-sync-rel``` -Must be invoked to sync release packages with the device
+- ```qimsdk-device-sync-dbg``` - Must be invoked to sync debug packages with the device
+- ```qimsdk-device-packages-remove``` - Must be invoked to remove installed packages from the device
+- ```qimsdk-remote-sync-rel``` - Must be invoked to sync release packages with the remote target
+- ```qimsdk-remote-sync-dbg``` - Must be invoked to sync debug packages with the remote target
+- ```qimsdk-remote-sync-dev``` - Must be invoked to sync dev packages with the remote target
+- ```qimsdk-remote-sync-staticdev``` - Must be invoked to sync staticdev packages with the remote target
+- ```qimsdk-remote-packages-remove``` - Must be invoked to remove packages, installed by the remote target script
 
 ***Please note that package remove script file must be invoked on the host computer***
 
@@ -369,16 +334,6 @@ If use of password protected ssh key is needed, ssh agent needs to be used:
 ssh-agent -s > ~/work/.ssh_agent.info
 . ~/work/.ssh_agent.info
 ssh-add ~/.ssh/<private-ssh-key-name>
-```
-
-#### Prepare QIMSDK
-
-***Please note that this step needs to be invoked only once after container is started***
-
-Invoke following command to fetch code to be used.
-
-```bash
-qimsdk-layers-prepare
 ```
 
 #### Fetch Code For eSDK Recipe Not Included In QIMSDK
@@ -599,8 +554,6 @@ When trying to compile using gstreamer headers:
 Prepare the environment
 
 ```bash
-# Prepare QIMSDK
-qimsdk-layers-prepare
 # Prepare OMX gst plugin
 devtool modify gstreamer1.0-omx
 # Prepare Device For Update
@@ -638,8 +591,6 @@ devtool build gstreamer1.0-omx && devtool package gstreamer1.0-omx && qimsdk-dev
 Prepare the environment
 
 ```bash
-# Prepare QIMSDK
-qimsdk-layers-prepare
 # Prepare Device For Update After Meta Flashing
 qimsdk-device-prepare
 adb disable-verity
@@ -688,8 +639,6 @@ Prepare the environment
 ssh-agent -s > ~/work/.ssh_agent.info
 . ~/work/.ssh_agent.info
 ssh-add ~/.ssh/<private-ssh-key-name>
-# Prepare QIMSDK
-qimsdk-layers-prepare
 # Clone weston
 git clone "<Sync_URL_Prefix>"/wayland/weston \
     ${QIMSDK_ESDK_BASE_FOLDER}/layers/src/display/weston  \
