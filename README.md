@@ -62,23 +62,6 @@ fs.inotify.max_user_watches=542288
 
 ### Docker Must Be Configured On The Host System (one time)
 
-***Before proceeding with Docker configuration on the PC, ensure CPU Virtualization is enabled from BIOS!***
-
-#### Add User To kvm Group
-
-```bash
-sudo groupadd kvm
-modprobe kvm
-kvm-ok
-# echo $? should be 0 after executing previous command
-lsmod | grep kvm
-# echo $? should be 0 after executing previous command
-sudo usermod -aG kvm $USER
-newgrp kvm
-```
-
-***Please note that until PC reboot, *newgrp kvm* should be invoked on every new console open***
-
 #### Cleanup Old Versions
 
 ```bash
@@ -108,7 +91,7 @@ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o 
 
 ```bash
 sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo apt-get install docker-ce docker-ce-cli
 ```
 
 #### Add User to Docker Group
