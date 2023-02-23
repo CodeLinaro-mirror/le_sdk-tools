@@ -98,21 +98,22 @@ function qimsdk-docker-build-image() {
                     touch ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_TFLITE_FILENAME}
                 }
 
-    local SNPE_DIR=`cat ${PATH_TO_CONFIG_JSON} |  jq '.SNPE_path' | tr -d '"'`
+    local QIMSDK_ARG_ACCELERATION_ENGINE=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Acceleration_engine' | tr -d '"'`
+    local ACCELERATION_ENGINE_DIR=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Acceleration_engine_path' | tr -d '"'`
 
-    [ -d "${SNPE_DIR}" ]                                                                        && \
-        local QIMSDK_ARG_SNPE_DIR=snpe                                                          && \
-            ( rsync -a ${SNPE_DIR}/* ${QIMSDK_TMP_DIR}/snpe/                                    || \
+    [ -d "${ACCELERATION_ENGINE_DIR}" ]                                                         && \
+        local QIMSDK_ARG_ACCELERATION_ENGINE_DIR=${QIMSDK_ARG_ACCELERATION_ENGINE}              && \
+            ( rsync -a ${ACCELERATION_ENGINE_DIR}/* ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_ACCELERATION_ENGINE_DIR}/ || \
                 {
-                    print-red "Cannot add snpe dir to tmp dir !!!"
+                    print-red "Cannot add ${QIMSDK_ARG_ACCELERATION_ENGINE} dir to tmp folder !!!"
                     rm -rf ${QIMSDK_TMP_DIR}
-                    return -11
+                    return -10
                 }
-                rm -f ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_SNPE_DIR}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
+                rm -f ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_ACCELERATION_ENGINE_DIR}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
             )                                                                                   || \
                 {
-                    local QIMSDK_ARG_SNPE_DIR=no-snpe-dir-available
-                    touch ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_SNPE_DIR}
+                    QIMSDK_ARG_ACCELERATION_ENGINE_DIR=no-acceleration-engine-dir-available
+                    touch ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_ACCELERATION_ENGINE_DIR}
                 }
 
     local QIMSDK_ARG_DEPLOY_URL=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_URL' | tr -d '"'`
@@ -132,7 +133,8 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_ESDK_SH=${QIMSDK_ARG_ESDK_SH}                                   \
             --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_ARG_BASE_DIR}                                 \
             --build-arg QIMSDK_ARG_TFLITE_FILENAME=${QIMSDK_ARG_TFLITE_FILENAME}                   \
-            --build-arg QIMSDK_ARG_SNPE_DIR=${QIMSDK_ARG_SNPE_DIR}                                 \
+            --build-arg QIMSDK_ARG_ACCELERATION_ENGINE=${QIMSDK_ARG_ACCELERATION_ENGINE}           \
+            --build-arg QIMSDK_ARG_ACCELERATION_ENGINE_DIR=${QIMSDK_ARG_ACCELERATION_ENGINE_DIR}   \
             --build-arg QIMSDK_ARG_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}                             \
             --build-arg QIMSDK_ARG_DEPLOY_URL_DEV=${QIMSDK_ARG_DEPLOY_URL_DEV}                     \
             --build-arg QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES="${QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES}"       \
@@ -141,7 +143,7 @@ function qimsdk-docker-build-image() {
 
     local rc=$?
     rm -rf ${QIMSDK_TMP_DIR}
-    [ $rc -ne 0 ] && print-red "Build image failed !!!" && return -12
+    [ $rc -ne 0 ] && print-red "Build image failed !!!" && return -11
 
     print-green "Build image completed successfully !!!"
 }
@@ -191,7 +193,7 @@ function qimsdk-docker-run-container() {
     docker exec --user ${USER} ${CONTAINER_NAME} mkdir /home/${USER}/.ssh                                           || \
         {
             print-red "docker mkdir ~/.ssh failed !!!"
-            return -6
+            return -4
         }
 
     if [ -d ~/.ssh/ ]; then
@@ -202,13 +204,13 @@ function qimsdk-docker-run-container() {
             docker cp ${f} ${CONTAINER_NAME}:/home/${USER}/.ssh/${BASE_NAME}                                        || \
                 {
                     print-red "Propagating .ssh/ to docker failed !!!"
-                    return -7
+                    return -5
                 }
         done
         docker exec --user root ${CONTAINER_NAME} chown -R ${USER}:${GROUP} /home/${USER}/.ssh                      || \
             {
                 print-red "Propagating .ssh/ to docker failed !!!"
-                return -8
+                return -6
             }
     fi
 
@@ -217,7 +219,7 @@ function qimsdk-docker-run-container() {
             docker exec --user root ${CONTAINER_NAME} chown -R ${USER}:${GROUP} /home/${USER}/.gitconfig            || \
                 {
                     print-red "Propagating .gitconfig to docker failed !!!"
-                    return -9
+                    return -7
                 }
     fi
 
@@ -225,7 +227,7 @@ function qimsdk-docker-run-container() {
         docker cp /etc/gitconfig ${CONTAINER_NAME}:/etc/gitconfig                                                   || \
             {
                 print-red "Propagating .gitconfig to docker failed !!!"
-                return -10
+                return -8
             }
     fi
 
@@ -284,12 +286,12 @@ function qimsdk-docker-start-container() {
 
     docker start qimsdk-${TAG}${ADDITIONAL_TAG}
     local rc=$?
-    [ $rc -ne 0 ] && print-red "parsing json failed !!!" && return -1
+    [ $rc -ne 0 ] && print-red "parsing json failed !!!" && return -3
 
     docker start ${CONTAINER_NAME}                                                                                  || \
         {
             print-red "Start container failed !!!"
-            return -2
+            return -4
         }
 
     print-green "Container started successfully !!!"

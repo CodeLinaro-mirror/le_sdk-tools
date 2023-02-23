@@ -28,6 +28,9 @@ function qimsdk-host-parse-json() {
             QIMSDK_ESDK_TFLITE_FILENAME="no-tflite-dev-archive-available"
         }
 
+    QIMSDK_ESDK_ACCELERATION_ENGINE=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Acceleration_engine' | tr -d '"'`
+    ACCELERATION_ENGINE_DIR=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Acceleration_engine_path' | tr -d '"'`
+
     QIMSDK_ESDK_DEPLOY_URL=`echo ${BUFFER} | jq '.Deploy_URL' | tr -d '"'`
     QIMSDK_ESDK_DEPLOY_URL=`echo ${QIMSDK_ESDK_DEPLOY_URL}/ | sed 's/\/\//\//g'`
 
@@ -89,7 +92,8 @@ function qimsdk-setup() {
     export QIMSDK_WORK_DIR
     export QIMSDK_ESDK_TFLITE_FILE
     export QIMSDK_ESDK_TFLITE_FILENAME
-    export QIMSDK_ESDK_SNPE_DIR
+    export QIMSDK_ESDK_ACCELERATION_ENGINE
+    export ACCELERATION_ENGINE_DIR
     export QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES
 
     qimsdk-common
@@ -162,13 +166,17 @@ function qimsdk-common() {
         return $rc
     }
 
-    qimsdk-setup-snpe
+    export QIMSDK_ESDK_TFLITE_FILENAME
+
+    qimsdk-setup-acceleration-engine
     rc=$?
     [ $rc -ne 0 ] && {
-        print-red "FAILED: qimsdk-setup-snpe"
+        print-red "FAILED: qimsdk-setup-acceleration-engine"
         popd 1>/dev/null
         return $rc
     }
+
+    export QIMSDK_ESDK_ACCELERATION_ENGINE_DIR
 
     popd 1>/dev/null
 
