@@ -43,6 +43,7 @@ function qimsdk-gst-plugins-qti-prepare() {
     # Setup tf lite prebuilt, if available
     [ "${QIMSDK_ESDK_TFLITE_FILE}" != "no-tflite-dev-archive-available" ]                       && \
         {
+            mv -f ${QIMSDK_ESDK_BASE_FOLDER}/downloads/${QIMSDK_ESDK_TFLITE_FILE} ${QIMSDK_ESDK_BASE_FOLDER}/downloads/tflite-dev.tar.gz;
             sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:do_package_write_ipk\"/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
         }
 
