@@ -19,8 +19,14 @@ function qimsdk-gst-plugins-qti-prepare-layer() {
 # Prepare gst-plugins-qti
 function qimsdk-gst-plugins-qti-prepare() {
 
-    # Remove gstreamer from BBMASK
-    sed -i "s/meta\/recipes-multimedia\/gstreamer\///g" ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
+    # Remove gstreamer and meta-qti-gst from BBMASK
+    sed -i "s/meta\/recipes-multimedia\/gstreamer\///g;s/meta-qti-gst\///g" ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
+
+    # Add WORKSPACE variable to bblayers.conf if not exist
+    grep -wq WORKSPACE ${QIMSDK_ESDK_BASE_FOLDER}/conf/bblayers.conf || echo 'WORKSPACE = ""${TOPDIR}/src"' >> ${QIMSDK_ESDK_BASE_FOLDER}/conf/bblayers.conf
+
+    # Remove meta-qti-gst from bblayers.conf
+    sed -i "s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst//g" ${QIMSDK_ESDK_BASE_FOLDER}/conf/bblayers.conf
 
     # Use kernel headers dir from local sysroot
     sed -i "s/\${STAGING_KERNEL_BUILDDIR}/\${STAGING_INCDIR}\/linux-msm/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
@@ -32,10 +38,10 @@ function qimsdk-gst-plugins-qti-prepare() {
     sed -i "s/inherit packagegroup//g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Transpose packagegroup specific RDEPENDS packages as do_package task dependencies
-    sed -i "s/RDEPENDS_packagegroup-qti-gst/do_package[depends]/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    sed -i "s/RDEPENDS.packagegroup-qti-gst/do_package[depends]/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Append do_package_write_ipk task to packages
-    sed -i 's/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:do_package_write_ipk/g' ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    grep -q do_package_write_ipk ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb || sed -i 's/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:do_package_write_ipk/g' ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Enable the compilation of mltflite plugin
     echo -e '\nDISTRO_FEATURES += "tensorflow-lite"' >> ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf

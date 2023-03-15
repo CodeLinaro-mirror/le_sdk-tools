@@ -5,7 +5,7 @@
 
 # Setup eSDK environment
 pushd ${QIMSDK_ESDK_BASE_FOLDER} 1>/dev/null
-source environment-setup-aarch64-oe-linux-sdllvm
+source environment-setup-aarch64-oe-linux-sdllvm || source environment-setup-armv8a-oe-linux-sdllvm
 popd 1>/dev/null
 
 # Source all scripts
