@@ -6,6 +6,7 @@
   * [Ubuntu Version](#Ubuntu_Version)
   * [Ubuntu Packages](#Ubuntu_Packages)
   * [How to increase Max user watches and max user instances on host system](#Max_user_watches_and_max_user_instances_must_be_increased_on_the_host_system)
+  * [Add internal docker registry mirror. (optional)](#Add_internal_docker_registry_mirror)
   * [Docker Must Be Configured On The Host System (one time)](#Docker_Must_Be_Configured_On_The_Host_System_(one_time))
 * [About the QIMSDK Docker Image](#About_the_QIMSDK_Docker_Image)
   * [Stage 0 - Base Image](#Stage_0_-_Base_Image)
@@ -56,6 +57,26 @@ sudo apt install -y jq
 ```bash
 fs.inotify.max_user_instances=8192
 fs.inotify.max_user_watches=542288
+```
+
+<div id="Add_internal_docker_registry_mirror">
+
+### Add internal docker registry mirror. (optional)
+
+#### Note: Using a tab instead of space and other invisible whitespace characters may break the proper work of json configuration files and later may lead docker.service failed to start.
+
+1. Add corresponding *docker-registry-mirror-url* value in the tag "registry-mirrors" in: /etc/docker/daemon.json
+
+```json
+{
+        "registry-mirrors": [<docker-registry-mirror-url>]
+}
+```
+
+2. Restart the docker service to take the new settings.
+
+```bash
+sudo systemctl restart docker
 ```
 
 <div id="Docker_Must_Be_Configured_On_The_Host_System_(one_time)">
