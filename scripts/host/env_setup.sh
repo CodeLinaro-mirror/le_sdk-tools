@@ -33,8 +33,11 @@ function print-blue()
 #           - (optional) additional name suffix
 #           - (mandatory) path to esdk dir (found in <path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk)
 #           - (mandatory) esdk shell file (from esdk dir)
+#           - (mandatory) path to tflite prebuilt dev package dir
+#           - (mandatory) tflite prebuilt dev package filename
 #           - (optional) path to directory to be mounted in docker container
-#           - (optional) sync url prefix - url from which to sync repositories
+#           - (optional) url to which to sync ipk packages
+#           - (optional) url to which to sync dev ipk packages
 function qimsdk-docker-build-image() {
     local PATH_TO_CONFIG_JSON=$1
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \
@@ -71,19 +74,21 @@ function qimsdk-docker-build-image() {
     local TFLITE_FILE_PATH=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Tflite_path' | tr -d '"'`
     local TFLITE_FILENAME=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Tflite_prebuilt_file' | tr -d '"'`
     local TFLITE_FILE=${TFLITE_FILE_PATH}/${TFLITE_FILENAME}
+    local QIMSDK_ARG_TFLITE_FILE=${TFLITE_FILENAME}
 
-    [ -f "${TFLITE_FILE}" ]                                                                     && \
-        local QIMSDK_ARG_TFLITE_FILE=${TFLITE_FILENAME}                                         && \
-            ( ln ${TFLITE_FILE} ${QIMSDK_TMP_FOLDER}/ 2>/dev/null                               || \
-                rsync -a ${TFLITE_FILE} ${QIMSDK_TMP_FOLDER}/                                   || \
-                {
-                    print-red "Cannot add tflite dev archive to tmp folder !!!"
-                    rm -rf ${QIMSDK_TMP_FOLDER}
-                    return -9
-                }
-            )                                                                                   || \
-                local QIMSDK_ARG_TFLITE_FILE=no-tflite-dev-archive-available                    && \
-                touch ${QIMSDK_TMP_FOLDER}/${QIMSDK_ARG_TFLITE_FILE}
+    [ -f "${TFLITE_FILE}" ]                                                                     || \
+        {
+            echo "Cannot find tflite dev archive file !!!"
+            return -9
+        }
+
+    ln ${TFLITE_FILE} ${QIMSDK_TMP_FOLDER}/ 2>/dev/null                                         || \
+        rsync -a ${TFLITE_FILE} ${QIMSDK_TMP_FOLDER}/                                           || \
+            {
+                print-red "Cannot add tflite dev archive to tmp folder !!!"
+                rm -rf ${QIMSDK_TMP_FOLDER}
+                return -10
+            }
 
     local SNPE_DIR=`cat ${PATH_TO_CONFIG_JSON} |  jq '.SNPE_path' | tr -d '"'`
 
@@ -93,7 +98,7 @@ function qimsdk-docker-build-image() {
                 {
                     print-red "Cannot add snpe dir to tmp folder !!!"
                     rm -rf ${QIMSDK_TMP_FOLDER}
-                    return -10
+                    return -11
                 }
                 rm -f ${QIMSDK_TMP_FOLDER}/${QIMSDK_ARG_SNPE_DIR}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
             )                                                                                   || \
@@ -125,7 +130,7 @@ function qimsdk-docker-build-image() {
 
     local rc=$?
     rm -rf ${QIMSDK_TMP_FOLDER}
-    [ $rc -ne 0 ] && print-red "Build image failed !!!" && return -11
+    [ $rc -ne 0 ] && print-red "Build image failed !!!" && return -12
 
     print-green "Build image completed successfully !!!"
 }
@@ -136,8 +141,11 @@ function qimsdk-docker-build-image() {
 #           - (optional) additional name suffix
 #           - (mandatory) path to esdk dir (found in <path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk)
 #           - (mandatory) esdk shell file (from esdk dir)
+#           - (mandatory) path to tflite prebuilt dev package dir
+#           - (mandatory) tflite prebuilt dev package filename
 #           - (optional) path to directory to be mounted in docker container
-#           - (optional) sync url prefix - url from which to sync repositories
+#           - (optional) url to which to sync ipk packages
+#           - (optional) url to which to sync dev ipk packages
 function qimsdk-docker-run-container() {
     local PATH_TO_CONFIG_JSON=$1
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \
@@ -209,8 +217,11 @@ function qimsdk-docker-run-container() {
 #           - (optional) additional name suffix
 #           - (mandatory) path to esdk dir (found in <path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk)
 #           - (mandatory) esdk shell file (from esdk dir)
+#           - (mandatory) path to tflite prebuilt dev package dir
+#           - (mandatory) tflite prebuilt dev package filename
 #           - (optional) path to directory to be mounted in docker container
-#           - (optional) sync url prefix - url from which to sync repositories
+#           - (optional) url to which to sync ipk packages
+#           - (optional) url to which to sync dev ipk packages
 function qimsdk-docker-rm-container() {
     local PATH_TO_CONFIG_JSON=$1
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \
@@ -234,8 +245,11 @@ function qimsdk-docker-rm-container() {
 #           - (optional) additional name suffix
 #           - (mandatory) path to esdk dir (found in <path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk)
 #           - (mandatory) esdk shell file (from esdk dir)
+#           - (mandatory) path to tflite prebuilt dev package dir
+#           - (mandatory) tflite prebuilt dev package filename
 #           - (optional) path to directory to be mounted in docker container
-#           - (optional) sync url prefix - url from which to sync repositories
+#           - (optional) url to which to sync ipk packages
+#           - (optional) url to which to sync dev ipk packages
 function qimsdk-docker-start-container() {
     local PATH_TO_CONFIG_JSON=$1
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \
@@ -259,8 +273,11 @@ function qimsdk-docker-start-container() {
 #           - (optional) additional name suffix
 #           - (mandatory) path to esdk dir (found in <path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk)
 #           - (mandatory) esdk shell file (from esdk dir)
+#           - (mandatory) path to tflite prebuilt dev package dir
+#           - (mandatory) tflite prebuilt dev package filename
 #           - (optional) path to directory to be mounted in docker container
-#           - (optional) sync url prefix - url from which to sync repositories
+#           - (optional) url to which to sync ipk packages
+#           - (optional) url to which to sync dev ipk packages
 function qimsdk-docker-stop-container() {
     local PATH_TO_CONFIG_JSON=$1
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \

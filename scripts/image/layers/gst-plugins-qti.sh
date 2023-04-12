@@ -46,12 +46,9 @@ function qimsdk-gst-plugins-qti-prepare() {
     # Enable the compilation of mltflite plugin
     echo -e '\nDISTRO_FEATURES += "tensorflow-lite"' >> ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
 
-    # Setup tf lite prebuilt, if available
-    [ "${QIMSDK_ESDK_TFLITE_FILE}" != "no-tflite-dev-archive-available" ]                       && \
-        {
-            mv -f ${QIMSDK_ESDK_BASE_FOLDER}/downloads/${QIMSDK_ESDK_TFLITE_FILE} ${QIMSDK_ESDK_BASE_FOLDER}/downloads/tflite-dev.tar.gz;
-            sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:do_package_write_ipk\"/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
-        }
+    # Setup tf lite prebuilt
+    mv -f ${QIMSDK_ESDK_BASE_FOLDER}/downloads/${QIMSDK_ESDK_TFLITE_FILE} ${QIMSDK_ESDK_BASE_FOLDER}/downloads/tflite-dev.tar.gz;
+    sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:do_package_write_ipk\"/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
 
     # Setup snpe dir, if available
     [ "${QIMSDK_ESDK_SNPE_DIR}" != "no-snpe-dir-available" ]                                    && \

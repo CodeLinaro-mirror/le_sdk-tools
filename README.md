@@ -210,8 +210,8 @@ The json file must contain certain data :
  2. ***OPTIONAL*** - **Additional_tag** - Additional tag to be appended to the name of the container - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
  3. ***MANDATORY*** - **eSDK_path** - Path to the directory in the work environment that contains the eSDK .sh and json file generated after eSDK compilation (refer to steps above) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
  4. ***MANDATORY*** - **eSDK_shell_file** - name of the shell file inside eSDK directory
- 5. ***OPTIONAL*** - **Tflite_path** - Path to the directory where the prebuild tflite dev archive is located ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
- 6. ***OPTIONAL*** - **Tflite_prebuilt_file** - name of the prebuilt archive
+ 5. ***MANDATORY*** - **Tflite_path** - Path to the directory where the prebuilt tflite dev archive is located ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 6. ***MANDATORY*** - **Tflite_prebuilt_file** - name of the prebuilt archive
  7. ***OPTIONAL*** - **SNPE_path** - path to unzipped snpe archive directory - path to the "snpe-X.XX.X.XXXX" directory (name depends on snpe version) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
  8. ***OPTIONAL*** - **Host_dir_mounted_in_container** - A work environment directory to be exported inside the docker container (if mounting a directory is not necessary, just leave the value for this field empty)
  9. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send ipk packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
@@ -679,4 +679,4 @@ qimsdk-local-sync <folder to sync>
 
 ## Compiling gst-plugins-qti-oss Against tflite-dev.tar.gz
 
-tflite-dev.tar.gz can be generated in a separate container or Bazel environment. Path and name to that file needs to be specified in the JSON configuration file with tags **Tflite_path** (***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***) and **Tflite_prebuilt_file**
+tflite-dev.tar.gz must be generated in a separate container or Bazel environment. Path and name to that file needs to be specified in the JSON configuration file with tags **Tflite_path** (***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***) and **Tflite_prebuilt_file**
