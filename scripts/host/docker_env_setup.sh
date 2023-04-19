@@ -3,31 +3,38 @@
 # Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
-echo "Docker environemnt setup"
-echo "========================"
+echo "Docker build environment setup"
+echo "=============================="
 
-function print-red()
-{
+function print-red() {
     tput setaf 1 2>/dev/null
     echo $@
     tput sgr0 2>/dev/null
+    true
 }
 
-function print-green()
-{
+function print-green() {
     tput setaf 2 2>/dev/null
     echo $@
     tput sgr0 2>/dev/null
+    true
 }
 
-function print-blue()
-{
+function print-yellow() {
+    tput setaf 3 2>/dev/null
+    echo $@
+    tput sgr0 2>/dev/null
+    true
+}
+
+function print-blue() {
     tput setaf 4 2>/dev/null
     echo $@
     tput sgr0 2>/dev/null
+    true
 }
 
-# Build docker image based on Dockerfile in folder $QIMSDK_DOCKER_FOLDER
+# Build docker image based on Dockerfile in $QIMSDK_DOCKER_DIR directory
 #   $1 - (mandatory) path to target config json that contains the following:
 #           - (mandatory) image os - ubuntu18 or ubuntu20
 #           - (optional) additional name suffix
@@ -55,55 +62,57 @@ function qimsdk-docker-build-image() {
     [ ! -f ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ] && print-red "Could not find ESDK_SH !!!" && return -7
 
     local TAG="${QIMSDK_ARG_IMAGE_OS}"
-    local QIMSDK_ARG_BASE_FOLDER=/mnt/qimsdk
+    local QIMSDK_ARG_BASE_DIR=/mnt/qimsdk
     local GROUP=$(getent group $(id -g ${USER}) | cut -d ':' -f 1)
 
-    local QIMSDK_REPO_BASE_FOLDER=${QIMSDK_DOCKER_FOLDER}/..
-    local QIMSDK_TMP_FOLDER=${QIMSDK_REPO_BASE_FOLDER}/tmp
+    local QIMSDK_REPO_BASE_DIR=${QIMSDK_DOCKER_DIR}/..
+    local QIMSDK_TMP_DIR=${QIMSDK_REPO_BASE_DIR}/tmp
 
-    rm -rf ${QIMSDK_TMP_FOLDER}
-    mkdir -p ${QIMSDK_TMP_FOLDER}
-    ln ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_TMP_FOLDER}/ 2>/dev/null              || \
-        rsync -a ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_TMP_FOLDER}/                || \
-        {
-            print-red "Cannot add sdk sh file to tmp folder !!!"
-            rm -rf ${QIMSDK_TMP_FOLDER}
-            return -8
-        }
+    rm -rf ${QIMSDK_TMP_DIR}
+    mkdir -p ${QIMSDK_TMP_DIR}
+    ln ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_TMP_DIR}/ 2>/dev/null                 || \
+        rsync -a ${QIMSDK_ESDK_PATH}/${QIMSDK_ARG_ESDK_SH} ${QIMSDK_TMP_DIR}/                   || \
+            {
+                print-red "Cannot add sdk sh file to tmp dir !!!"
+                rm -rf ${QIMSDK_TMP_DIR}
+                return -8
+            }
 
     local TFLITE_FILE_PATH=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Tflite_path' | tr -d '"'`
     local TFLITE_FILENAME=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Tflite_prebuilt_file' | tr -d '"'`
     local TFLITE_FILE=${TFLITE_FILE_PATH}/${TFLITE_FILENAME}
-    local QIMSDK_ARG_TFLITE_FILE=${TFLITE_FILENAME}
+    local QIMSDK_ARG_TFLITE_FILENAME=${TFLITE_FILENAME}
 
-    [ -f "${TFLITE_FILE}" ]                                                                     && \
-        local QIMSDK_ARG_TFLITE_FILE=${TFLITE_FILENAME}                                         && \
-            ( ln ${TFLITE_FILE} ${QIMSDK_TMP_FOLDER}/ 2>/dev/null                               || \
-                rsync -a ${TFLITE_FILE} ${QIMSDK_TMP_FOLDER}/                                   || \
-                {
-                    print-red "Cannot add tflite dev archive to tmp folder !!!"
-                    rm -rf ${QIMSDK_TMP_FOLDER}
-                    return -9
-                }
+    [ -f ${TFLITE_FILE} ] && [ ! -z "${TFLITE_FILE_PATH}" ] && [ ! -z "${TFLITE_FILENAME}" ]    && \
+        QIMSDK_ARG_TFLITE_FILENAME=${TFLITE_FILENAME}                                           && \
+            ( ln ${TFLITE_FILE} ${QIMSDK_TMP_DIR}/ 2>/dev/null                                  || \
+                rsync -a ${TFLITE_FILE} ${QIMSDK_TMP_DIR}/                                      || \
+                    {
+                        print-red "Cannot add tflite dev archive to tmp directory !!!"
+                        rm -rf ${QIMSDK_TMP_DIR}
+                        return -9
+                    }
             )                                                                                   || \
-                local QIMSDK_ARG_TFLITE_FILE=no-tflite-dev-archive-available                    && \
-                touch ${QIMSDK_TMP_FOLDER}/${QIMSDK_ARG_TFLITE_FILE}
+                {
+                    QIMSDK_ARG_TFLITE_FILENAME=no-tflite-dev-archive-available
+                    touch ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_TFLITE_FILENAME}
+                }
 
     local SNPE_DIR=`cat ${PATH_TO_CONFIG_JSON} |  jq '.SNPE_path' | tr -d '"'`
 
     [ -d "${SNPE_DIR}" ]                                                                        && \
         local QIMSDK_ARG_SNPE_DIR=snpe                                                          && \
-            ( rsync -a ${SNPE_DIR}/* ${QIMSDK_TMP_FOLDER}/snpe/                                 || \
+            ( rsync -a ${SNPE_DIR}/* ${QIMSDK_TMP_DIR}/snpe/                                    || \
                 {
-                    print-red "Cannot add snpe dir to tmp folder !!!"
-                    rm -rf ${QIMSDK_TMP_FOLDER}
-                    return -10
+                    print-red "Cannot add snpe dir to tmp dir !!!"
+                    rm -rf ${QIMSDK_TMP_DIR}
+                    return -11
                 }
-                rm -f ${QIMSDK_TMP_FOLDER}/${QIMSDK_ARG_SNPE_DIR}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
+                rm -f ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_SNPE_DIR}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
             )                                                                                   || \
                 {
                     local QIMSDK_ARG_SNPE_DIR=no-snpe-dir-available
-                    touch ${QIMSDK_TMP_FOLDER}/${QIMSDK_ARG_SNPE_DIR}
+                    touch ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_SNPE_DIR}
                 }
 
     local QIMSDK_ARG_DEPLOY_URL=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_URL' | tr -d '"'`
@@ -112,6 +121,8 @@ function qimsdk-docker-build-image() {
     local QIMSDK_ARG_DEPLOY_URL_DEV=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_dev_URL' | tr -d '"'`
     QIMSDK_ARG_DEPLOY_URL_DEV=`echo ${QIMSDK_ARG_DEPLOY_URL_DEV}/ | sed 's/\/\//\//g'`
 
+    local QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES=`cat ${PATH_TO_CONFIG_JSON} | jq '.Gst_plugins_qti_oss_dependencies[]' | tr -d '"'`
+
     DOCKER_BUILDKIT=1 docker build                                                                 \
             --build-arg QIMSDK_ARG_HOST_USER_ID=$(id -u ${USER})                                   \
             --build-arg QIMSDK_ARG_HOST_GROUP_ID=$(id -g ${USER})                                  \
@@ -119,17 +130,18 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_HOST_GROUP=${GROUP}                                             \
             --build-arg QIMSDK_ARG_IMAGE_OS=${QIMSDK_ARG_IMAGE_OS}                                 \
             --build-arg QIMSDK_ARG_ESDK_SH=${QIMSDK_ARG_ESDK_SH}                                   \
-            --build-arg QIMSDK_ARG_BASE_FOLDER=${QIMSDK_ARG_BASE_FOLDER}                           \
-            --build-arg QIMSDK_ARG_TFLITE_FILE=${QIMSDK_ARG_TFLITE_FILE}                           \
+            --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_ARG_BASE_DIR}                                 \
+            --build-arg QIMSDK_ARG_TFLITE_FILENAME=${QIMSDK_ARG_TFLITE_FILENAME}                   \
             --build-arg QIMSDK_ARG_SNPE_DIR=${QIMSDK_ARG_SNPE_DIR}                                 \
             --build-arg QIMSDK_ARG_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}                             \
             --build-arg QIMSDK_ARG_DEPLOY_URL_DEV=${QIMSDK_ARG_DEPLOY_URL_DEV}                     \
-            -f ${QIMSDK_DOCKER_FOLDER}/Dockerfile                                                  \
-            --progress=plain --target qimsdk ${QIMSDK_REPO_BASE_FOLDER} -t qimsdk:${TAG}
+            --build-arg QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES="${QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES}"       \
+            -f ${QIMSDK_DOCKER_DIR}/Dockerfile                                                     \
+            --progress=plain --target qimsdk ${QIMSDK_REPO_BASE_DIR} -t qimsdk:${TAG}
 
     local rc=$?
-    rm -rf ${QIMSDK_TMP_FOLDER}
-    [ $rc -ne 0 ] && print-red "Build image failed !!!" && return -11
+    rm -rf ${QIMSDK_TMP_DIR}
+    [ $rc -ne 0 ] && print-red "Build image failed !!!" && return -12
 
     print-green "Build image completed successfully !!!"
 }
@@ -155,59 +167,70 @@ function qimsdk-docker-run-container() {
     [ -z "${TAG}" ] && print-red "Image name must be provided as first argument of json !!!" && return -2
     [[ ! -z "${ADDITIONAL_TAG}" ]] && ADDITIONAL_TAG="-${ADDITIONAL_TAG}"
 
-    local CONTAINER="qimsdk-${TAG}${ADDITIONAL_TAG}"
+    local CONTAINER_NAME="qimsdk-${TAG}${ADDITIONAL_TAG}"
     local GROUP=$(getent group $(id -g ${USER}) | cut -d ':' -f 1)
 
     local DIR_TO_BE_MOUNTED=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Host_dir_mounted_in_container' | tr -d '"'`
     [[ ! -z "${DIR_TO_BE_MOUNTED}" ]] && DIR_TO_BE_MOUNTED="-v ${DIR_TO_BE_MOUNTED}:/home/${USER}/work"
 
-    local QIMSDK_ARG_BASE_FOLDER=/mnt/qimsdk
-    local QIMSDK_REPO_BASE_FOLDER=${QIMSDK_DOCKER_FOLDER}/..
+    local QIMSDK_ARG_BASE_DIR=/mnt/qimsdk
+    local QIMSDK_REPO_BASE_DIR=${QIMSDK_DOCKER_DIR}/..
 
     docker run ${DIR_TO_BE_MOUNTED}                                                                \
         -v /dev/bus/usb:/dev/bus/usb:ro                                                            \
         -v /etc/timezone:/etc/timezone:ro                                                          \
         -v /etc/localtime:/etc/localtime:ro                                                        \
         -it -d --privileged -h qimsdk-${TAG} --user ${USER}                                        \
-        --name ${CONTAINER} qimsdk:${TAG}
-
-    local rc=$?
-    [ $rc -ne 0 ] && print-red "docker run failed !!!" && return -3
+        --name ${CONTAINER_NAME} qimsdk:${TAG} bash                                                  || \
+        {
+            print-red "Docker run failed !!!"
+            return -3
+        }
 
     # Propagate ssh and gitconfig to container
-    docker exec --user ${USER} ${CONTAINER} mkdir /home/${USER}/.ssh
-    rc=$?
-    [ $rc -ne 0 ] && print-red "docker mkdir ~/.ssh failed !!!" && return -6
+    docker exec --user ${USER} ${CONTAINER_NAME} mkdir /home/${USER}/.ssh                                           || \
+        {
+            print-red "docker mkdir ~/.ssh failed !!!"
+            return -6
+        }
 
     if [ -d ~/.ssh/ ]; then
         local f
         for f in ~/.ssh/*; do
             local BASE_NAME=`basename $f`
             test "${f}" = ~/.ssh/known_hosts && continue
-            docker cp $f ${CONTAINER}:/home/${USER}/.ssh/${BASE_NAME}
-            rc=$?
-            [ $rc -ne 0 ] && print-red "Propagating .ssh/ to docker failed !!!" && return -7
+            docker cp ${f} ${CONTAINER_NAME}:/home/${USER}/.ssh/${BASE_NAME}                                        || \
+                {
+                    print-red "Propagating .ssh/ to docker failed !!!"
+                    return -7
+                }
         done
-        docker exec --user root ${CONTAINER} chown -R ${USER}:${GROUP} /home/${USER}/.ssh
-        rc=$?
-        [ $rc -ne 0 ] && print-red "Propagating .ssh/ to docker failed !!!" && return -8
+        docker exec --user root ${CONTAINER_NAME} chown -R ${USER}:${GROUP} /home/${USER}/.ssh                      || \
+            {
+                print-red "Propagating .ssh/ to docker failed !!!"
+                return -8
+            }
     fi
 
     if [ -f ~/.gitconfig ]; then
-        docker cp ~/.gitconfig ${CONTAINER}:/home/${USER}/.gitconfig                            && \
-            docker exec --user root ${CONTAINER} chown -R ${USER}:${GROUP} /home/${USER}/.gitconfig
-        rc=$?
-        [ $rc -ne 0 ] && print-red "Propagating .gitconfig to docker failed !!!" && return -9
+        docker cp ~/.gitconfig ${CONTAINER_NAME}:/home/${USER}/.gitconfig                                           && \
+            docker exec --user root ${CONTAINER_NAME} chown -R ${USER}:${GROUP} /home/${USER}/.gitconfig            || \
+                {
+                    print-red "Propagating .gitconfig to docker failed !!!"
+                    return -9
+                }
     fi
 
     if [ -f /etc/gitconfig ]; then
-        docker cp /etc/gitconfig ${CONTAINER}:/etc/gitconfig
-        rc=$?
-        [ $rc -ne 0 ] && print-red "Propagating .gitconfig to docker failed !!!" && return -10
+        docker cp /etc/gitconfig ${CONTAINER_NAME}:/etc/gitconfig                                                   || \
+            {
+                print-red "Propagating .gitconfig to docker failed !!!"
+                return -10
+            }
     fi
 
-    print-green "Docker ${CONTAINER} run successfull !!!"
-    print-green "Please attach to docker container with name: ${CONTAINER}"
+    print-green "Docker run successful !!!"
+    print-green "docker attach to ${CONTAINER_NAME} !!!"
 }
 
 # Docker remove container
@@ -261,9 +284,15 @@ function qimsdk-docker-start-container() {
 
     docker start qimsdk-${TAG}${ADDITIONAL_TAG}
     local rc=$?
-    [ $rc -ne 0 ] && print-red "Container start failed !!!" && return -3
+    [ $rc -ne 0 ] && print-red "parsing json failed !!!" && return -1
 
-    print-green "Start container completed successfully !!!"
+    docker start ${CONTAINER_NAME}                                                                                  || \
+        {
+            print-red "Start container failed !!!"
+            return -2
+        }
+
+    print-green "Container started successfully !!!"
 }
 
 # Docker stop container
@@ -302,13 +331,13 @@ function qimsdk-docker-cleanup() {
     print-green "Clean up old docker images and build cache completed successfully !!!"
 }
 
-QIMSDK_DOCKER_FOLDER="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/../.. && pwd )"
-[ -f ${QIMSDK_DOCKER_FOLDER}/Dockerfile ] || QIMSDK_DOCKER_FOLDER="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/sdk-tools && pwd )"
+QIMSDK_DOCKER_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/../.. && pwd )"
+[ -f ${QIMSDK_DOCKER_DIR}/Dockerfile ] || QIMSDK_DOCKER_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/sdk-tools && pwd )"
 
 echo -e "Docker environment setup ready !!!\n"
 
 print-green "qimsdk-docker-build-image <path-to-config-json>"
-echo "    Build docker image based on Dockerfile in $QIMSDK_DOCKER_FOLDER"
+echo "    Build docker image based on Dockerfile in $QIMSDK_DOCKER_DIR"
 print-green "qimsdk-docker-run-container <path-to-config-json>"
 echo "    Run docker container based on compiled docker image"
 print-blue "qimsdk-docker-rm-container <path-to-config-json>"

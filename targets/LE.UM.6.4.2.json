@@ -4,9 +4,10 @@
     "eSDK_path": "<path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk/",
     "eSDK_shell_file": "fullstack-debug-x86_64-qti-robotics-image-aarch64-qrb5165-rb5-toolchain-ext-<AU-ID>.sh",
     "Tflite_path": "<path-to-the-directory-where-the-prebuild-tflite-dev-archive-is-located>",
-    "Tflite_prebuilt_file": "<tf-lite-prebuild-file>",
+    "Tflite_prebuilt_file": "<tf-lite-prebuilt-file>",
     "SNPE_path":"",
     "Host_dir_mounted_in_container": "",
     "Deploy_URL": "",
-    "Deploy_dev_URL": ""
+    "Deploy_dev_URL": "",
+    "Gst_plugins_qti_oss_dependencies": ["linux-msm-headers", "ffmpeg", "cairo", "gdk-pixbuf", "jansson", "json-glib", "liba52", "libdaemon", "libgudev", "lame", "librsvg", "libsoup-2.4", "libtheora", "libusb1", "libwebp", "mpg123", "orc", "readline", "sbc", "speex", "taglib"]
 }

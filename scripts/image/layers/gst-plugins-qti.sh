@@ -8,7 +8,7 @@ QIMSDK_ALL_LAYERS+=("gst-plugins-qti")
 
 # Add meta-qti-gst layer
 function qimsdk-gst-plugins-qti-add-layers() {
-    qimsdk-bitbake-add-layers ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst
+    qimsdk-bitbake-add-layers ${QIMSDK_BASE_DIR}/layers/meta-qti-gst
 }
 
 # Prepare all recipes in layer
@@ -16,59 +16,88 @@ function qimsdk-gst-plugins-qti-prepare-layer() {
     devtool modify packagegroup-qti-gst
 }
 
+# Clean all recipes in layer
+function qimsdk-gst-plugins-qti-clean-layers() {
+    devtool reset packagegroup-qti-gst
+    rm -rf ${QIMSDK_ESDK_BASE_DIR}/workspace/sources/packagegroup-qti-gst
+}
+
 # Prepare gst-plugins-qti
 function qimsdk-gst-plugins-qti-prepare() {
 
     # Remove gstreamer and meta-qti-gst from BBMASK
-    sed -i "s/meta\/recipes-multimedia\/gstreamer\///g;s/meta-qti-gst\///g" ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
+    sed -i "s/meta\/recipes-multimedia\/gstreamer\///g;s/meta-qti-gst\///g" ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
 
-    # Add WORKSPACE variable to bblayers.conf if not exist
-    grep -wq WORKSPACE ${QIMSDK_ESDK_BASE_FOLDER}/conf/bblayers.conf || echo 'WORKSPACE = ""${TOPDIR}/src"' >> ${QIMSDK_ESDK_BASE_FOLDER}/conf/bblayers.conf
+    # Set WORKSPACE variable or add it to bblayers.conf if not exist
+    grep -wq WORKSPACE ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf && sed -i "s+WORKSPACE\s*=\s*\"..TOPDIR./.*\"+WORKSPACE = \"\$\{TOPDIR\}/src\"+g" ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf || echo 'WORKSPACE = ""${TOPDIR}/src"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
 
     # Remove meta-qti-gst from bblayers.conf
-    sed -i "s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst//g" ${QIMSDK_ESDK_BASE_FOLDER}/conf/bblayers.conf
+    sed -i "s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst//g" ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
 
     # Use kernel headers dir from local sysroot
-    sed -i "s/\${STAGING_KERNEL_BUILDDIR}/\${STAGING_INCDIR}\/linux-msm/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+    sed -i "s/\${STAGING_KERNEL_BUILDDIR}/\${STAGING_INCDIR}\/linux-msm/g" ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/gstreamer/*.bb*
 
     # Remove not needed dependency to kernel workdir
-    sed -i "s/do_configure\[depends\] += \"virtual\/kernel:do_shared_workdir\"//g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+    sed -i "s/do_configure\[depends\] += \"virtual\/kernel:do_shared_workdir\"//g" ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/gstreamer/*.bb*
 
     # Remove packagegroup class
-    sed -i "s/inherit packagegroup//g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    sed -i "s/inherit packagegroup//g" ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Transpose packagegroup specific RDEPENDS packages as do_package task dependencies
-    sed -i "s/RDEPENDS.packagegroup-qti-gst/do_package[depends]/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    sed -i "s/RDEPENDS.packagegroup-qti-gst/do_package[depends]/g" ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+
+    # Remove packagegroup-qti-gst-basic from packagegroup-qti-gst
+    sed -i "s/packagegroup-qti-gst-basic//g" ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Append do_package_write_ipk task to packages
-    grep -q do_package_write_ipk ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb || sed -i 's/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:do_package_write_ipk/g' ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    grep -q do_package_write_ipk ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb || sed -i 's/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:do_package_write_ipk/g' ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+
+    # Remove packagegroup-qti-gst.bbappend
+    rm -rf ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+
+    # Add gst qti oss dependencies
+    echo do_compile[depends] = \" \\ >> ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+
+    for package in ${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES[@]}; do
+        echo '      '${package}:do_package_write_ipk \\ >> ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+    done
+    echo '    '\" >> ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+
+    # Remove tensorflow-lite from DISTRO_FEATURES
+    sed -i "s/tensorflow-lite//g" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-distro/conf/distro/include/qti-distro-fullstack.inc
 
     # Check if tf lite prebuilt is available
-    [ "${QIMSDK_ESDK_TFLITE_FILE}" != "no-tflite-dev-archive-available" ]                       && \
+    [ "${QIMSDK_ESDK_TFLITE_FILENAME}" != "no-tflite-dev-archive-available" ]                       && \
         {
             # Enable the compilation of mltflite plugin
-            echo -e '\nDISTRO_FEATURES += "tensorflow-lite"' >> ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
+            echo -e '\nDISTRO_FEATURES += "tensorflow-lite"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
             # Setup tf lite prebuilt, if available
-            mv -f ${QIMSDK_ESDK_BASE_FOLDER}/downloads/${QIMSDK_ESDK_TFLITE_FILE} ${QIMSDK_ESDK_BASE_FOLDER}/downloads/tflite-dev.tar.gz;
-            sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:do_package_write_ipk\"/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+            mv -f ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_TFLITE_FILENAME} ${QIMSDK_ESDK_BASE_DIR}/downloads/tflite-dev.tar.gz;
+            sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:do_package_write_ipk\"/g" ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/gstreamer/*.bb*
         }                                                                                       || \
         {
-            sed -i '/tensorflow-lite/d' ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/*.bb*
+            sed -i '/tensorflow-lite/d' ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
         }
 
     # Setup snpe dir, if available
     [ "${QIMSDK_ESDK_SNPE_DIR}" != "no-snpe-dir-available" ]                                    && \
         {
-            echo -e '\nDISTRO_FEATURES += "qti-snpe"' >> ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
-            mkdir -p ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-ml/recipes/snpe-sdk
-            [ -f ${QIMSDK_ESDK_BASE_FOLDER}/downloads/snpe/ReleaseNotes.txt ] && \
-                echo PV = \"$(grep -m 1 'SNPE [0-9].*' ${QIMSDK_ESDK_BASE_FOLDER}/downloads/snpe/ReleaseNotes.txt | awk '{print $2}')\" \
-                >> ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-ml/recipes/snpe-sdk/snpe.bbappend
+            echo -e '\nDISTRO_FEATURES += "qti-snpe"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
+            mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/layers/meta-qti-ml/recipes/snpe-sdk
+            [ -f ${QIMSDK_ESDK_BASE_DIR}/downloads/snpe/ReleaseNotes.txt ] && \
+                echo PV = \"$(grep -m 1 'SNPE [0-9].*' ${QIMSDK_ESDK_BASE_DIR}/downloads/snpe/ReleaseNotes.txt | awk '{print $2}')\" \
+                >> ${QIMSDK_ESDK_BASE_DIR}/layers/layers/meta-qti-ml/recipes/snpe-sdk/snpe.bbappend
         }
 
     qimsdk-gst-plugins-qti-add-layers                                                           && \
         qimsdk-gst-plugins-qti-prepare-layer
 }
+
+# Clean gst-plugins-qti
+function qimsdk-gst-plugins-qti-clean() {
+    qimsdk-gst-plugins-qti-clean-layers
+}
+
 
 # Build gst-plugins-qti
 function qimsdk-gst-plugins-qti-build() {
@@ -86,10 +115,10 @@ function qimsdk-gst-plugins-qti-inspect() {
     # Detecting installed gst plugins
     echo "Detecting installed gst plugins ..."
     qimsdk-device-command "ls /usr/lib/gstreamer-1.0/libgst* > /data/plugin-list.txt" || return -1
-    adb pull /data/plugin-list.txt ${QIMSDK_WORK_FOLDER}/ 2>&1 > /dev/null || return -2
+    adb pull /data/plugin-list.txt ${QIMSDK_WORK_DIR}/ 2>&1 > /dev/null || return -2
     qimsdk-device-command "rm -f /data/plugin-list.txt"
-    plugins=($(cat ${QIMSDK_WORK_FOLDER}/plugin-list.txt))
-    rm -f ${QIMSDK_WORK_FOLDER}/plugin-list.txt
+    plugins=($(cat ${QIMSDK_WORK_DIR}/plugin-list.txt))
+    rm -f ${QIMSDK_WORK_DIR}/plugin-list.txt
 
     # Inspecting installed gst plugins
     echo "Inspecting installed gst plugins ..."
@@ -99,13 +128,13 @@ function qimsdk-gst-plugins-qti-inspect() {
     done
 
     # Check output
-    adb pull /data/gst-inspect-error-log.txt ${QIMSDK_WORK_FOLDER}/ 2>&1 > /dev/null
-    [ -f ${QIMSDK_WORK_FOLDER}/gst-inspect-error-log.txt ]                                      && \
-    [ `wc -c ${QIMSDK_WORK_FOLDER}/gst-inspect-error-log.txt | cut -d ' ' -f 1` -eq 0 ]         && \
+    adb pull /data/gst-inspect-error-log.txt ${QIMSDK_WORK_DIR}/ 2>&1 > /dev/null
+    [ -f ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt ]                                      && \
+    [ `wc -c ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt | cut -d ' ' -f 1` -eq 0 ]         && \
         print-green "All gst plugins are inspected successfully !!!"                              ||
         {
             print-red "Gst inspection failed:";
-            cat ${QIMSDK_WORK_FOLDER}/gst-inspect-error-log.txt
+            cat ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt
         }
-    rm -f ${QIMSDK_WORK_FOLDER}/gst-inspect-error-log.txt
+    rm -f ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt
 }

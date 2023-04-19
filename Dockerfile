@@ -78,39 +78,39 @@ RUN echo ${QIMSDK_ARG_HOST_USER}:pass | chpasswd
 RUN locale-gen "en_US.UTF-8"                                                                    && \
     echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale
 
-# Set base folder
-ARG QIMSDK_ARG_BASE_FOLDER
-ENV QIMSDK_BASE_FOLDER=${QIMSDK_ARG_BASE_FOLDER}
-RUN mkdir -p ${QIMSDK_BASE_FOLDER}                                                              && \
-    chown ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_BASE_FOLDER}
+# Set base directory
+ARG QIMSDK_ARG_BASE_DIR
+ENV QIMSDK_BASE_DIR=${QIMSDK_ARG_BASE_DIR}
+RUN mkdir -p ${QIMSDK_BASE_DIR}                                                              && \
+    chown ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_BASE_DIR}
 
 # Add eSDK
 ARG QIMSDK_ARG_ESDK_SH
 ENV QIMSDK_ESDK_SH=${QIMSDK_ARG_ESDK_SH}
-ENV QIMSDK_ESDK_BASE_FOLDER=${QIMSDK_BASE_FOLDER}/esdk
-RUN mkdir -p ${QIMSDK_ESDK_BASE_FOLDER}                                                         && \
-    chown ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ESDK_BASE_FOLDER}
-ADD tmp/${QIMSDK_ESDK_SH} ${QIMSDK_ESDK_BASE_FOLDER}/${QIMSDK_ESDK_SH}
+ENV QIMSDK_ESDK_BASE_DIR=${QIMSDK_BASE_DIR}/esdk
+RUN mkdir -p ${QIMSDK_ESDK_BASE_DIR}                                                         && \
+    chown ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ESDK_BASE_DIR}
+ADD tmp/${QIMSDK_ESDK_SH} ${QIMSDK_ESDK_BASE_DIR}/${QIMSDK_ESDK_SH}
 
-# Set tflite path
-ARG QIMSDK_ARG_TFLITE_FILE
-ENV QIMSDK_ESDK_TFLITE_FILE=${QIMSDK_ARG_TFLITE_FILE}
+# Set tflite filename
+ARG QIMSDK_ARG_TFLITE_FILENAME
+ENV QIMSDK_ESDK_TFLITE_FILENAME=${QIMSDK_ARG_TFLITE_FILENAME}
 
 # Set SNPE path
 ARG QIMSDK_ARG_SNPE_DIR
 ENV QIMSDK_ESDK_SNPE_DIR=${QIMSDK_ARG_SNPE_DIR}
 
 # Setup eSDK as HOST user
-RUN chmod a+r ${QIMSDK_ESDK_BASE_FOLDER}/${QIMSDK_ESDK_SH}
+RUN chmod a+r ${QIMSDK_ESDK_BASE_DIR}/${QIMSDK_ESDK_SH}
 RUN umask 022
 USER ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}
-RUN ${QIMSDK_ESDK_BASE_FOLDER}/${QIMSDK_ESDK_SH} -y -d ${QIMSDK_ESDK_BASE_FOLDER}
-COPY tmp/${QIMSDK_ESDK_TFLITE_FILE} ${QIMSDK_ESDK_BASE_FOLDER}/downloads/
-COPY tmp/${QIMSDK_ESDK_SNPE_DIR} ${QIMSDK_ESDK_BASE_FOLDER}/downloads/${QIMSDK_ESDK_SNPE_DIR}
+RUN ${QIMSDK_ESDK_BASE_DIR}/${QIMSDK_ESDK_SH} -y -d ${QIMSDK_ESDK_BASE_DIR}
+COPY tmp/${QIMSDK_ESDK_TFLITE_FILENAME} ${QIMSDK_ESDK_BASE_DIR}/downloads/
+COPY tmp/${QIMSDK_ESDK_SNPE_DIR} ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_SNPE_DIR}
 USER root
-RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ESDK_BASE_FOLDER}/downloads/${QIMSDK_ESDK_SNPE_DIR}
-RUN ln -sf ${QIMSDK_ESDK_BASE_FOLDER}/buildtools /usr/local/oe-sdk-hardcoded-buildpath
-RUN rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/${QIMSDK_ESDK_SH}
+RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_SNPE_DIR}
+RUN ln -sf ${QIMSDK_ESDK_BASE_DIR}/buildtools /usr/local/oe-sdk-hardcoded-buildpath
+RUN rm -rf ${QIMSDK_ESDK_BASE_DIR}/${QIMSDK_ESDK_SH}
 
 # Add bash aliases
 ADD sdk-tools/.bash_aliases /home/${QIMSDK_ARG_HOST_USER}/.bash_aliases
@@ -124,30 +124,35 @@ ENV QIMSDK_ESDK_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}
 ARG QIMSDK_ARG_DEPLOY_URL_DEV
 ENV QIMSDK_ESDK_DEPLOY_URL_DEV=${QIMSDK_ARG_DEPLOY_URL_DEV}
 
+# Set gst plugins qti oss dependencies
+ARG QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES
+ENV QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES=${QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES}
+
 # Remove meta layers and src code to be cloned
-RUN rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-gst
-RUN rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/layers/poky/meta-qti-gst-prop
-RUN rm -rf ${QIMSDK_ESDK_BASE_FOLDER}/layers/src/vendor/qcom/opensource/gst-plugins-qti-oss
+RUN rm -rf ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-gst
+RUN rm -rf ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-gst-prop
+RUN rm -rf ${QIMSDK_ESDK_BASE_DIR}/layers/src/vendor/qcom/opensource/gst-plugins-qti-oss
 
 # Add image scripts
-ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_FOLDER}/scripts
+ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts
 ADD sdk-tools/scripts/image ${QIMSDK_SCRIPTS}
 RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_SCRIPTS}
 
-# Set work folder
-ENV QIMSDK_WORK_FOLDER=${QIMSDK_BASE_FOLDER}/work
+# Set work dir
+ENV QIMSDK_WORK_DIR=${QIMSDK_BASE_DIR}/work
 
-WORKDIR ${QIMSDK_BASE_FOLDER}
+WORKDIR ${QIMSDK_BASE_DIR}
 
 # Add src code
-ADD poky ${QIMSDK_ARG_BASE_FOLDER}/repo/poky
-ADD src ${QIMSDK_ARG_BASE_FOLDER}/repo/src
-RUN ln -s ${QIMSDK_ARG_BASE_FOLDER}/repo/src ${QIMSDK_ARG_BASE_FOLDER}/esdk/layers/src
-RUN ln -s ${QIMSDK_ARG_BASE_FOLDER}/repo/poky ${QIMSDK_ARG_BASE_FOLDER}/poky
-RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_FOLDER}/repo/poky   && \
-    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_FOLDER}/repo/src    && \
-    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_FOLDER}/poky        && \
-    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_FOLDER}/esdk/layers/src
+ADD layers ${QIMSDK_ARG_BASE_DIR}/repo/layers
+ADD src ${QIMSDK_ARG_BASE_DIR}/repo/src
+RUN [ -d ${QIMSDK_ESDK_BASE_DIR}/src ] || mkdir ${QIMSDK_ESDK_BASE_DIR}/src
+RUN ln -s ${QIMSDK_ARG_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/
+RUN ln -s ${QIMSDK_ARG_BASE_DIR}/repo/layers ${QIMSDK_ARG_BASE_DIR}/layers
+RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/repo/layers && \
+    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/repo/src    && \
+    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/layers      && \
+    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/esdk/src
 
 # Prepare, build and package all layers
 USER ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}

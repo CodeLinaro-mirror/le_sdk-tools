@@ -3,11 +3,13 @@
     "Additional_tag": "sdk-18",
     "eSDK_path": "<path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk/",
     "eSDK_shell_file": "rb-debug-x86_64-qti-robotics-image-armv8a-kalama-toolchain-ext-<AU-ID>.sh",
+    "Base_Dir_Location": "<path-to-the-directory-where-the-project-is-initialized>",
     "Tflite_path": "<path-to-the-directory-where-the-prebuild-tflite-dev-archive-is-located>",
-    "Tflite_prebuilt_file": "<tf-lite-prebuild-file>",
+    "Tflite_prebuilt_file": "<tf-lite-prebuilt-file>",
     "Acceleration_engine":"",
     "Acceleration_engine_path":"",
     "Host_dir_mounted_in_container": "",
     "Deploy_URL": "",
-    "Deploy_dev_URL": ""
+    "Deploy_dev_URL": "",
+    "Gst_plugins_qti_oss_dependencies":["cairo", "ffmpeg", "gdk-pixbuf", "liba52", "libgudev", "lame", "librsvg", "libtheora", "libusb1", "libwebp", "mpg123", "orc", "sbc", "speex", "taglib", "vulkan-loader"]
 }

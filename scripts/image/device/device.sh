@@ -113,7 +113,7 @@ function qimsdk-device-pkg-sync() {
 
 # Clear device sync log to update all packets on next device sync
 function qimsdk-device-sync-log-clear() {
-    rm -f ${QIMSDK_WORK_FOLDER}/device_sync.log
+    rm -f ${QIMSDK_WORK_DIR}/device_sync.log
 }
 
 # Sync compiled release packages with the device

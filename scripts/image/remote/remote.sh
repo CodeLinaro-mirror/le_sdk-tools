@@ -64,7 +64,7 @@ function qimsdk-remote-pkg-sync-dev() {
 
 # Clear remote target sync log to update all packets on next remote sync
 function qimsdk-remote-sync-log-clear() {
-    rm -f ${QIMSDK_WORK_FOLDER}/remote_sync.log
+    rm -f ${QIMSDK_WORK_DIR}/remote_sync.log
 }
 
 # Sync compiled release packages with the remote target

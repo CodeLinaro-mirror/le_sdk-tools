@@ -13,12 +13,12 @@
 
 # Fix git autocomplete
 function qimsdk-fix-git-autocomplete() {
-    [ ! -f ${QIMSDK_WORK_FOLDER}/git-completion.bash ] && {
+    [ ! -f ${QIMSDK_WORK_DIR}/git-completion.bash ] && {
         local GIT_VERSION=`git --version | rev | cut -d ' ' -f 1 | rev`
-        mkdir -p ${QIMSDK_WORK_FOLDER}
-        wget https://raw.githubusercontent.com/git/git/v${GIT_VERSION}/contrib/completion/git-completion.bash -O ${QIMSDK_WORK_FOLDER}/git-completion.bash
+        mkdir -p ${QIMSDK_WORK_DIR}
+        wget https://raw.githubusercontent.com/git/git/v${GIT_VERSION}/contrib/completion/git-completion.bash -O ${QIMSDK_WORK_DIR}/git-completion.bash
     }
 
-    source ${QIMSDK_WORK_FOLDER}/git-completion.bash
+    source ${QIMSDK_WORK_DIR}/git-completion.bash
 }
 qimsdk-fix-git-autocomplete

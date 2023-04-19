@@ -24,17 +24,17 @@ function qimsdk-local-device-command ()
     return $rc
 }
 
-# Sync packages with the device from specified folder
+# Sync packages with the device from specified directory
 #   $1 - (mandatory) path to the packages to be synced
 function qimsdk-local-sync() {
-    local FOLDER=$1
-    echo $FOLDER
-    ll $FOLDER
-    [ ! -d "${FOLDER}" ] && \
-        echo "Path to folder with packages must be provided as first argument !!!" && return -1
+    local DIR=$1
+    echo $DIR
+    ll $DIR
+    [ ! -d "${DIR}" ] && \
+        echo "Path to directory with packages must be provided as first argument !!!" && return -1
 
     local FILE
-    for FILE in ${FOLDER}/*.ipk; do
+    for FILE in ${DIR}/*.ipk; do
         local PACKAGE_NAME=$(basename "${FILE}")
 
         adb push ${FILE} /tmp/                                                                  || \
@@ -59,4 +59,4 @@ function qimsdk-local-sync() {
 
 # Print help
 echo "qimsdk-local-sync"
-echo "    must be invoked to sync packages with the device from specified folder"
+echo "    must be invoked to sync packages with the device from specified directory"

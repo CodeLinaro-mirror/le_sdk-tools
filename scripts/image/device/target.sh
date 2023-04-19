@@ -11,7 +11,7 @@ function qimsdk-target-get-updated-packages-all() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*.ipk" \) -cnewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/ipk/ -type f \( -name "*.ipk" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 # Get updated release packages
@@ -22,7 +22,7 @@ function qimsdk-target-get-updated-packages-rel() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*.ipk" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" ! -iname "*-dbg_*" \) -cnewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/ipk/ -type f \( -name "*.ipk" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" ! -iname "*-dbg_*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 # Get updated debug packages
@@ -33,7 +33,7 @@ function qimsdk-target-get-updated-packages-dbg() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*-dbg_*.ipk" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/ipk/ -type f \( -name "*-dbg_*.ipk" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 function qimsdk-target-get-updated-packages-dev() {
@@ -42,7 +42,7 @@ function qimsdk-target-get-updated-packages-dev() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*-dev_*.ipk" ! -iname "*-dbg_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/ipk/ -type f \( -name "*-dev_*.ipk" ! -iname "*-dbg_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 function qimsdk-target-get-updated-packages-staticdev() {
@@ -51,7 +51,7 @@ function qimsdk-target-get-updated-packages-staticdev() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_FOLDER}/tmp/deploy/ipk/ -type f \( -name "*-staticdev_*.ipk" ! -iname "*-dbg_*" ! -iname "*-doc_*" \) -anewer ${QIMSDK_WORK_FOLDER}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/ipk/ -type f \( -name "*-staticdev_*.ipk" ! -iname "*-dbg_*" ! -iname "*-doc_*" \) -anewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 # Sync compiled packages with the target
@@ -68,7 +68,7 @@ function qimsdk-target-sync() {
         print-red "Target input argument device or remote is required" && return -2
 
     # Check whether code was already prepared
-    [ ! -f ${QIMSDK_WORK_FOLDER}/prepared ] && print-red "Layers are not prepared" && return -3
+    [ ! -f ${QIMSDK_WORK_DIR}/prepared ] && print-red "Layers are not prepared" && return -3
 
     # Get updated packages
     local PKGS
@@ -80,8 +80,8 @@ function qimsdk-target-sync() {
 
     # Sync only new packages
     local PKG
-    local SYNC_FILE="${QIMSDK_WORK_FOLDER}/${TARGET}_sync.log"
-    local REMOVE_PKG_FILE="${QIMSDK_WORK_FOLDER}/${TARGET}_packages_remove.sh"
+    local SYNC_FILE="${QIMSDK_WORK_DIR}/${TARGET}_sync.log"
+    local REMOVE_PKG_FILE="${QIMSDK_WORK_DIR}/${TARGET}_packages_remove.sh"
 
     for PKG in "${PKGS[@]}"; do
         local DATE=`date -r ${PKG}`
@@ -118,7 +118,7 @@ function qimsdk-target-packages-remove() {
     [ ! "${TARGET}" == "device" ] && [ ! "${TARGET}" == "remote" ]                              && \
         print-red "Target input argument device or remote is required" && return -1
 
-    local REMOVE_PKG_FILE="${QIMSDK_WORK_FOLDER}/${TARGET}_packages_remove.sh"
+    local REMOVE_PKG_FILE="${QIMSDK_WORK_DIR}/${TARGET}_packages_remove.sh"
 
     # Remove packages and clear sync log
     qimsdk-${TARGET}-script-invoke ${REMOVE_PKG_FILE}                                           && \
