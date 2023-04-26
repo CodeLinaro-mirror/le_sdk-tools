@@ -43,12 +43,18 @@ function qimsdk-gst-plugins-qti-prepare() {
     # Append do_package_write_ipk task to packages
     grep -q do_package_write_ipk ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb || sed -i 's/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:do_package_write_ipk/g' ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
-    # Enable the compilation of mltflite plugin
-    echo -e '\nDISTRO_FEATURES += "tensorflow-lite"' >> ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
-
-    # Setup tf lite prebuilt
-    mv -f ${QIMSDK_ESDK_BASE_FOLDER}/downloads/${QIMSDK_ESDK_TFLITE_FILE} ${QIMSDK_ESDK_BASE_FOLDER}/downloads/tflite-dev.tar.gz;
-    sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:do_package_write_ipk\"/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+    # Check if tf lite prebuilt is available
+    [ "${QIMSDK_ESDK_TFLITE_FILE}" != "no-tflite-dev-archive-available" ]                       && \
+        {
+            # Enable the compilation of mltflite plugin
+            echo -e '\nDISTRO_FEATURES += "tensorflow-lite"' >> ${QIMSDK_ESDK_BASE_FOLDER}/conf/local.conf
+            # Setup tf lite prebuilt, if available
+            mv -f ${QIMSDK_ESDK_BASE_FOLDER}/downloads/${QIMSDK_ESDK_TFLITE_FILE} ${QIMSDK_ESDK_BASE_FOLDER}/downloads/tflite-dev.tar.gz;
+            sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:do_package_write_ipk\"/g" ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+        }                                                                                       || \
+        {
+            sed -i '/tensorflow-lite/d' ${QIMSDK_BASE_FOLDER}/poky/meta-qti-gst/recipes/packagegroups/*.bb*
+        }
 
     # Setup snpe dir, if available
     [ "${QIMSDK_ESDK_SNPE_DIR}" != "no-snpe-dir-available" ]                                    && \
