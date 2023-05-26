@@ -144,14 +144,14 @@ ENV QIMSDK_WORK_DIR=${QIMSDK_BASE_DIR}/work
 WORKDIR ${QIMSDK_BASE_DIR}
 
 # Add src code
-ADD layers ${QIMSDK_ARG_BASE_DIR}/repo/layers
+ADD poky ${QIMSDK_ARG_BASE_DIR}/repo/poky
 ADD src ${QIMSDK_ARG_BASE_DIR}/repo/src
 RUN [ -d ${QIMSDK_ESDK_BASE_DIR}/src ] || mkdir ${QIMSDK_ESDK_BASE_DIR}/src
 RUN ln -s ${QIMSDK_ARG_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/
-RUN ln -s ${QIMSDK_ARG_BASE_DIR}/repo/layers ${QIMSDK_ARG_BASE_DIR}/layers
-RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/repo/layers && \
+RUN ln -s ${QIMSDK_ARG_BASE_DIR}/repo/poky ${QIMSDK_ARG_BASE_DIR}/poky
+RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/repo/poky && \
     chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/repo/src    && \
-    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/layers      && \
+    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/poky      && \
     chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/esdk/src
 
 # Prepare, build and package all layers

@@ -8,7 +8,7 @@ QIMSDK_ALL_LAYERS+=("gst-plugins-qti")
 
 # Add meta-qti-gst layer
 function qimsdk-gst-plugins-qti-add-layers() {
-    qimsdk-bitbake-add-layers ${QIMSDK_BASE_DIR}/layers/meta-qti-gst
+    qimsdk-bitbake-add-layers ${QIMSDK_BASE_DIR}/poky/meta-qti-gst
 }
 
 # Prepare all recipes in layer
@@ -35,33 +35,30 @@ function qimsdk-gst-plugins-qti-prepare() {
     sed -i "s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst//g" ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
 
     # Use kernel headers dir from local sysroot
-    sed -i "s/\${STAGING_KERNEL_BUILDDIR}/\${STAGING_INCDIR}\/linux-msm/g" ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/gstreamer/*.bb*
+    sed -i "s/\${STAGING_KERNEL_BUILDDIR}/\${STAGING_INCDIR}\/linux-msm/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
 
     # Remove not needed dependency to kernel workdir
-    sed -i "s/do_configure\[depends\] += \"virtual\/kernel:do_shared_workdir\"//g" ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/gstreamer/*.bb*
+    sed -i "s/do_configure\[depends\] += \"virtual\/kernel:do_shared_workdir\"//g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
 
     # Remove packagegroup class
-    sed -i "s/inherit packagegroup//g" ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    sed -i "s/inherit packagegroup//g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Transpose packagegroup specific RDEPENDS packages as do_package task dependencies
-    sed -i "s/RDEPENDS.packagegroup-qti-gst/do_package[depends]/g" ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
-
-    # Remove packagegroup-qti-gst-basic from packagegroup-qti-gst
-    sed -i "s/packagegroup-qti-gst-basic//g" ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    sed -i "s/RDEPENDS.packagegroup-qti-gst/do_package[depends]/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Append do_package_write_ipk task to packages
-    grep -q do_package_write_ipk ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb || sed -i 's/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:do_package_write_ipk/g' ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    grep -q do_package_write_ipk ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb || sed -i 's/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:do_package_write_ipk/g' ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Remove packagegroup-qti-gst.bbappend
-    rm -rf ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+    rm -rf ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
 
     # Add gst qti oss dependencies
-    echo do_compile[depends] = \" \\ >> ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+    echo do_compile[depends] = \" \\ >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
 
     for package in ${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES[@]}; do
-        echo '      '${package}:do_package_write_ipk \\ >> ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+        echo '      '${package}:do_package_write_ipk \\ >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
     done
-    echo '    '\" >> ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+    echo '    '\" >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
 
     # Remove tensorflow-lite from DISTRO_FEATURES
     sed -i "s/tensorflow-lite//g" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-distro/conf/distro/include/qti-distro-fullstack.inc
@@ -73,7 +70,7 @@ function qimsdk-gst-plugins-qti-prepare() {
             echo -e '\nDISTRO_FEATURES += "tensorflow-lite"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
             # Setup tf lite prebuilt, if available
             mv -f ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_TFLITE_FILENAME} ${QIMSDK_ESDK_BASE_DIR}/downloads/tflite-dev.tar.gz;
-            sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:do_package_write_ipk\"/g" ${QIMSDK_BASE_DIR}/layers/meta-qti-gst/recipes/gstreamer/*.bb*
+            sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:do_package_write_ipk\"/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
         }                                                                                       || \
         {
             sed -i '/tensorflow-lite/d' ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
@@ -83,10 +80,10 @@ function qimsdk-gst-plugins-qti-prepare() {
     [ "${QIMSDK_ESDK_SNPE_DIR}" != "no-snpe-dir-available" ]                                    && \
         {
             echo -e '\nDISTRO_FEATURES += "qti-snpe"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
-            mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/layers/meta-qti-ml/recipes/snpe-sdk
+            mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml/recipes/snpe-sdk
             [ -f ${QIMSDK_ESDK_BASE_DIR}/downloads/snpe/ReleaseNotes.txt ] && \
                 echo PV = \"$(grep -m 1 'SNPE [0-9].*' ${QIMSDK_ESDK_BASE_DIR}/downloads/snpe/ReleaseNotes.txt | awk '{print $2}')\" \
-                >> ${QIMSDK_ESDK_BASE_DIR}/layers/layers/meta-qti-ml/recipes/snpe-sdk/snpe.bbappend
+                >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml/recipes/snpe-sdk/snpe.bbappend
         }
 
     qimsdk-gst-plugins-qti-add-layers                                                           && \
