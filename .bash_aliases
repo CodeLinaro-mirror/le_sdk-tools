@@ -10,15 +10,3 @@
 
 # Setup helper scripts
 [ -f ${QIMSDK_SCRIPTS}/env_setup.sh ] && source ${QIMSDK_SCRIPTS}/env_setup.sh
-
-# Fix git autocomplete
-function qimsdk-fix-git-autocomplete() {
-    [ ! -f ${QIMSDK_WORK_DIR}/git-completion.bash ] && {
-        local GIT_VERSION=`git --version | rev | cut -d ' ' -f 1 | rev`
-        mkdir -p ${QIMSDK_WORK_DIR}
-        wget https://raw.githubusercontent.com/git/git/v${GIT_VERSION}/contrib/completion/git-completion.bash -O ${QIMSDK_WORK_DIR}/git-completion.bash
-    }
-
-    source ${QIMSDK_WORK_DIR}/git-completion.bash
-}
-qimsdk-fix-git-autocomplete

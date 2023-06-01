@@ -63,16 +63,24 @@ function qimsdk-device-prepare() {
     print-green "Device prepared successfully !!!"
 }
 
+# Identify the package management configuration
+function qimsdk-get-pkg-format() {
+    [ -d ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb ] && echo "deb" || echo "ipk"
+}
+
 # Check whether compiled package is already present on the device
 #   $1 - (mandatory) package to be cheked
 function qimsdk-device-pkg-check() {
     local FULL_PACKAGE=$1
     local PACKAGE=`echo ${FULL_PACKAGE} | cut -d '_' -f 1`
 
-    adb shell "opkg list ${PACKAGE} > /tmp/log.txt"
+    [ $(qimsdk-get-pkg-format) == "deb" ]                                                       && \
+        adb shell "dpkg --list ${PACKAGE} > /tmp/log.txt"
+    [ $(qimsdk-get-pkg-format) == "ipk" ]                                                       && \
+    adb shell "opkg list-installed ${PACKAGE} > /tmp/log.txt"
     adb pull /tmp/log.txt /tmp/log.txt 1>/dev/null
     local rc=$?
-    [ -s /tmp/log.txt ] && rc=-1
+    [ -s /tmp/log.txt ] || rc=-1
 
     adb shell "rm -f /tmp/log.txt"
     rm -f /tmp/log.txt
@@ -82,30 +90,42 @@ function qimsdk-device-pkg-check() {
 
 # Sync compiled package with the device
 #   $1 - (mandatory) path to the package to be synced
+#   $2 - (mandatory) package format
 function qimsdk-device-pkg-sync() {
     local PATH_TO_PACKAGE=$1
+    local PKG_FORMAT=$2
     [ -z "${PATH_TO_PACKAGE}" ] && print-red "Package name must be provided as first argument !!!" && return -1
+    [ -z "${PKG_FORMAT}" ] && print-red "Package format deb or ipk must be provided as second argument !!!" && return -2
 
-    [ ! -f "${PATH_TO_PACKAGE}" ] && print-red "File "${PATH_TO_PACKAGE}" does not exist !!!" && return -2
+    [ ! -f "${PATH_TO_PACKAGE}" ] && print-red "File "${PATH_TO_PACKAGE}" does not exist !!!" && return -3
 
     local PACKAGE_NAME=$(basename "${PATH_TO_PACKAGE}")
     adb push "${PATH_TO_PACKAGE}" /tmp/                                                         || \
         {
             print-red "Push package to device /tmp directory failed !!!";
-            return -3;
-        }
-
-    qimsdk-device-command "opkg --force-depends --force-reinstall --force-overwrite install /tmp/${PACKAGE_NAME}" || \
-        {
-            qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
-            print-red "Install package to device failed !!!";
             return -4;
         }
 
-    qimsdk-device-command "rm /tmp/${PACKAGE_NAME}"                                       || \
+    [ "${PKG_FORMAT}" == "deb" ]                                                                && \
+        {
+        qimsdk-device-command "dpkg --install --force-all /tmp/${PACKAGE_NAME}"                 || \
+            {
+                qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
+                print-red "Install package to device failed !!!";
+                return -5;
+            }
+        }                                                                                       || \
+    qimsdk-device-command "opkg install --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE_NAME}" || \
+        {
+            qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
+            print-red "Install package to device failed !!!";
+            return -6;
+        }
+
+    qimsdk-device-command "rm /tmp/${PACKAGE_NAME}"                                             || \
         {
             print-red "Remove package from device /tmp directory failed !!!";
-            return -5;
+            return -7;
         }
 
     return 0
@@ -118,12 +138,12 @@ function qimsdk-device-sync-log-clear() {
 
 # Sync compiled release packages with the device
 function qimsdk-device-sync-rel() {
-    qimsdk-target-sync rel device
+    qimsdk-target-sync rel device $(qimsdk-get-pkg-format)
 }
 
 # Sync compiled debug packages with the device
 function qimsdk-device-sync-dbg() {
-    qimsdk-target-sync dbg device
+    qimsdk-target-sync dbg device $(qimsdk-get-pkg-format)
 }
 
 # Remove installed packages from the device

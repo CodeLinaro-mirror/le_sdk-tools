@@ -37,8 +37,11 @@ function qimsdk-local-sync() {
     PACKAGES_PATH=`echo ${PACKAGES_PATH}/ | sed 's/\/\//\//g'`
 
     local FILE
-    for FILE in ${PACKAGES_PATH}*.ipk; do
+    for FILE in ${PACKAGES_PATH}*; do
         local PACKAGE=$(basename "${FILE}")
+        local PACKAGE_FORMAT=$(basename -- "${FILE}")
+
+        PACKAGE_FORMAT="${PACKAGE_FORMAT##*.}"
 
         adb push "${FILE}" /tmp/                                                                || \
             {
@@ -46,22 +49,38 @@ function qimsdk-local-sync() {
                 return -1;
             }
 
-        qimsdk-local-device-command "opkg --force-depends --force-reinstall --force-overwrite install /tmp/${PACKAGE}" || \
+        [ "${PACKAGE_FORMAT}" == "deb" ]                                                        && \
             {
-                qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
-                print-red "Install package to device failed !!!";
-                return -2;
+                qimsdk-local-device-command "dpkg --install --force-all /tmp/${PACKAGE}"   || \
+                    {
+                        adb shell "rm -f /tmp/${PACKAGE}"
+                        print-red "Install package to device failed !!!";
+                        return -2;
+                    }
+            }
+
+        [ "${PACKAGE_FORMAT}" == "ipk" ]                                                        && \
+            {
+                qimsdk-local-device-command "opkg --force-depends --force-reinstall --force-overwrite install /tmp/${PACKAGE}" || \
+                    {
+                        qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
+                        print-red "Install package to device failed !!!";
+                        return -3;
+                    }
             }
 
         # Get package name and add it to uninstall script
         local PACKAGE_NAME=`echo ${PACKAGE} | cut -d '_' -f 1`
-        grep "opkg remove --force-depends ${PACKAGE_NAME}" ${PACKAGES_PATH}uninstall.sh 2>&1 > /dev/null || \
+        grep "${PACKAGE_NAME}" ${PACKAGES_PATH}uninstall.sh 2>&1 > /dev/null                    || \
             {
-                echo "opkg remove --force-depends ${PACKAGE_NAME}" >> ${PACKAGES_PATH}uninstall.sh || \
+                [ "${PACKAGE_FORMAT}" == "deb" ]                                                && \
                     {
-                        qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
-                        echo "Providing uninstall line to uninstall script for package ${PACKAGE_NAME} failed !!!"
-                        return -3
+                        echo "dpkg --remove --force-all ${PACKAGE_NAME}" >> ${PACKAGES_PATH}uninstall.sh
+                    }
+
+                [ "${PACKAGE_FORMAT}" == "ipk" ]                                                && \
+                    {
+                        echo "opkg remove --force-depends ${PACKAGE_NAME}" >> ${PACKAGES_PATH}uninstall.sh
                     }
             }
 

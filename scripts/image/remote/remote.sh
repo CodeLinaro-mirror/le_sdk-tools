@@ -69,20 +69,20 @@ function qimsdk-remote-sync-log-clear() {
 
 # Sync compiled release packages with the remote target
 function qimsdk-remote-sync-rel() {
-    qimsdk-target-sync rel remote
+    qimsdk-target-sync rel remote $(qimsdk-get-pkg-format)
 }
 
 # Sync compiled debug packages with the remote target
 function qimsdk-remote-sync-dbg() {
-    qimsdk-target-sync dbg remote
+    qimsdk-target-sync dbg remote $(qimsdk-get-pkg-format)
 }
 
 function qimsdk-remote-sync-dev() {
-    qimsdk-target-sync dev remote
+    qimsdk-target-sync dev remote $(qimsdk-get-pkg-format)
 }
 
 function qimsdk-remote-sync-staticdev() {
-    qimsdk-target-sync staticdev remote
+    qimsdk-target-sync staticdev remote $(qimsdk-get-pkg-format)
 }
 
 # Send remove installed packages script the remote target

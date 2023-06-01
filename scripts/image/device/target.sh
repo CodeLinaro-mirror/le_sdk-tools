@@ -5,61 +5,85 @@
 
 # Get all updated packages
 #   $1 - (mandatory) /output/ updated packages
+#   $2 - (mandatory) package format deb or ipk
 function qimsdk-target-get-updated-packages-all() {
     local -n UPDATED_PACKAGES=$1
+    local PKG_FORMAT=$2
 
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/ipk/ -type f \( -name "*.ipk" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*.${PKG_FORMAT}" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 # Get updated release packages
 #   $1 - (mandatory) /output/ updated packages
+#   $2 - (mandatory) package format deb or ipk
 function qimsdk-target-get-updated-packages-rel() {
     local -n UPDATED_PACKAGES=$1
+    local PKG_FORMAT=$2
 
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/ipk/ -type f \( -name "*.ipk" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" ! -iname "*-dbg_*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*.${PKG_FORMAT}" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" ! -iname "*-dbg_*" ! -iname "*-locale-*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 # Get updated debug packages
 #   $1 - (mandatory) /output/ updated packages
+#   $2 - (mandatory) package format deb or ipk
 function qimsdk-target-get-updated-packages-dbg() {
     local -n UPDATED_PACKAGES=$1
+    local PKG_FORMAT=$2
 
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/ipk/ -type f \( -name "*-dbg_*.ipk" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*-dbg_*.${PKG_FORMAT}" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 function qimsdk-target-get-updated-packages-dev() {
     local -n UPDATED_PACKAGES=$1
+    local PKG_FORMAT=$2
 
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/ipk/ -type f \( -name "*-dev_*.ipk" ! -iname "*-dbg_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*-dev_*.${PKG_FORMAT}" ! -iname "*-dbg_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 function qimsdk-target-get-updated-packages-staticdev() {
     local -n UPDATED_PACKAGES=$1
+    local PKG_FORMAT=$2
 
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/ipk/ -type f \( -name "*-staticdev_*.ipk" ! -iname "*-dbg_*" ! -iname "*-doc_*" \) -anewer ${QIMSDK_WORK_DIR}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*-staticdev_*.${PKG_FORMAT}" ! -iname "*-dbg_*" ! -iname "*-doc_*" \) -anewer ${QIMSDK_WORK_DIR}/prepared -print0)
+}
+
+# Get target prerequisite packages
+#   $1 - (mandatory) /output/ prerequisite package if exest on deploy directory
+#   $2 - (mandatory) package format deb or ipk
+function qimsdk-target-check-for-prerequisites() {
+
+    local -n UPDATED_PACKAGES=$1
+    local PKG_FORMAT=$2
+
+    # Get prerequisite packages to install
+    while IFS= read -r -d $'\0'; do
+        UPDATED_PACKAGES+=("$REPLY")
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "libgstreamer1.0-0*" -o -name "libgdk-pixbuf-2.0-0*.${PKG_FORMAT}" -o -name "libjansson*.${PKG_FORMAT}" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" ! -iname "*-dbg_*" \) -print0)
 }
 
 # Sync compiled packages with the target
 #   $1 - (mandatory) variant: rel or dbg
 #   $2 - (mandatory) target: device or remote
+#   $3 - (mandatory) format: deb or ipk
 function qimsdk-target-sync() {
     local VARIANT=$1
     local TARGET=$2
+    local FORMAT=$3
     [ ! "${VARIANT}" == "rel" ] && [ ! "${VARIANT}" == "dbg" ]                                  && \
         [ ! "${VARIANT}" == "dev" ] && [ ! "${VARIANT}" == "staticdev" ]                        && \
         print-red "Variant input argument dbg, rel, dev or staticdev is required" && return -1
@@ -67,15 +91,18 @@ function qimsdk-target-sync() {
     [ ! "${TARGET}" == "device" ] && [ ! "${TARGET}" == "remote" ]                              && \
         print-red "Target input argument device or remote is required" && return -2
 
+    [ ! "${FORMAT}" == "deb" ] && [ ! "${FORMAT}" == "ipk" ]                                    && \
+        print-red "Package format argument deb or ipk is required" && return -3
+
     # Check whether code was already prepared
-    [ ! -f ${QIMSDK_WORK_DIR}/prepared ] && print-red "Layers are not prepared" && return -3
+    [ ! -f ${QIMSDK_WORK_DIR}/prepared ] && print-red "Layers are not prepared" && return -4
 
     # Get updated packages
     local PKGS
-    qimsdk-target-get-updated-packages-${VARIANT} PKGS                                          || \
+    qimsdk-target-get-updated-packages-${VARIANT} PKGS ${FORMAT}                                || \
         {
             print-red "Failed to get updated packages";
-            return -4;
+            return -5;
         }
 
     # Sync only new packages
@@ -95,12 +122,36 @@ function qimsdk-target-sync() {
 
         cat ${SYNC_FILE} 2>/dev/null | grep "${LOG}" 1>/dev/null                                || \
             {
-                qimsdk-${TARGET}-pkg-sync${DEV} ${PKG}                                          && \
+                [ "${PKG_NAME}" == "librsvg-2-gtk" -o "${PKG_NAME}" == "gstd" -o "${PKG_NAME}" == "qti-gstreamer1.0-plugins-good-v4l2" ] && \
+                    {
+                        # Check for prerequisite packages
+                        local PPKGS
+                        qimsdk-target-check-for-prerequisites PPKGS ${FORMAT}                   || \
+                            {
+                                print-red "Failed to check for prerequisite packages";
+                            }
+                        [ -n "${PPKGS}" ]                                                       && \
+                            for PPKG in "${PPKGS[@]}"; do
+                                qimsdk-${TARGET}-pkg-sync${DEV} ${PPKG} ${FORMAT}               && \
+                                {
+                                    sed -i "/${PKG_NAME}/d" ${REMOVE_PKG_FILE} 2>/dev/null
+                                    [ "${FORMAT}" == "deb" ]                                    && \
+                                        echo "adb shell \"dpkg --remove --force-all ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE} || \
+                                    echo "adb shell \"opkg remove --force-depends ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE}
+                                }
+                            done
+                    }
+
+                [ "${PKG_NAME}" == "logrotate" ] && continue
+
+                qimsdk-${TARGET}-pkg-sync${DEV} ${PKG} ${FORMAT}                                && \
                 {
                     sed -i "/${PKG_NAME}/d" ${REMOVE_PKG_FILE} 2>/dev/null
+                    [ "${FORMAT}" == "deb" ]                                                    && \
+                        echo "adb shell \"dpkg --remove --force-all ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE} || \
                     echo "adb shell \"opkg remove --force-depends ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE}
                 }                                                                               || \
-                return -5
+                return -6
             }
         PKG=$(basename ${PKG})
         sed -i "/${PKG}/d" ${SYNC_FILE} 2>/dev/null
@@ -118,12 +169,18 @@ function qimsdk-target-sync-artifacts() {
     [ ! "${VARIANT}" == "rel" ] && [ ! "${VARIANT}" == "dev" ] && [ ! "${VARIANT}" == "all" ]   && \
         print-red "Variant input argument dbg, rel, dev or staticdev is required" && return -1
 
+    # Set package format
+    local FORMAT=""
+    [ $(qimsdk-get-pkg-format) == "deb" ] && FORMAT=deb
+    [ $(qimsdk-get-pkg-format) == "ipk" ] && FORMAT=ipk
+    [ -z "${FORMAT}" ] && print-red "FAILED TO GET PACKAGE FORMAT !!!" && return -1
+
     # Check whether code was already prepared
     [ ! -f ${QIMSDK_WORK_DIR}/prepared ] && print-red "Layers are not prepared" && return -2
 
     # Get updated packages
     local PKGS
-    qimsdk-target-get-updated-packages-${VARIANT} PKGS                                          || \
+    qimsdk-target-get-updated-packages-${VARIANT} PKGS ${FORMAT}                                || \
         {
             print-red "Failed to get updated packages";
             return -3;
