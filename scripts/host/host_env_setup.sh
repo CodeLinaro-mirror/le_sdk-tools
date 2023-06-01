@@ -235,15 +235,15 @@ function qimsdk-check-required-packages() {
 
     local NOT_INSTALLED_PKGS=""
     local REQUIRED_PKGS="sudo python2.7 python3 python3-pip zip unzip curl wget gnupg flex bison   \
-        build-essential zlib1g-dev zstd gcc-multilib g++-multilib libc6-dev-i386 libncurses5 cpio  \
-        lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils   \
-        xsltproc fontconfig cmake texinfo chrpath diffstat xmlstarlet libarchive-dev ssh uuid-dev  \
-        libselinux1-dev g++ gawk gcc make libwayland-dev fakeroot libpam0g-dev binutils-dev git jq \
-        openjdk-8-jdk-headless util-linux whiptail libxml-simple-perl bash-completion openssl gdb  \
-        software-properties-common locales lcov libbz2-dev libffi-dev libgdbm-dev usbutils file    \
-        libgdbm-compat-dev liblzma-dev libncurses5-dev libreadline-dev libsqlite3-dev libssl-dev   \
-        lzma lzma-dev tk-dev language-pack-en-base android-tools-adb android-tools-fastboot        \
-        fakechroot libiberty-dev"
+        build-essential zlib1g-dev zstd gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-i386 \
+        libncurses5 cpio lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libxml2-utils  \
+        libgl1-mesa-dev xsltproc fontconfig cmake texinfo chrpath diffstat xmlstarlet ssh uuid-dev \
+        libarchive-dev libselinux1-dev g++ gawk gcc make libwayland-dev fakeroot libpam0g-dev git  \
+        jq binutils-dev openjdk-8-jdk-headless util-linux whiptail libxml-simple-perl openssl gdb  \
+        bash-completion software-properties-common locales lcov libbz2-dev libffi-dev libgdbm-dev  \
+        usbutils file libgdbm-compat-dev liblzma-dev libncurses5-dev libreadline-dev libssl-dev    \
+        libsqlite3-dev lzma lzma-dev tk-dev android-tools-adb android-tools-fastboot fakechroot    \
+        language-pack-en-base libiberty-dev qemu-user-static"
 
     for PKG in ${REQUIRED_PKGS[@]}; do
         dpkg-query -s ${PKG} > /dev/null 2>&1 || NOT_INSTALLED_PKGS+=${PKG}" "

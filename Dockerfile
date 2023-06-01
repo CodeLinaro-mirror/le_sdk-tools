@@ -32,10 +32,10 @@ RUN apt update                                                                  
         xsltproc unzip fontconfig python3 clang cmake python3-pip texinfo chrpath diffstat         \
         xmlstarlet libarchive-dev ssh libselinux1-dev g++ gawk gcc make libwayland-dev fakeroot    \
         libpam0g-dev openjdk-8-jdk-headless binutils-dev util-linux uuid-dev zstd cpio whiptail    \
-        libxml-simple-perl bash-completion vim openssl software-properties-common                  \
+        libxml-simple-perl git vim openssl software-properties-common                              \
         locales gdb lcov libbz2-dev libffi-dev libgdbm-dev libgdbm-compat-dev usbutils             \
         liblzma-dev libncurses5-dev libreadline6-dev libsqlite3-dev libssl-dev lzma lzma-dev       \
-        tk-dev file git language-pack-en-base wget android-tools-adb android-tools-fastboot     && \
+        tk-dev file language-pack-en-base wget android-tools-adb android-tools-fastboot         && \
     apt install -y fakechroot gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libiberty-dev jq      && \
     apt autoremove -y                                                                           && \
     apt clean                                                                                   && \
@@ -44,7 +44,12 @@ RUN apt update                                                                  
 # Install additional dependencies
 RUN rm -rf /lib/ld-linux-aarch64.so.1                                                           && \
     ln -sf /usr/aarch64-linux-gnu/lib/ld-2.31.so /lib/ld-linux-aarch64.so.1                     && \
-    ln -sf /bin/bash /bin/sh
+    ln -sf /bin/bash /bin/sh                                                                    && \
+    QEMU_PACKAGE=$(wget -q -O - http://archive.ubuntu.com/ubuntu/pool/universe/q/qemu/           | \
+    grep -o '"qemu-user-static_6.2+dfsg-2ubuntu*.*.deb"' | sort -V | head -1 | tr -d '"')       && \
+    wget --quiet http://archive.ubuntu.com/ubuntu/pool/universe/q/qemu/${QEMU_PACKAGE}          && \
+    dpkg -i ${QEMU_PACKAGE}                                                                     && \
+    rm -rf ${QEMU_PACKAGE}
 
 # Set python2.7 as python2
 RUN update-alternatives --install /usr/bin/python2 python2 /usr/bin/python2.7 10
@@ -120,6 +125,13 @@ RUN rm -rf ${QIMSDK_ESDK_BASE_DIR}/${QIMSDK_ESDK_SH}
 ADD sdk-tools/.bash_aliases /home/${QIMSDK_ARG_HOST_USER}/.bash_aliases
 RUN chown ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} /home/${QIMSDK_ARG_HOST_USER}/.bash_aliases
 
+# Add needed package for bash completion
+RUN apt update                                                                                  && \
+    apt install -y bash-completion                                                              && \
+    apt autoremove -y                                                                           && \
+    apt clean                                                                                   && \
+    rm -rf /var/lib/apt/lists* /tmp/* /var/tmp/*
+
 # Set deploy URL
 ARG QIMSDK_ARG_DEPLOY_URL
 ENV QIMSDK_ESDK_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}
@@ -165,9 +177,9 @@ ADD src ${QIMSDK_ARG_BASE_DIR}/repo/src
 RUN [ -d ${QIMSDK_ESDK_BASE_DIR}/src ] || mkdir ${QIMSDK_ESDK_BASE_DIR}/src
 RUN ln -s ${QIMSDK_ARG_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/
 RUN ln -s ${QIMSDK_ARG_BASE_DIR}/repo/poky ${QIMSDK_ARG_BASE_DIR}/poky
-RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/repo/poky && \
-    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/repo/src    && \
-    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/poky      && \
+RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/repo/poky  && \
+    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/repo/src   && \
+    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/poky       && \
     chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/esdk/src
 
 # Prepare, build and package all layers

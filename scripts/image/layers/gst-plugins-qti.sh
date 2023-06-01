@@ -25,14 +25,17 @@ function qimsdk-gst-plugins-qti-clean-layers() {
 # Prepare gst-plugins-qti
 function qimsdk-gst-plugins-qti-prepare() {
 
+    # Identify the package management configuration
+    [ -d ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb ] && PKG_WRITE_TASK="do_package_write_deb" || PKG_WRITE_TASK="do_package_write_ipk"
+
     # Remove gstreamer and meta-qti-gst from BBMASK
-    sed -i "s/meta\/recipes-multimedia\/gstreamer\///g;s/meta-qti-gst\///g" ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
+    sed -i "s/meta\/recipes-multimedia\/gstreamer\///g;s/meta-qti-gst\///g;s/meta-qti-ubuntu\/recipes-toolchain\/ubuntu\/gstreamer1.0\*//g" ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
 
     # Set WORKSPACE variable or add it to bblayers.conf if not exist
     grep -wq WORKSPACE ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf && sed -i "s+WORKSPACE\s*=\s*\"..TOPDIR./.*\"+WORKSPACE = \"\$\{TOPDIR\}/src\"+g" ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf || echo 'WORKSPACE = ""${TOPDIR}/src"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
 
-    # Remove meta-qti-gst from bblayers.conf
-    sed -i "s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst//g" ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
+    # Remove meta-qti-gst and meta-qti-gst-prop from bblayers.conf
+    sed -i "s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst-prop//g;s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst//g" ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
 
     # Use kernel headers dir from local sysroot
     sed -i "s/\${STAGING_KERNEL_BUILDDIR}/\${STAGING_INCDIR}\/linux-msm/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
@@ -44,10 +47,10 @@ function qimsdk-gst-plugins-qti-prepare() {
     sed -i "s/inherit packagegroup//g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Transpose packagegroup specific RDEPENDS packages as do_package task dependencies
-    sed -i "s/RDEPENDS.packagegroup-qti-gst/do_package[depends]/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    sed -i "s/RDEPENDS.packagegroup-qti-gst /do_package[depends]/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
-    # Append do_package_write_ipk task to packages
-    grep -q do_package_write_ipk ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb || sed -i 's/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:do_package_write_ipk/g' ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    # Append do_package_write_ipk or do_package_write_deb task to packages
+    grep -q ${PKG_WRITE_TASK} ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb || sed -i "s/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:${PKG_WRITE_TASK}/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Remove packagegroup-qti-gst.bbappend
     rm -rf ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
@@ -56,21 +59,31 @@ function qimsdk-gst-plugins-qti-prepare() {
     echo do_compile[depends] = \" \\ >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
 
     for package in ${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES[@]}; do
-        echo '      '${package}:do_package_write_ipk \\ >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+        echo '      '${package}:${PKG_WRITE_TASK} \\ >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
     done
     echo '    '\" >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+
+    # apt-get install gst_plugins_qti_oss_dependencies
+    [ "${PKG_WRITE_TASK}" == "do_package_write_deb" ]                                           && \
+    {
+        echo 'do_compile[depends] = "ubuntu-base:do_ubuntu_install"' > ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+        sed -i "s/\${UBUN_FULLSTACK_PERF_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;s/\${UBUN_FULLSTACK_DEBUG_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+        sed -i "s/rm \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/rm -f \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/g;s/rm \${TMP_WKDIR}\/lib\/udev\/v4l_id/rm -f \${TMP_WKDIR}\/lib\/udev\/v4l_id/g;s/60-persistent-storage.rules/60-persistent-storage-dm.rules/g" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+        grep -wq RM_WORK_EXCLUDE ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb || echo 'RM_WORK_EXCLUDE += "${PN}"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+        sed -i '/ssh_import_id/d;/\thumanity_theme_install/d;/ do_tzdata_install/d' ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+    }
 
     # Remove tensorflow-lite from DISTRO_FEATURES
     sed -i "s/tensorflow-lite//g" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-distro/conf/distro/include/qti-distro-fullstack.inc
 
     # Check if tf lite prebuilt is available
-    [ "${QIMSDK_ESDK_TFLITE_FILENAME}" != "no-tflite-dev-archive-available" ]                       && \
+    [ "${QIMSDK_ESDK_TFLITE_FILENAME}" != "no-tflite-dev-archive-available" ]                   && \
         {
             # Enable the compilation of mltflite plugin
             echo -e '\nDISTRO_FEATURES += "tensorflow-lite"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
             # Setup tf lite prebuilt, if available
             mv -f ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_TFLITE_FILENAME} ${QIMSDK_ESDK_BASE_DIR}/downloads/tflite-dev.tar.gz;
-            sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:do_package_write_ipk\"/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+            sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:${PKG_WRITE_TASK}\"/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
         }                                                                                       || \
         {
             sed -i '/tensorflow-lite/d' ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
@@ -103,7 +116,7 @@ function qimsdk-gst-plugins-qti-build() {
 
 # Package gst-plugins-qti
 function qimsdk-gst-plugins-qti-package() {
-    # Build task of that recipe generates all ipk files for dependent packages
+    # Build task of that recipe generates all ipk or deb files for dependent packages
     devtool package packagegroup-qti-gst
 }
 
@@ -126,8 +139,8 @@ function qimsdk-gst-plugins-qti-inspect() {
 
     # Check output
     adb pull /data/gst-inspect-error-log.txt ${QIMSDK_WORK_DIR}/ 2>&1 > /dev/null
-    [ -f ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt ]                                      && \
-    [ `wc -c ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt | cut -d ' ' -f 1` -eq 0 ]         && \
+    [ -f ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt ]                                         && \
+    [ `wc -c ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt | cut -d ' ' -f 1` -eq 0 ]            && \
         print-green "All gst plugins are inspected successfully !!!"                            || \
         {
             print-red "Gst inspection failed:";
