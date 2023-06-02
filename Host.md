@@ -9,7 +9,7 @@
 * [Helper Scripts And Configuration](#Helper_Scripts_And_Configuration)
   * [How to fill out Configuration JSON File](#How_to_fill_out_Configuration_JSON_File)
   * [Helper Scripts](#Helper_Scripts)
-* [Local Sync Scripts](#Local_Sync_Scripts)
+* [Local Sync And Uninstall Scripts](#Local_Sync_And_Uninstall_Scripts)
   * [Linux](#Linux)
   * [Windows](#Windows)
 * [Development Workflow](#Development_Workflow)
@@ -112,11 +112,11 @@ source ${QIMSDK_BASE_DIR}/sdk-tools/scripts/image/env_setup.sh
 
 ***Please note that script file extension must be renamed to bat when remote OS is windows***
 
-<div id="Local_Sync_Scripts">
+<div id="Local_Sync_And_Uninstall_Scripts">
 
-## Local Sync Scripts
+## Local Sync And Uninstall Scripts
 
-If ipk files needs to be deployed to device connected to another pc, then ipk files can be copied to that pc with *qimsdk-remote-sync-rel* or *qimsdk-remote-sync-dbg* scripts. Depending whether Linux or Windows is used on the pc (where device is connected) can be used corresponding scripts to update ipk's to the device. Those scripts also needs to be copied to the pc (where device is connected).
+If ipk files needs to be deployed to device connected to another pc, then ipk files can be copied to that pc with *qimsdk-remote-sync-rel* or *qimsdk-remote-sync-dbg* scripts. Depending whether Linux or Windows is used on the pc (where device is connected) can be used corresponding scripts to update ipk's to the device. Those scripts also needs to be copied to the pc (where device is connected). Installed packages can be uninstalled later using the corresponding uninstall script provided below.
 
 ***Please note that these scripts are deleting all successfully installed ipk files from the folder on pc (where device is connected)***
 
@@ -130,10 +130,12 @@ If ipk files needs to be deployed to device connected to another pc, then ipk fi
 
 Script location: \<snapdragon-iot-qimsdk\>/sdk-tools/scripts/local/linux.sh
 Sync cmd: qimsdk-local-sync - Sync packages with the device from specified folder
+Uninstall cmd: qimsdk-local-packages-remove - Uninstall packages previously installed on the device
 
 ```bash
 source <snapdragon-iot-qimsdk>/sdk-tools/scripts/local/linux.sh
 qimsdk-local-sync <folder to sync>
+qimsdk-local-packages-remove <folder with ipks>
 ```
 
 <div id="Windows">
@@ -148,10 +150,12 @@ $Env:PATH += ";<path to adb>"
 
 Script location: \<snapdragon-iot-qimsdk\>/sdk-tools/scripts/local/win.ps1
 Sync cmd: qimsdk-local-sync - Sync packages with the device from specified folder
+Uninstall cmd: qimsdk-local-packages-remove - Uninstall packages previously installed on the device
 
 ```powershell
 .\<snapdragon-iot-qimsdk>\sdk-tools\scripts\local\win.ps1
 qimsdk-local-sync <folder to sync>
+qimsdk-local-packages-remove <folder with ipks>
 ```
 
 <div id="Development_Workflow">
