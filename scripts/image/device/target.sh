@@ -110,6 +110,77 @@ function qimsdk-target-sync() {
     print-green "Packages synced successfully !!!"
 }
 
+# Create packages archive for the target
+#   $1 - (mandatory) variant: rel, dev or all
+function qimsdk-target-sync-artifacts() {
+    local VARIANT=$1
+
+    [ ! "${VARIANT}" == "rel" ] && [ ! "${VARIANT}" == "dev" ] && [ ! "${VARIANT}" == "all" ]   && \
+        print-red "Variant input argument dbg, rel, dev or staticdev is required" && return -1
+
+    # Check whether code was already prepared
+    [ ! -f ${QIMSDK_WORK_DIR}/prepared ] && print-red "Layers are not prepared" && return -2
+
+    # Get updated packages
+    local PKGS
+    qimsdk-target-get-updated-packages-${VARIANT} PKGS                                          || \
+        {
+            print-red "Failed to get updated packages";
+            return -3;
+        }
+
+    # Set variant postfix depending on variant
+    [ "${VARIANT}" == "rel" ] && VARIANT="_rel"
+    [ "${VARIANT}" == "dev" ] && VARIANT="_dev"
+    [ "${VARIANT}" == "all" ] && VARIANT=""
+
+    mkdir -p ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}
+
+    # Sync only new packages
+    local PKG
+    local SYNC_FILE="${QIMSDK_WORK_DIR}/artifacts_sync${VARIANT}.log"
+
+    for PKG in "${PKGS[@]}"; do
+        local DATE=`date -r ${PKG}`
+        local LOG="Pushing ${PKG} ${DATE}"
+        local PKG_NAME=`echo $(basename ${PKG}) | cut -d '_' -f 1`
+
+        cat ${SYNC_FILE} 2>/dev/null | grep "${LOG}" 1>/dev/null                                || \
+            {
+                rsync -a --progress ${PKG} ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}      || \
+                    {
+                        print-red "rsync package ${PKG_NAME} to artifacts dir failed !!!";
+                        return -4;
+                    }
+            }
+        PKG=$(basename ${PKG})
+        sed -i "/${PKG}/d" ${SYNC_FILE} 2>/dev/null
+        echo "${LOG}" >> ${SYNC_FILE}
+    done
+
+    # Remove old artifacts archive
+    rm -f ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}.zip
+
+    # Create new artifacts archive
+    pushd ${QIMSDK_WORK_DIR}/artifacts 1>/dev/null
+        zip -r packages${VARIANT}.zip ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}
+    popd 1>/dev/null
+
+    print-green "Artifacts synced successfully !!!"
+}
+
+function qimsdk-target-sync-artifacts-rel() {
+    qimsdk-target-sync-artifacts rel
+}
+
+function qimsdk-target-sync-artifacts-dev() {
+    qimsdk-target-sync-artifacts dev
+}
+
+function qimsdk-target-sync-artifacts-all() {
+    qimsdk-target-sync-artifacts all
+}
+
 # Remove installed packages from the target
 #   $1 - (mandatory) target: device or remote
 function qimsdk-target-packages-remove() {

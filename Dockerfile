@@ -128,6 +128,18 @@ ENV QIMSDK_ESDK_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}
 ARG QIMSDK_ARG_DEPLOY_URL_DEV
 ENV QIMSDK_ESDK_DEPLOY_URL_DEV=${QIMSDK_ARG_DEPLOY_URL_DEV}
 
+# Set deploy QIMSDK artifacts URL
+ARG QIMSDK_ARG_DEPLOY_ARTIFACTS
+ENV QIMSDK_ESDK_DEPLOY_ARTIFACTS=${QIMSDK_ARG_DEPLOY_ARTIFACTS}
+
+# Set deploy QIMSDK release artifacts URL
+ARG QIMSDK_ARG_DEPLOY_ARTIFACTS_REL
+ENV QIMSDK_ESDK_DEPLOY_ARTIFACTS_REL=${QIMSDK_ARG_DEPLOY_ARTIFACTS_REL}
+
+# Set deploy QIMSDK development artifacts URL
+ARG QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV
+ENV QIMSDK_ESDK_DEPLOY_ARTIFACTS_DEV=${QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV}
+
 # Set gst plugins qti oss dependencies
 ARG QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES
 ENV QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES=${QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES}
@@ -161,3 +173,8 @@ RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_
 # Prepare, build and package all layers
 USER ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}
 RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-layers-prepare-build-package
+
+# Call function to sync packages to artifacts archive
+RUN [ "no-artifacts-dir-provided" == "${QIMSDK_ESDK_DEPLOY_ARTIFACTS}" ] || bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-target-sync-artifacts-all
+RUN [ "no-artifacts-rel-dir-provided" == "${QIMSDK_ESDK_DEPLOY_ARTIFACTS_REL}" ] || bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-target-sync-artifacts-rel
+RUN [ "no-artifacts-dev-dir-provided" == "${QIMSDK_ESDK_DEPLOY_ARTIFACTS_DEV}" ] || bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-target-sync-artifacts-dev

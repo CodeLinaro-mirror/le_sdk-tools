@@ -11,5 +11,8 @@
     "Host_dir_mounted_in_container": "",
     "Deploy_URL": "",
     "Deploy_dev_URL": "",
+    "Deploy_QIMSDK_Artifacts_URL":"",
+    "Deploy_QIMSDK_Artifacts_URL_rel":"",
+    "Deploy_QIMSDK_Artifacts_URL_dev":"",
     "Gst_plugins_qti_oss_dependencies":["cairo", "ffmpeg", "gdk-pixbuf", "liba52", "libgudev", "lame", "librsvg", "libtheora", "libusb1", "libwebp", "mpg123", "orc", "sbc", "speex", "taglib", "vulkan-loader"]
 }

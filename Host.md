@@ -21,6 +21,7 @@
   * [Modifications In QMMF Gst Plugin (local src)](#Modifications_In_QMMF_Gst_Plugin_(local_src))
   * [Modifications in QMMF SDK](#Modifications_in_QMMF_SDK)
   * [Modifications in Weston](#Modifications_in_Weston)
+* [Getting QIMSDK Artifacts from Host QIMSDK Environment](#Getting_QIMSDK_Artifacts_from_Host_QIMSDK_Environment)
 * [Compiling gst-plugins-qti-oss Against tflite-dev.tar.gz](#Compiling_gst-plugins-qti-oss_Against_tflite-dev.tar.gz)
 
 <div id="Prerequisites">
@@ -73,7 +74,10 @@ The json file must contain certain data :
  7. ***OPTIONAL*** - **Acceleration_engine_path** - path to unzipped acceleration engine archive directory with unzipped files for the AI engine specified in the "Acceleration_engine" field ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
  8. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built on the host to remote target or local filesystem (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
  9. ***OPTIONAL*** - **Deploy_dev_URL** - This enables sending dev packages built on the host to remote target or local filesystem (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
- 10. ***OPTIONAL*** - **Gst_plugins_qti_oss_dependencies** - List of the dependency packages that will be compiled and installed to the target device.
+ 10. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL** - This enables sending ipk packages built in qimsdk environment to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 11. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL_rel** - This enables sending release ipk packages built in qimsdk environment to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 12. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL_dev** - This enables sending development ipk packages built in qimsdk environment to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 13. ***OPTIONAL*** - **Gst_plugins_qti_oss_dependencies** - List of the dependency packages that will be compiled and installed to the target device.
 
 The json files must be created in the ```<snapdragon-iot-qimsdk>/sdk-tools/targets/``` directory. ```<snapdragon-iot-qimsdk>/sdk-tools/targets/LE.PRODUCTS.2.1.json``` can be used as an example.
 
@@ -108,7 +112,6 @@ source ${QIMSDK_BASE_DIR}/sdk-tools/scripts/image/env_setup.sh
 - ```qimsdk-remote-sync-dev``` - Must be invoked to sync dev packages with the remote target
 - ```qimsdk-remote-sync-staticdev``` - Must be invoked to sync staticdev packages with the remote target
 - ```qimsdk-remote-packages-remove``` - Must be invoked to remove packages, installed by the remote target script
-
 
 ***Please note that script file extension must be renamed to bat when remote OS is windows***
 
@@ -501,6 +504,30 @@ Update device ipk from remote Windows
 ```powershell
 .\<snapdragon-iot-qimsdk>\sdk-tools\scripts\local\win.ps1
 qimsdk-local-sync <folder to sync>
+```
+
+<div id="Getting_QIMSDK_Artifacts_from_Host_QIMSDK_Environment">
+
+## Getting QIMSDK Artifacts from Host QIMSDK Environment
+
+**Once layers have been built, these commands can be used to generate artifact archives in user specified directories in host file system:**
+
+### To get all packages as artifacts archive (packages.zip):
+
+```bash
+qimsdk-host-sync-artifacts-all
+```
+
+### To get release packages as artifacts archive (packages_rel.zip):
+
+```bash
+qimsdk-host-sync-artifacts-rel
+```
+
+### To get development packages as artifacts archive (packages_dev.zip):
+
+```bash
+qimsdk-host-sync-artifacts-dev
 ```
 
 <div id="Compiling_gst-plugins-qti-oss_Against_tflite-dev.tar.gz">
