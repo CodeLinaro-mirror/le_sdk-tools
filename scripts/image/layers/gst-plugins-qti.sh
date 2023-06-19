@@ -76,15 +76,26 @@ function qimsdk-gst-plugins-qti-prepare() {
             sed -i '/tensorflow-lite/d' ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
         }
 
-    # Setup acceleration engine dir, if available
-    [ "${QIMSDK_ESDK_ACCELERATION_ENGINE_DIR}" != "no-acceleration-engine-dir-available" ]      && \
-        {
-            echo -e "\nDISTRO_FEATURES += \"qti-"${QIMSDK_ESDK_ACCELERATION_ENGINE}"\"" >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
-            mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk
-            [ -f ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt ] && \
-                echo PV = \"$(grep -m 1 "${QIMSDK_ESDK_ACCELERATION_ENGINE^^} [0-9].*" ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt | awk '{print $2}')\" \
-                >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk/${QIMSDK_ESDK_ACCELERATION_ENGINE}.bbappend
-        }
+    local QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES=(${QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES})
+    local QIMSDK_ESDK_ACCELERATION_ENGINE_COUNT=${#QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES[@]}
+
+    for ((i=0 ; i<${QIMSDK_ESDK_ACCELERATION_ENGINE_COUNT} ; i++)); do
+        local QIMSDK_ESDK_ACCELERATION_ENGINE=${QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES[i]}
+        local ENGINE_INDEX=$(( $i + 1 ))
+        [ ${i} -eq 0 ] && [ ! -f "${QIMSDK_ESDK_BASE_DIR}/downloads/no-acceleration-engine-1-dir-available" ] && \
+            {
+                echo -e "\nDISTRO_FEATURES += \"qti-"${QIMSDK_ESDK_ACCELERATION_ENGINE}"\"" >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
+                mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk
+                [ -f ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt ] && \
+                    echo PV = \"$(grep -m 1 "${QIMSDK_ESDK_ACCELERATION_ENGINE^^} [0-9].*" ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt | awk '{print $2}')\" \
+                    >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk/${QIMSDK_ESDK_ACCELERATION_ENGINE}.bbappend
+            }
+        [ ${i} -eq 1 ] && [ ! -f "${QIMSDK_ESDK_BASE_DIR}/downloads/no-acceleration-engine-2-dir-available" ] && \
+            {
+                echo -e "\nDISTRO_FEATURES += \"qti-"${QIMSDK_ESDK_ACCELERATION_ENGINE}"\"" >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
+                mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk
+            }
+    done
 
     qimsdk-gst-plugins-qti-add-layers                                                           && \
         qimsdk-gst-plugins-qti-prepare-layer

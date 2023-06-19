@@ -101,23 +101,35 @@ function qimsdk-docker-build-image() {
                     touch ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_TFLITE_FILENAME}
                 }
 
-    local QIMSDK_ARG_ACCELERATION_ENGINE=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Acceleration_engine' | tr -d '"'`
-    local ACCELERATION_ENGINE_DIR=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Acceleration_engine_path' | tr -d '"'`
+    local QIMSDK_ACCELERATION_ENGINE_TMP_DIR=${QIMSDK_REPO_BASE_DIR}/tmp/acceleration_engines
+    rm -rf ${QIMSDK_ACCELERATION_ENGINE_TMP_DIR}
+    mkdir -p ${QIMSDK_ACCELERATION_ENGINE_TMP_DIR}
 
-    [ -d "${ACCELERATION_ENGINE_DIR}" ]                                                         && \
-        local QIMSDK_ARG_ACCELERATION_ENGINE_DIR=${QIMSDK_ARG_ACCELERATION_ENGINE}              && \
-            ( rsync -a ${ACCELERATION_ENGINE_DIR}/* ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_ACCELERATION_ENGINE_DIR}/ || \
-                {
-                    print-red "Cannot add ${QIMSDK_ARG_ACCELERATION_ENGINE} dir to tmp folder !!!"
-                    rm -rf ${QIMSDK_TMP_DIR}
-                    return -10
-                }
-                rm -f ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_ACCELERATION_ENGINE_DIR}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
-            )                                                                                   || \
-                {
-                    QIMSDK_ARG_ACCELERATION_ENGINE_DIR=no-acceleration-engine-dir-available
-                    touch ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_ACCELERATION_ENGINE_DIR}
-                }
+    local QIMSDK_ARG_ACCELERATION_ENGINE_NAMES=(`cat ${PATH_TO_CONFIG_JSON} | jq '.Acceleration_engines[] | .Acceleration_engine' | tr -d '"'`)
+    local QIMSDK_ACCELERATION_ENGINE_PATHS=(`cat ${PATH_TO_CONFIG_JSON} | jq '.Acceleration_engines[] | .Acceleration_engine_path' | tr -d '"'`)
+    local QIMSDK_ACCELERATION_ENGINE_COUNT=`cat ${PATH_TO_CONFIG_JSON} | jq '.Acceleration_engines[] | .Acceleration_engine' | wc -l`
+
+    for ((i=0 ; i<${QIMSDK_ACCELERATION_ENGINE_COUNT} ; i++)); do
+        local ACCELERATION_ENGINE=${QIMSDK_ARG_ACCELERATION_ENGINE_NAMES[${i}]}
+        local ACCELERATION_ENGINE_DIR=${QIMSDK_ACCELERATION_ENGINE_PATHS[${i}]}
+        local ENGINE_INDEX=$(( $i + 1 ))
+        [ -d "${ACCELERATION_ENGINE_DIR}" ]                                                     && \
+            local ACCELERATION_ENGINE_TMP_PATH=${ACCELERATION_ENGINE}                           && \
+                ( rsync -a ${ACCELERATION_ENGINE_DIR}/* ${QIMSDK_ACCELERATION_ENGINE_TMP_DIR}/${ACCELERATION_ENGINE_TMP_PATH}/ || \
+                    {
+                        print-red "Cannot add ${ACCELERATION_ENGINE} dir to tmp folder !!!"
+                        rm -rf ${QIMSDK_ACCELERATION_ENGINE_TMP_DIR}
+                        return -10
+                    }
+                    rm -f ${QIMSDK_ACCELERATION_ENGINE_TMP_DIR}/${ACCELERATION_ENGINE_TMP_PATH}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
+                )                                                                               || \
+                    {
+                        ACCELERATION_ENGINE_TMP_PATH="no-acceleration-engine-${ENGINE_INDEX}-dir-available"
+                        touch ${QIMSDK_ACCELERATION_ENGINE_TMP_DIR}/${ACCELERATION_ENGINE_TMP_PATH}
+                    }
+    done
+
+    QIMSDK_ARG_ACCELERATION_ENGINE_NAMES=`cat ${PATH_TO_CONFIG_JSON} | jq '.Acceleration_engines[] | .Acceleration_engine' | tr -d '"'`
 
     local QIMSDK_ARG_DEPLOY_URL=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_URL' | tr -d '"'`
     QIMSDK_ARG_DEPLOY_URL=`echo ${QIMSDK_ARG_DEPLOY_URL}/ | sed 's/\/\//\//g'`
@@ -157,8 +169,7 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_ESDK_SH=${QIMSDK_ARG_ESDK_SH}                                   \
             --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_ARG_BASE_DIR}                                 \
             --build-arg QIMSDK_ARG_TFLITE_FILENAME=${QIMSDK_ARG_TFLITE_FILENAME}                   \
-            --build-arg QIMSDK_ARG_ACCELERATION_ENGINE=${QIMSDK_ARG_ACCELERATION_ENGINE}           \
-            --build-arg QIMSDK_ARG_ACCELERATION_ENGINE_DIR=${QIMSDK_ARG_ACCELERATION_ENGINE_DIR}   \
+            --build-arg QIMSDK_ARG_ACCELERATION_ENGINE_NAMES="${QIMSDK_ARG_ACCELERATION_ENGINE_NAMES}" \
             --build-arg QIMSDK_ARG_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}                             \
             --build-arg QIMSDK_ARG_DEPLOY_URL_DEV=${QIMSDK_ARG_DEPLOY_URL_DEV}                     \
             --build-arg QIMSDK_ARG_DEPLOY_ARTIFACTS=${QIMSDK_ARG_DEPLOY_ARTIFACTS}                 \

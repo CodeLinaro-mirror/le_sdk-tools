@@ -28,8 +28,9 @@ function qimsdk-host-parse-json() {
             QIMSDK_ESDK_TFLITE_FILENAME="no-tflite-dev-archive-available"
         }
 
-    QIMSDK_ESDK_ACCELERATION_ENGINE=`echo ${BUFFER} |  jq '.Acceleration_engine' | tr -d '"'`
-    ACCELERATION_ENGINE_DIR=`echo ${BUFFER} |  jq '.Acceleration_engine_path' | tr -d '"'`
+    QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES=(`echo ${BUFFER} | jq '.Acceleration_engines[] | .Acceleration_engine' | tr -d '"'`)
+    QIMSDK_ACCELERATION_ENGINE_PATHS=(`echo ${BUFFER} | jq '.Acceleration_engines[] | .Acceleration_engine_path' | tr -d '"'`)
+    QIMSDK_ACCELERATION_ENGINE_COUNT=`echo ${BUFFER} | jq '.Acceleration_engines[] | .Acceleration_engine' | wc -l`
 
     QIMSDK_ESDK_DEPLOY_URL=`echo ${BUFFER} | jq '.Deploy_URL' | tr -d '"'`
     QIMSDK_ESDK_DEPLOY_URL=`echo ${QIMSDK_ESDK_DEPLOY_URL}/ | sed 's/\/\//\//g'`
@@ -116,7 +117,9 @@ function qimsdk-setup() {
     export QIMSDK_WORK_DIR
     export QIMSDK_ESDK_TFLITE_FILE
     export QIMSDK_ESDK_TFLITE_FILENAME
-    export QIMSDK_ESDK_ACCELERATION_ENGINE
+    export QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES
+    export QIMSDK_ACCELERATION_ENGINE_PATHS
+    export QIMSDK_ACCELERATION_ENGINE_COUNT
     export ACCELERATION_ENGINE_DIR
     export QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES
 
@@ -192,10 +195,10 @@ function qimsdk-common() {
 
     export QIMSDK_ESDK_TFLITE_FILENAME
 
-    qimsdk-setup-acceleration-engine
+    qimsdk-setup-acceleration-engines
     rc=$?
     [ $rc -ne 0 ] && {
-        print-red "FAILED: qimsdk-setup-acceleration-engine"
+        print-red "FAILED: qimsdk-setup-acceleration-engines"
         popd 1>/dev/null
         return $rc
     }
