@@ -163,7 +163,7 @@ function qimsdk-target-sync-artifacts() {
 
     # Create new artifacts archive
     pushd ${QIMSDK_WORK_DIR}/artifacts 1>/dev/null
-        zip -r packages${VARIANT}.zip ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}
+        zip -j packages${VARIANT}.zip ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}/*
     popd 1>/dev/null
 
     print-green "Artifacts synced successfully !!!"
