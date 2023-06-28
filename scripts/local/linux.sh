@@ -27,36 +27,81 @@ function qimsdk-local-device-command ()
 # Sync packages with the device from specified directory
 #   $1 - (mandatory) path to the packages to be synced
 function qimsdk-local-sync() {
-    local DIR=$1
-    echo $DIR
-    ll $DIR
-    [ ! -d "${DIR}" ] && \
-        echo "Path to directory with packages must be provided as first argument !!!" && return -1
+    local PACKAGES_PATH=$1
+    [ ! -d "${PACKAGES_PATH}" ] || [ -z "${PACKAGES_PATH}" ]                                    && \
+        {
+            echo "Path to directory with packages must be provided as first argument !!!"
+            return -1
+        }
+
+    PACKAGES_PATH=`echo ${PACKAGES_PATH}/ | sed 's/\/\//\//g'`
 
     local FILE
-    for FILE in ${DIR}/*.ipk; do
-        local PACKAGE_NAME=$(basename "${FILE}")
+    for FILE in ${PACKAGES_PATH}*.ipk; do
+        local PACKAGE=$(basename "${FILE}")
 
-        adb push ${FILE} /tmp/                                                                  || \
+        adb push "${FILE}" /tmp/                                                                || \
             {
                 echo "Push package to device failed !!!";
                 return -1;
             }
 
-        qimsdk-local-device-command "opkg --force-depends --force-reinstall --force-overwrite install /tmp/${PACKAGE_NAME}" || \
+        qimsdk-local-device-command "opkg --force-depends --force-reinstall --force-overwrite install /tmp/${PACKAGE}" || \
             {
-                adb shell "rm -f /tmp/${PACKAGE_NAME}"
+                qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
                 print-red "Install package to device failed !!!";
                 return -2;
             }
 
-        adb shell "rm -f /tmp/${PACKAGE_NAME}"
+        # Get package name and add it to uninstall script
+        local PACKAGE_NAME=`echo ${PACKAGE} | cut -d '_' -f 1`
+        grep "opkg remove --force-depends ${PACKAGE_NAME}" ${PACKAGES_PATH}uninstall.sh 2>&1 > /dev/null || \
+            {
+                echo "opkg remove --force-depends ${PACKAGE_NAME}" >> ${PACKAGES_PATH}uninstall.sh || \
+                    {
+                        qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
+                        echo "Providing uninstall line to uninstall script for package ${PACKAGE_NAME} failed !!!"
+                        return -3
+                    }
+            }
+
+        qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
         rm -f ${FILE}
     done
 
     echo "Device synced successfully !!!"
 }
 
+# Uninstall packages previously installed on the devices
+#   $1 - (mandatory) path to the packages to be synced
+function qimsdk-local-packages-remove() {
+    local PACKAGES_PATH=$1
+    [ ! -d "${PACKAGES_PATH}" ] || [ -z "${PACKAGES_PATH}" ]                                    && \
+        {
+            echo "Path to directory with packages must be provided as first argument !!!"
+            return -1
+        }
+
+    PACKAGES_PATH=`echo ${PACKAGES_PATH}/ | sed 's/\/\//\//g'`
+
+    # Call uninstall script for according Packages Path
+    adb push ${PACKAGES_PATH}uninstall.sh /tmp                                                  || \
+        {
+            echo "Pushing uninstall command to device failed !!!"
+            return -2
+        }
+
+    qimsdk-local-device-command "source /tmp/uninstall.sh"                                      || \
+        {
+            echo "Uninstall command execution failed !!!"
+            return -3
+        }
+
+    echo "Packages uninstalled successfully !!!"
+}
+
 # Print help
 echo "qimsdk-local-sync"
 echo "    must be invoked to sync packages with the device from specified directory"
+echo "qimsdk-local-packages-remove"
+echo "    must be invoked to uninstall packages previously installed on the device"

@@ -212,11 +212,15 @@ The json file must contain certain data :
  4. ***MANDATORY*** - **eSDK_shell_file** - name of the shell file inside eSDK directory
  5. ***OPTIONAL*** - **Tflite_path** - Path to the directory where the prebuild tflite dev archive is located ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
  6. ***OPTIONAL*** - **Tflite_prebuilt_file** - name of the prebuilt archive
- 7. ***OPTIONAL*** - **SNPE_path** - path to unzipped snpe archive directory - path to the "snpe-X.XX.X.XXXX" directory (name depends on snpe version) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
- 8. ***OPTIONAL*** - **Host_dir_mounted_in_container** - A work environment directory to be exported inside the docker container (if mounting a directory is not necessary, just leave the value for this field empty)
- 9. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send ipk packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
- 10. ***OPTIONAL*** - **Deploy_dev_URL** - This enables sending dev packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send dev packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
- 11. ***OPTIONAL*** - **Gst_plugins_qti_oss_dependencies** - List of the dependency packages that will be compiled and installed to the target device.
+ 7. ***OPTIONAL*** - **Acceleration_engine** - Acceleration engine to be used. If not needed, leave this field and the "Acceleration_engine_path" field empty
+ 8. ***OPTIONAL*** - **Acceleration_engine_path** - path to unzipped acceleration engine archive directory with unzipped files for the AI engine specified in the "Acceleration_engine" field ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 9. ***OPTIONAL*** - **Host_dir_mounted_in_container** - A work environment directory to be exported inside the docker container (if mounting a directory is not necessary, just leave the value for this field empty)
+ 10. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send ipk packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 11. ***OPTIONAL*** - **Deploy_dev_URL** - This enables sending dev packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send dev packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 12. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL** - This enables sending ipk packages built inside docker container to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 13. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL_rel** - This enables sending release ipk packages built inside docker container to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 14. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL_dev** - This enables sending development ipk packages built inside docker container to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 15. ***OPTIONAL*** - **Gst_plugins_qti_oss_dependencies** - List of the dependency packages that will be compiled and installed to the target device.
 
 The json files must be created in the ```<snapdragon-iot-qimsdk>/sdk-tools/targets/``` directory. ```<snapdragon-iot-qimsdk>/sdk-tools/targets/LE.UM.6.4.2.json``` can be used as an example.
 
@@ -244,6 +248,9 @@ The developer generally needs to build the image and run the container.
 - ```qimsdk-docker-rm-container ./targets/<config.json>``` - This function removes the container with the tag and additional tag provided by the json.
 - ```qimsdk-docker-start-container ./targets/<config.json>``` - This function starts the container with the tag and additional tag provided by the json.
 - ```qimsdk-docker-stop-container ./targets/<config.json>``` - This function stops the container with the tag and additional tag provided by the json.
+- ```qimsdk-docker-build-and-sync-artifacts-all ./targets/<config.json>``` - This is a wrapper function to build docker image and extract QIMSDK Artifacts to user specified directory in host machine. Directory to sync artifacts to is selected via the "Deploy_QIMSDK_Artifacts_URL" field in the configuration json.
+- ```qimsdk-docker-build-and-sync-artifacts-rel ./targets/<config.json>``` - This is a wrapper function to build docker image and extract QIMSDK Release Artifacts to user specified directory in host machine. Directory to sync artifacts to is selected via the "Deploy_QIMSDK_Artifacts_URL_rel" field in the configuration json.
+- ```qimsdk-docker-build-and-sync-artifacts-dev ./targets/<config.json>``` - This is a wrapper function to build docker image and extract QIMSDK Development Artifacts to user specified directory in host machine. Directory to sync artifacts to is selected via the "Deploy_QIMSDK_Artifacts_URL_dev" field in the configuration json.
 
 Next step is to attach to the container and work with helper scripts inside the container. Container name is printed in the end of *qimsdk-docker-run-container* function after following print *Please attach to docker container with name:*
 
@@ -274,6 +281,9 @@ The functions inside env_setup.sh are propagated through to .bashrc, so they are
 - ```qimsdk-remote-sync-dev``` - Must be invoked to sync dev packages with the remote target
 - ```qimsdk-remote-sync-staticdev``` - Must be invoked to sync staticdev packages with the remote target
 - ```qimsdk-remote-packages-remove``` - Must be invoked to remove packages, installed by the remote target script
+- ```qimsdk-target-sync-artifacts-all``` - Must be invoked to generate QIMSDK artifacts archive and sync it to */mnt/qimsdk/work/artifacts* directory inside container
+- ```qimsdk-target-sync-artifacts-rel``` - Must be invoked to generate QIMSDK release artifacts archive and sync it to */mnt/qimsdk/work/artifacts* directory inside container
+- ```qimsdk-target-sync-artifacts-dev``` - Must be invoked to generate QIMSDK development artifacts archive and sync it to */mnt/qimsdk/work/artifacts* directory inside container
 
 ***Please note that package remove script file must be invoked on the host computer***
 

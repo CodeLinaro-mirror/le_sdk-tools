@@ -76,14 +76,14 @@ function qimsdk-gst-plugins-qti-prepare() {
             sed -i '/tensorflow-lite/d' ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
         }
 
-    # Setup snpe dir, if available
-    [ "${QIMSDK_ESDK_SNPE_DIR}" != "no-snpe-dir-available" ]                                    && \
+    # Setup acceleration engine dir, if available
+    [ "${QIMSDK_ESDK_ACCELERATION_ENGINE_DIR}" != "no-acceleration-engine-dir-available" ]      && \
         {
-            echo -e '\nDISTRO_FEATURES += "qti-snpe"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
-            mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml/recipes/snpe-sdk
-            [ -f ${QIMSDK_ESDK_BASE_DIR}/downloads/snpe/ReleaseNotes.txt ] && \
-                echo PV = \"$(grep -m 1 'SNPE [0-9].*' ${QIMSDK_ESDK_BASE_DIR}/downloads/snpe/ReleaseNotes.txt | awk '{print $2}')\" \
-                >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml/recipes/snpe-sdk/snpe.bbappend
+            echo -e "\nDISTRO_FEATURES += \"qti-"${QIMSDK_ESDK_ACCELERATION_ENGINE}"\"" >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
+            mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk
+            [ -f ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt ] && \
+                echo PV = \"$(grep -m 1 "${QIMSDK_ESDK_ACCELERATION_ENGINE^^} [0-9].*" ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt | awk '{print $2}')\" \
+                >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk/${QIMSDK_ESDK_ACCELERATION_ENGINE}.bbappend
         }
 
     qimsdk-gst-plugins-qti-add-layers                                                           && \
@@ -128,7 +128,7 @@ function qimsdk-gst-plugins-qti-inspect() {
     adb pull /data/gst-inspect-error-log.txt ${QIMSDK_WORK_DIR}/ 2>&1 > /dev/null
     [ -f ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt ]                                      && \
     [ `wc -c ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt | cut -d ' ' -f 1` -eq 0 ]         && \
-        print-green "All gst plugins are inspected successfully !!!"                              ||
+        print-green "All gst plugins are inspected successfully !!!"                            || \
         {
             print-red "Gst inspection failed:";
             cat ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt

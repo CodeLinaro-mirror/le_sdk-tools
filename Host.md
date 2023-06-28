@@ -9,7 +9,7 @@
 * [Helper Scripts And Configuration](#Helper_Scripts_And_Configuration)
   * [How to fill out Configuration JSON File](#How_to_fill_out_Configuration_JSON_File)
   * [Helper Scripts](#Helper_Scripts)
-* [Local Sync Scripts](#Local_Sync_Scripts)
+* [Local Sync And Uninstall Scripts](#Local_Sync_And_Uninstall_Scripts)
   * [Linux](#Linux)
   * [Windows](#Windows)
 * [Development Workflow](#Development_Workflow)
@@ -21,6 +21,7 @@
   * [Modifications In QMMF Gst Plugin (local src)](#Modifications_In_QMMF_Gst_Plugin_(local_src))
   * [Modifications in QMMF SDK](#Modifications_in_QMMF_SDK)
   * [Modifications in Weston](#Modifications_in_Weston)
+* [Getting QIMSDK Artifacts from Host QIMSDK Environment](#Getting_QIMSDK_Artifacts_from_Host_QIMSDK_Environment)
 * [Compiling gst-plugins-qti-oss Against tflite-dev.tar.gz](#Compiling_gst-plugins-qti-oss_Against_tflite-dev.tar.gz)
 
 <div id="Prerequisites">
@@ -64,16 +65,19 @@ fs.inotify.max_user_watches=542288
 
 The json file must contain certain data :
 
-
  1. ***MANDATORY*** - **eSDK_path** - Path to the directory in the work environment that contains the eSDK .sh and json file generated after eSDK compilation (refer to steps above) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
  2. ***MANDATORY*** - **eSDK_shell_file** - name of the shell file inside eSDK directory
  3. ***MANDATORY*** - **Base_Dir_Location** - path to the directory where the project is initialized
  4. ***OPTIONAL*** - **Tflite_path** - Path to the directory where the prebuild tflite dev archive is located ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
  5. ***OPTIONAL*** - **Tflite_prebuilt_file** - name of the prebuilt archive
- 6. ***OPTIONAL*** - **SNPE_path** - path to unzipped snpe archive directory - path to the "snpe-X.XX.X.XXXX" directory (name depends on snpe version) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
- 7. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built on the host to remote target or local filesystem (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
- 8. ***OPTIONAL*** - **Deploy_dev_URL** - This enables sending dev packages built on the host to remote target or local filesystem (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
- 9. ***OPTIONAL*** - **Gst_plugins_qti_oss_dependencies** - List of the dependency packages that will be compiled and installed to the target device.
+ 6. ***OPTIONAL*** - **Acceleration_engine** - Acceleration engine to be used. If not needed, leave this field and the "Acceleration_engine_path" field empty
+ 7. ***OPTIONAL*** - **Acceleration_engine_path** - path to unzipped acceleration engine archive directory with unzipped files for the AI engine specified in the "Acceleration_engine" field ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 8. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built on the host to remote target or local filesystem (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 9. ***OPTIONAL*** - **Deploy_dev_URL** - This enables sending dev packages built on the host to remote target or local filesystem (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 10. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL** - This enables sending ipk packages built in qimsdk environment to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 11. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL_rel** - This enables sending release ipk packages built in qimsdk environment to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 12. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL_dev** - This enables sending development ipk packages built in qimsdk environment to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 13. ***OPTIONAL*** - **Gst_plugins_qti_oss_dependencies** - List of the dependency packages that will be compiled and installed to the target device.
 
 The json files must be created in the ```<snapdragon-iot-qimsdk>/sdk-tools/targets/``` directory. ```<snapdragon-iot-qimsdk>/sdk-tools/targets/LE.PRODUCTS.2.1.json``` can be used as an example.
 
@@ -109,14 +113,13 @@ source ${QIMSDK_BASE_DIR}/sdk-tools/scripts/image/env_setup.sh
 - ```qimsdk-remote-sync-staticdev``` - Must be invoked to sync staticdev packages with the remote target
 - ```qimsdk-remote-packages-remove``` - Must be invoked to remove packages, installed by the remote target script
 
-
 ***Please note that script file extension must be renamed to bat when remote OS is windows***
 
-<div id="Local_Sync_Scripts">
+<div id="Local_Sync_And_Uninstall_Scripts">
 
-## Local Sync Scripts
+## Local Sync And Uninstall Scripts
 
-If ipk files needs to be deployed to device connected to another pc, then ipk files can be copied to that pc with *qimsdk-remote-sync-rel* or *qimsdk-remote-sync-dbg* scripts. Depending whether Linux or Windows is used on the pc (where device is connected) can be used corresponding scripts to update ipk's to the device. Those scripts also needs to be copied to the pc (where device is connected).
+If ipk files needs to be deployed to device connected to another pc, then ipk files can be copied to that pc with *qimsdk-remote-sync-rel* or *qimsdk-remote-sync-dbg* scripts. Depending whether Linux or Windows is used on the pc (where device is connected) can be used corresponding scripts to update ipk's to the device. Those scripts also needs to be copied to the pc (where device is connected). Installed packages can be uninstalled later using the corresponding uninstall script provided below.
 
 ***Please note that these scripts are deleting all successfully installed ipk files from the folder on pc (where device is connected)***
 
@@ -130,10 +133,12 @@ If ipk files needs to be deployed to device connected to another pc, then ipk fi
 
 Script location: \<snapdragon-iot-qimsdk\>/sdk-tools/scripts/local/linux.sh
 Sync cmd: qimsdk-local-sync - Sync packages with the device from specified folder
+Uninstall cmd: qimsdk-local-packages-remove - Uninstall packages previously installed on the device
 
 ```bash
 source <snapdragon-iot-qimsdk>/sdk-tools/scripts/local/linux.sh
 qimsdk-local-sync <folder to sync>
+qimsdk-local-packages-remove <folder with ipks>
 ```
 
 <div id="Windows">
@@ -148,10 +153,12 @@ $Env:PATH += ";<path to adb>"
 
 Script location: \<snapdragon-iot-qimsdk\>/sdk-tools/scripts/local/win.ps1
 Sync cmd: qimsdk-local-sync - Sync packages with the device from specified folder
+Uninstall cmd: qimsdk-local-packages-remove - Uninstall packages previously installed on the device
 
 ```powershell
 .\<snapdragon-iot-qimsdk>\sdk-tools\scripts\local\win.ps1
 qimsdk-local-sync <folder to sync>
+qimsdk-local-packages-remove <folder with ipks>
 ```
 
 <div id="Development_Workflow">
@@ -497,6 +504,30 @@ Update device ipk from remote Windows
 ```powershell
 .\<snapdragon-iot-qimsdk>\sdk-tools\scripts\local\win.ps1
 qimsdk-local-sync <folder to sync>
+```
+
+<div id="Getting_QIMSDK_Artifacts_from_Host_QIMSDK_Environment">
+
+## Getting QIMSDK Artifacts from Host QIMSDK Environment
+
+**Once layers have been built, these commands can be used to generate artifact archives in user specified directories in host file system:**
+
+### To get all packages as artifacts archive (packages.zip):
+
+```bash
+qimsdk-host-sync-artifacts-all
+```
+
+### To get release packages as artifacts archive (packages_rel.zip):
+
+```bash
+qimsdk-host-sync-artifacts-rel
+```
+
+### To get development packages as artifacts archive (packages_dev.zip):
+
+```bash
+qimsdk-host-sync-artifacts-dev
 ```
 
 <div id="Compiling_gst-plugins-qti-oss_Against_tflite-dev.tar.gz">

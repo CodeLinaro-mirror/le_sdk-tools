@@ -45,6 +45,9 @@ function print-blue() {
 #           - (optional) path to directory to be mounted in docker container
 #           - (optional) url to which to sync ipk packages
 #           - (optional) url to which to sync dev ipk packages
+#           - (optional) url to which to sync all artifacts archive
+#           - (optional) url to which to sync rel artifacts archive
+#           - (optional) url to which to sync dev artifacts archive
 function qimsdk-docker-build-image() {
     local PATH_TO_CONFIG_JSON=$1
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \
@@ -98,21 +101,22 @@ function qimsdk-docker-build-image() {
                     touch ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_TFLITE_FILENAME}
                 }
 
-    local SNPE_DIR=`cat ${PATH_TO_CONFIG_JSON} |  jq '.SNPE_path' | tr -d '"'`
+    local QIMSDK_ARG_ACCELERATION_ENGINE=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Acceleration_engine' | tr -d '"'`
+    local ACCELERATION_ENGINE_DIR=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Acceleration_engine_path' | tr -d '"'`
 
-    [ -d "${SNPE_DIR}" ]                                                                        && \
-        local QIMSDK_ARG_SNPE_DIR=snpe                                                          && \
-            ( rsync -a ${SNPE_DIR}/* ${QIMSDK_TMP_DIR}/snpe/                                    || \
+    [ -d "${ACCELERATION_ENGINE_DIR}" ]                                                         && \
+        local QIMSDK_ARG_ACCELERATION_ENGINE_DIR=${QIMSDK_ARG_ACCELERATION_ENGINE}              && \
+            ( rsync -a ${ACCELERATION_ENGINE_DIR}/* ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_ACCELERATION_ENGINE_DIR}/ || \
                 {
-                    print-red "Cannot add snpe dir to tmp dir !!!"
+                    print-red "Cannot add ${QIMSDK_ARG_ACCELERATION_ENGINE} dir to tmp folder !!!"
                     rm -rf ${QIMSDK_TMP_DIR}
-                    return -11
+                    return -10
                 }
-                rm -f ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_SNPE_DIR}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
+                rm -f ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_ACCELERATION_ENGINE_DIR}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
             )                                                                                   || \
                 {
-                    local QIMSDK_ARG_SNPE_DIR=no-snpe-dir-available
-                    touch ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_SNPE_DIR}
+                    QIMSDK_ARG_ACCELERATION_ENGINE_DIR=no-acceleration-engine-dir-available
+                    touch ${QIMSDK_TMP_DIR}/${QIMSDK_ARG_ACCELERATION_ENGINE_DIR}
                 }
 
     local QIMSDK_ARG_DEPLOY_URL=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_URL' | tr -d '"'`
@@ -120,6 +124,27 @@ function qimsdk-docker-build-image() {
 
     local QIMSDK_ARG_DEPLOY_URL_DEV=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_dev_URL' | tr -d '"'`
     QIMSDK_ARG_DEPLOY_URL_DEV=`echo ${QIMSDK_ARG_DEPLOY_URL_DEV}/ | sed 's/\/\//\//g'`
+
+    QIMSDK_ARG_DEPLOY_ARTIFACTS=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_QIMSDK_Artifacts_URL' | tr -d '"'`
+    [ -z ${QIMSDK_ARG_DEPLOY_ARTIFACTS} ] || [ ! -d ${QIMSDK_ARG_DEPLOY_ARTIFACTS} ]            && \
+        QIMSDK_ARG_DEPLOY_ARTIFACTS=no-artifacts-dir-provided                                   || \
+        {
+            QIMSDK_ARG_DEPLOY_ARTIFACTS=`echo ${QIMSDK_ARG_DEPLOY_ARTIFACTS}/ | sed 's/\/\//\//g'`
+        }
+
+    QIMSDK_ARG_DEPLOY_ARTIFACTS_REL=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_QIMSDK_Artifacts_URL_rel' | tr -d '"'`
+    [ -z ${QIMSDK_ARG_DEPLOY_ARTIFACTS_REL} ] || [ ! -d ${QIMSDK_ARG_DEPLOY_ARTIFACTS_REL} ]    && \
+        QIMSDK_ARG_DEPLOY_ARTIFACTS_REL=no-artifacts-rel-dir-provided                           || \
+        {
+            QIMSDK_ARG_DEPLOY_ARTIFACTS_REL=`echo ${QIMSDK_ARG_DEPLOY_ARTIFACTS_REL}/ | sed 's/\/\//\//g'`
+        }
+
+    QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_QIMSDK_Artifacts_URL_dev' | tr -d '"'`
+    [ -z ${QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV} ] || [ ! -d ${QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV} ]    && \
+        QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV=no-artifacts-dev-dir-provided                           || \
+        {
+            QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV=`echo ${QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV}/ | sed 's/\/\//\//g'`
+        }
 
     local QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES=`cat ${PATH_TO_CONFIG_JSON} | jq '.Gst_plugins_qti_oss_dependencies[]' | tr -d '"'`
 
@@ -132,18 +157,23 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_ESDK_SH=${QIMSDK_ARG_ESDK_SH}                                   \
             --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_ARG_BASE_DIR}                                 \
             --build-arg QIMSDK_ARG_TFLITE_FILENAME=${QIMSDK_ARG_TFLITE_FILENAME}                   \
-            --build-arg QIMSDK_ARG_SNPE_DIR=${QIMSDK_ARG_SNPE_DIR}                                 \
+            --build-arg QIMSDK_ARG_ACCELERATION_ENGINE=${QIMSDK_ARG_ACCELERATION_ENGINE}           \
+            --build-arg QIMSDK_ARG_ACCELERATION_ENGINE_DIR=${QIMSDK_ARG_ACCELERATION_ENGINE_DIR}   \
             --build-arg QIMSDK_ARG_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}                             \
             --build-arg QIMSDK_ARG_DEPLOY_URL_DEV=${QIMSDK_ARG_DEPLOY_URL_DEV}                     \
-            --build-arg QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES="${QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES}"       \
+            --build-arg QIMSDK_ARG_DEPLOY_ARTIFACTS=${QIMSDK_ARG_DEPLOY_ARTIFACTS}                 \
+            --build-arg QIMSDK_ARG_DEPLOY_ARTIFACTS_REL=${QIMSDK_ARG_DEPLOY_ARTIFACTS_REL}         \
+            --build-arg QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV=${QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV}         \
+            --build-arg QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES="${QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES}" \
             -f ${QIMSDK_DOCKER_DIR}/Dockerfile                                                     \
             --progress=plain --target qimsdk ${QIMSDK_REPO_BASE_DIR} -t qimsdk:${TAG}
 
     local rc=$?
     rm -rf ${QIMSDK_TMP_DIR}
-    [ $rc -ne 0 ] && print-red "Build image failed !!!" && return -12
+    [ $rc -ne 0 ] && print-red "Build image failed !!!" && return -11
 
     print-green "Build image completed successfully !!!"
+    return 0;
 }
 
 # Docker run container based on compiled docker image
@@ -157,6 +187,9 @@ function qimsdk-docker-build-image() {
 #           - (optional) path to directory to be mounted in docker container
 #           - (optional) url to which to sync ipk packages
 #           - (optional) url to which to sync dev ipk packages
+#           - (optional) url to which to sync all artifacts archive
+#           - (optional) url to which to sync rel artifacts archive
+#           - (optional) url to which to sync dev artifacts archive
 function qimsdk-docker-run-container() {
     local PATH_TO_CONFIG_JSON=$1
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \
@@ -191,7 +224,7 @@ function qimsdk-docker-run-container() {
     docker exec --user ${USER} ${CONTAINER_NAME} mkdir /home/${USER}/.ssh                                           || \
         {
             print-red "docker mkdir ~/.ssh failed !!!"
-            return -6
+            return -4
         }
 
     if [ -d ~/.ssh/ ]; then
@@ -202,13 +235,13 @@ function qimsdk-docker-run-container() {
             docker cp ${f} ${CONTAINER_NAME}:/home/${USER}/.ssh/${BASE_NAME}                                        || \
                 {
                     print-red "Propagating .ssh/ to docker failed !!!"
-                    return -7
+                    return -5
                 }
         done
         docker exec --user root ${CONTAINER_NAME} chown -R ${USER}:${GROUP} /home/${USER}/.ssh                      || \
             {
                 print-red "Propagating .ssh/ to docker failed !!!"
-                return -8
+                return -6
             }
     fi
 
@@ -217,7 +250,7 @@ function qimsdk-docker-run-container() {
             docker exec --user root ${CONTAINER_NAME} chown -R ${USER}:${GROUP} /home/${USER}/.gitconfig            || \
                 {
                     print-red "Propagating .gitconfig to docker failed !!!"
-                    return -9
+                    return -7
                 }
     fi
 
@@ -225,7 +258,7 @@ function qimsdk-docker-run-container() {
         docker cp /etc/gitconfig ${CONTAINER_NAME}:/etc/gitconfig                                                   || \
             {
                 print-red "Propagating .gitconfig to docker failed !!!"
-                return -10
+                return -8
             }
     fi
 
@@ -244,6 +277,9 @@ function qimsdk-docker-run-container() {
 #           - (optional) path to directory to be mounted in docker container
 #           - (optional) url to which to sync ipk packages
 #           - (optional) url to which to sync dev ipk packages
+#           - (optional) url to which to sync all artifacts archive
+#           - (optional) url to which to sync rel artifacts archive
+#           - (optional) url to which to sync dev artifacts archive
 function qimsdk-docker-rm-container() {
     local PATH_TO_CONFIG_JSON=$1
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \
@@ -272,6 +308,9 @@ function qimsdk-docker-rm-container() {
 #           - (optional) path to directory to be mounted in docker container
 #           - (optional) url to which to sync ipk packages
 #           - (optional) url to which to sync dev ipk packages
+#           - (optional) url to which to sync all artifacts archive
+#           - (optional) url to which to sync rel artifacts archive
+#           - (optional) url to which to sync dev artifacts archive
 function qimsdk-docker-start-container() {
     local PATH_TO_CONFIG_JSON=$1
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \
@@ -284,12 +323,12 @@ function qimsdk-docker-start-container() {
 
     docker start qimsdk-${TAG}${ADDITIONAL_TAG}
     local rc=$?
-    [ $rc -ne 0 ] && print-red "parsing json failed !!!" && return -1
+    [ $rc -ne 0 ] && print-red "parsing json failed !!!" && return -3
 
     docker start ${CONTAINER_NAME}                                                                                  || \
         {
             print-red "Start container failed !!!"
-            return -2
+            return -4
         }
 
     print-green "Container started successfully !!!"
@@ -306,6 +345,9 @@ function qimsdk-docker-start-container() {
 #           - (optional) path to directory to be mounted in docker container
 #           - (optional) url to which to sync ipk packages
 #           - (optional) url to which to sync dev ipk packages
+#           - (optional) url to which to sync all artifacts archive
+#           - (optional) url to which to sync rel artifacts archive
+#           - (optional) url to which to sync dev artifacts archive
 function qimsdk-docker-stop-container() {
     local PATH_TO_CONFIG_JSON=$1
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \
@@ -331,6 +373,144 @@ function qimsdk-docker-cleanup() {
     print-green "Clean up old docker images and build cache completed successfully !!!"
 }
 
+# Wrapper function to build docker image and extract QIMSDK Artifacts to user specified directory in host machine
+#   $1 - (mandatory) path to target config json that contains the following:
+#           - (mandatory) image os - ubuntu18 or ubuntu20
+#           - (optional) additional name suffix
+#           - (mandatory) path to esdk dir (found in <path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk)
+#           - (mandatory) esdk shell file (from esdk dir)
+#           - (optional) path to tflite prebuilt dev package dir
+#           - (optional) tflite prebuilt dev package filename
+#           - (optional) path to directory to be mounted in docker container
+#           - (optional) url to which to sync ipk packages
+#           - (optional) url to which to sync dev ipk packages
+#           - (optional) url to which to sync all artifacts archive
+#           - (optional) url to which to sync rel artifacts archive
+#           - (optional) url to which to sync dev artifacts archive
+function qimsdk-docker-build-and-sync-artifacts-all() {
+    local PATH_TO_CONFIG_JSON=$1
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \
+        print-red "Path to target configuration json must be provided as first argument !!!" && return -1
+
+    local QIMSDK_ARG_IMAGE_OS=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Image_OS' | tr -d '"'`
+    local TAG="${QIMSDK_ARG_IMAGE_OS}"
+
+    qimsdk-docker-build-image "${PATH_TO_CONFIG_JSON}"
+
+    [ "${QIMSDK_ARG_DEPLOY_ARTIFACTS}" == "no-artifacts-dir-provided" ]                         && \
+        {
+            print-red "No Deploy_QIMSDK_Artifacts_URL dir provided in config json !!!"
+            return -2
+        }                                                                                       || \
+        {
+            local ID=$(docker create --name tempcontainer qimsdk:${TAG});
+            [ ! -z "${ID}" ]                                                                    && \
+                {
+                    docker cp ${ID}:/mnt/qimsdk/work/artifacts/packages.zip ${QIMSDK_ARG_DEPLOY_ARTIFACTS};
+                    docker rm tempcontainer;
+                }                                                                               || \
+                {
+                    print-red "Syncing QIMSDK artifacts from docker image failed !!!"
+                    return -3
+                }
+        }
+
+    print-green "Artifacts synced succesfully to ${QIMSDK_ARG_DEPLOY_ARTIFACTS}"
+    return 0
+}
+
+# Wrapper function to build docker image and extract QIMSDK Release Artifacts to user specified directory in host machine
+#   $1 - (mandatory) path to target config json that contains the following:
+#           - (mandatory) image os - ubuntu18 or ubuntu20
+#           - (optional) additional name suffix
+#           - (mandatory) path to esdk dir (found in <path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk)
+#           - (mandatory) esdk shell file (from esdk dir)
+#           - (optional) path to tflite prebuilt dev package dir
+#           - (optional) tflite prebuilt dev package filename
+#           - (optional) path to directory to be mounted in docker container
+#           - (optional) url to which to sync ipk packages
+#           - (optional) url to which to sync dev ipk packages
+#           - (optional) url to which to sync all artifacts archive
+#           - (optional) url to which to sync rel artifacts archive
+#           - (optional) url to which to sync dev artifacts archive
+function qimsdk-docker-build-and-sync-artifacts-rel() {
+    local PATH_TO_CONFIG_JSON=$1
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \
+        print-red "Path to target configuration json must be provided as first argument !!!" && return -1
+
+    local QIMSDK_ARG_IMAGE_OS=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Image_OS' | tr -d '"'`
+    local TAG="${QIMSDK_ARG_IMAGE_OS}"
+
+    qimsdk-docker-build-image "${PATH_TO_CONFIG_JSON}"
+
+    [ "${QIMSDK_ARG_DEPLOY_ARTIFACTS_REL}" == "no-artifacts-rel-dir-provided" ]                 && \
+        {
+            print-red "No Deploy_QIMSDK_Artifacts_URL_rel dir provided in config json !!!"
+            return -2
+        }                                                                                       || \
+        {
+            local ID=$(docker create --name tempcontainer qimsdk:${TAG});
+            [ ! -z "${ID}" ]                                                                    && \
+                {
+                    docker cp ${ID}:/mnt/qimsdk/work/artifacts/packages_rel.zip ${QIMSDK_ARG_DEPLOY_ARTIFACTS_REL};
+                    docker rm tempcontainer;
+                }                                                                               || \
+                {
+                    print-red "Syncing QIMSDK release artifacts from docker image failed !!!"
+                    return -3
+                }
+        }
+
+    print-green "Artifacts synced succesfully to ${QIMSDK_ARG_DEPLOY_ARTIFACTS_REL}"
+    return 0
+}
+
+# Wrapper function to build docker image and extract QIMSDK Development Artifacts to user specified directory in host machine
+#   $1 - (mandatory) path to target config json that contains the following:
+#           - (mandatory) image os - ubuntu18 or ubuntu20
+#           - (optional) additional name suffix
+#           - (mandatory) path to esdk dir (found in <path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk)
+#           - (mandatory) esdk shell file (from esdk dir)
+#           - (optional) path to tflite prebuilt dev package dir
+#           - (optional) tflite prebuilt dev package filename
+#           - (optional) path to directory to be mounted in docker container
+#           - (optional) url to which to sync ipk packages
+#           - (optional) url to which to sync dev ipk packages
+#           - (optional) url to which to sync all artifacts archive
+#           - (optional) url to which to sync rel artifacts archive
+#           - (optional) url to which to sync dev artifacts archive
+function qimsdk-docker-build-and-sync-artifacts-dev() {
+    local PATH_TO_CONFIG_JSON=$1
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && \
+        print-red "Path to target configuration json must be provided as first argument !!!" && return -1
+
+    local QIMSDK_ARG_IMAGE_OS=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Image_OS' | tr -d '"'`
+    local TAG="${QIMSDK_ARG_IMAGE_OS}"
+
+    qimsdk-docker-build-image "${PATH_TO_CONFIG_JSON}"
+
+    [ "${QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV}" == "no-artifacts-dev-dir-provided" ]                 && \
+        {
+            print-red "No Deploy_QIMSDK_Artifacts_URL_dev dir provided in config json !!!"
+            return -2
+        }                                                                                       || \
+        {
+            local ID=$(docker create --name tempcontainer qimsdk:${TAG});
+            [ ! -z "${ID}" ]                                                                    && \
+                {
+                    docker cp ${ID}:/mnt/qimsdk/work/artifacts/packages_dev.zip ${QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV};
+                    docker rm tempcontainer;
+                }                                                                               || \
+                {
+                    print-red "Syncing QIMSDK development artifacts from docker image failed !!!"
+                    return -3
+                }
+        }
+
+    print-green "Artifacts synced succesfully to ${QIMSDK_ARG_DEPLOY_ARTIFACTS_DEV}"
+    return 0
+}
+
 QIMSDK_DOCKER_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/../.. && pwd )"
 [ -f ${QIMSDK_DOCKER_DIR}/Dockerfile ] || QIMSDK_DOCKER_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/sdk-tools && pwd )"
 
@@ -346,5 +526,11 @@ print-blue "qimsdk-docker-start-container <path-to-config-json>"
 echo "    Start docker container based on compiled docker image"
 print-blue "qimsdk-docker-stop-container <path-to-config-json>"
 echo "    Stop docker container based on compiled docker image"
+print-yellow "qimsdk-docker-build-and-sync-artifacts-all <path-to-config-json>"
+echo "    Build docker image and extract QIMSDK Artifacts to user specified directory in host machine"
+print-yellow "qimsdk-docker-build-and-sync-artifacts-rel <path-to-config-json>"
+echo "    Build docker image and extract QIMSDK Release Artifacts to user specified directory in host machine"
+print-yellow "qimsdk-docker-build-and-sync-artifacts-dev <path-to-config-json>"
+echo "    Build docker image and extract QIMSDK Development Artifacts to user specified directory in host machine"
 print-red "qimsdk-docker-cleanup"
 echo "    Clean up old docker images and build cache"

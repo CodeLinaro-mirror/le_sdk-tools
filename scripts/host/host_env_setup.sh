@@ -28,11 +28,35 @@ function qimsdk-host-parse-json() {
             QIMSDK_ESDK_TFLITE_FILENAME="no-tflite-dev-archive-available"
         }
 
+    QIMSDK_ESDK_ACCELERATION_ENGINE=`echo ${BUFFER} |  jq '.Acceleration_engine' | tr -d '"'`
+    ACCELERATION_ENGINE_DIR=`echo ${BUFFER} |  jq '.Acceleration_engine_path' | tr -d '"'`
+
     QIMSDK_ESDK_DEPLOY_URL=`echo ${BUFFER} | jq '.Deploy_URL' | tr -d '"'`
     QIMSDK_ESDK_DEPLOY_URL=`echo ${QIMSDK_ESDK_DEPLOY_URL}/ | sed 's/\/\//\//g'`
 
     QIMSDK_ESDK_DEPLOY_URL_DEV=`echo ${BUFFER} | jq '.Deploy_dev_URL' | tr -d '"'`
     QIMSDK_ESDK_DEPLOY_URL_DEV=`echo ${QIMSDK_ESDK_DEPLOY_URL_DEV}/ | sed 's/\/\//\//g'`
+
+    QIMSDK_ESDK_DEPLOY_ARTIFACTS=`echo ${BUFFER} |  jq '.Deploy_QIMSDK_Artifacts_URL' | tr -d '"'`
+    [ -z ${QIMSDK_ESDK_DEPLOY_ARTIFACTS} ] || [ ! -d ${QIMSDK_ESDK_DEPLOY_ARTIFACTS} ]          && \
+        QIMSDK_ESDK_DEPLOY_ARTIFACTS=no-artifacts-dir-provided                                  || \
+        {
+            QIMSDK_ESDK_DEPLOY_ARTIFACTS=`echo ${QIMSDK_ESDK_DEPLOY_ARTIFACTS}/ | sed 's/\/\//\//g'`
+        }
+
+    QIMSDK_ESDK_DEPLOY_ARTIFACTS_REL=`echo ${BUFFER} |  jq '.Deploy_QIMSDK_Artifacts_URL_rel' | tr -d '"'`
+    [ -z ${QIMSDK_ESDK_DEPLOY_ARTIFACTS_REL} ] || [ ! -d ${QIMSDK_ESDK_DEPLOY_ARTIFACTS_REL} ]  && \
+        QIMSDK_ESDK_DEPLOY_ARTIFACTS_REL=no-artifacts-rel-dir-provided                          || \
+        {
+            QIMSDK_ESDK_DEPLOY_ARTIFACTS_REL=`echo ${QIMSDK_ESDK_DEPLOY_ARTIFACTS_REL}/ | sed 's/\/\//\//g'`
+        }
+
+    QIMSDK_ESDK_DEPLOY_ARTIFACTS_DEV=`echo ${BUFFER} |  jq '.Deploy_QIMSDK_Artifacts_URL_dev' | tr -d '"'`
+    [ -z ${QIMSDK_ESDK_DEPLOY_ARTIFACTS_DEV} ] || [ ! -d ${QIMSDK_ESDK_DEPLOY_ARTIFACTS_DEV} ]  && \
+        QIMSDK_ESDK_DEPLOY_ARTIFACTS_DEV=no-artifacts-dev-dir-provided                          || \
+        {
+            QIMSDK_ESDK_DEPLOY_ARTIFACTS_DEV=`echo ${QIMSDK_ESDK_DEPLOY_ARTIFACTS_DEV}/ | sed 's/\/\//\//g'`
+        }
 
     QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES=`echo ${BUFFER} | jq '.Gst_plugins_qti_oss_dependencies[]' | tr -d '"'`
 
@@ -86,10 +110,14 @@ function qimsdk-setup() {
     export QIMSDK_ESDK_BASE_DIR
     export QIMSDK_ESDK_DEPLOY_URL
     export QIMSDK_ESDK_DEPLOY_URL_DEV
+    export QIMSDK_ESDK_DEPLOY_ARTIFACTS
+    export QIMSDK_ESDK_DEPLOY_ARTIFACTS_REL
+    export QIMSDK_ESDK_DEPLOY_ARTIFACTS_DEV
     export QIMSDK_WORK_DIR
     export QIMSDK_ESDK_TFLITE_FILE
     export QIMSDK_ESDK_TFLITE_FILENAME
-    export QIMSDK_ESDK_SNPE_DIR
+    export QIMSDK_ESDK_ACCELERATION_ENGINE
+    export ACCELERATION_ENGINE_DIR
     export QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES
 
     qimsdk-common
@@ -162,13 +190,17 @@ function qimsdk-common() {
         return $rc
     }
 
-    qimsdk-setup-snpe
+    export QIMSDK_ESDK_TFLITE_FILENAME
+
+    qimsdk-setup-acceleration-engine
     rc=$?
     [ $rc -ne 0 ] && {
-        print-red "FAILED: qimsdk-setup-snpe"
+        print-red "FAILED: qimsdk-setup-acceleration-engine"
         popd 1>/dev/null
         return $rc
     }
+
+    export QIMSDK_ESDK_ACCELERATION_ENGINE_DIR
 
     popd 1>/dev/null
 
@@ -237,6 +269,72 @@ function qimsdk-check-python-version()
     }
 
     return 0
+}
+
+# Sync QIMSDK artifacts to directory specified in config json
+function qimsdk-host-sync-artifacts-all() {
+    ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-target-sync-artifacts-all                             || \
+        {
+            print-red "qimsdk-target-sync-artifacts-all function failed !!!"
+            return -1
+        }
+
+    [ "${QIMSDK_ESDK_DEPLOY_ARTIFACTS}" == "no-artifacts-dir-provided" ]                        && \
+        {
+            print-red "Artifacts dir must be provided in config json !!!"
+            return -2
+        }                                                                                       || \
+        {
+            rsync -a ${QIMSDK_WORK_DIR}/artifacts/packages.zip ${QIMSDK_ESDK_DEPLOY_ARTIFACTS}  || \
+                {
+                    print-red "Syncing QIMSDK artifacts from host environment failed !!!"
+                    return -3
+                }
+        }
+}
+
+# Sync QIMSDK release artifacts to directory specified in config json
+function qimsdk-host-sync-artifacts-rel() {
+    ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-target-sync-artifacts-rel                             || \
+        {
+            print-red "qimsdk-target-sync-artifacts-rel function failed !!!"
+            return -1
+        }
+
+    [ "${QIMSDK_ESDK_DEPLOY_ARTIFACTS_REL}" == "no-artifacts-rel-dir-provided" ]                && \
+        {
+            print-red "Release artifacts dir must be provided in config json !!!"
+            return -2
+        }                                                                                       || \
+        {
+            rsync -a ${QIMSDK_WORK_DIR}/artifacts/packages_rel.zip ${QIMSDK_ESDK_DEPLOY_ARTIFACTS_REL} || \
+                {
+                    print-red "Syncing QIMSDK release artifacts from host environment failed !!!"
+                    return -3
+                }
+        }
+}
+
+# Sync QIMSDK development artifacts to directory specified in config json
+function qimsdk-host-sync-artifacts-dev() {
+    ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-target-sync-artifacts-dev                             || \
+        {
+            print-red "qimsdk-target-sync-artifacts-dev function failed !!!"
+            return -1
+        }
+
+    [ "${QIMSDK_ESDK_DEPLOY_ARTIFACTS_DEV}" == "no-artifacts-dev-dir-provided" ]                && \
+        {
+            print-red "Development artifacts dir must be provided in config json !!!"
+            return -2
+        }                                                                                       || \
+        {
+            rsync -a ${QIMSDK_WORK_DIR}/artifacts/packages_dev.zip ${QIMSDK_ESDK_DEPLOY_ARTIFACTS_DEV} || \
+                {
+                    print-red "Syncing QIMSDK development artifacts from host environment failed !!!"
+                    return -3
+                }
+        }
 }
 
 QIMSDK_TOOLS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/../../ && pwd )"
