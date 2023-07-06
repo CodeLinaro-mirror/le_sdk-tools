@@ -8,26 +8,31 @@ function global:qimsdk-local-sync {
         [Parameter (Mandatory = $true)] [String]$FOLDER
     )
 
+    # Resolve relative/wildcard/absolute path
+    $FOLDER = Resolve-Path -Path "$FOLDER"
+
     $null >> ${FOLDER}\uninstall.sh
 
     $FORMAT_IPK="ipk"
     $FORMAT_DEB="deb"
 
-    foreach($PACKAGE_NAME in Get-ChildItem ${FOLDER}) {
-        $FILE=Join-Path -Path "${FOLDER}" -ChildPath "${PACKAGE_NAME}"
+    pushd ${FOLDER}
 
-        Invoke-Expression "adb push ${FILE} /tmp/"
+    foreach($PACKAGE_NAME in Get-ChildItem ${FOLDER}) {
+        Invoke-Expression "adb push ${PACKAGE_NAME} /tmp/"
         if ($LastExitCode -ne 0) {
+            popd # ${FOLDER}
             throw "Push package to device failed !!!";
         }
 
-        $PACKAGE_FORMAT= (Get-ChildItem ${FILE}).Extension
+        $PACKAGE_FORMAT= (Get-ChildItem ${PACKAGE_NAME}).Extension
         $PACKAGE_FORMAT="$PACKAGE_FORMAT".split(".")[1]
 
         if ($PACKAGE_FORMAT -eq $FORMAT_DEB) {
             Invoke-Expression "adb shell `"dpkg --install --force-all /tmp/${PACKAGE_NAME}`""
             if ($LastExitCode -ne 0) {
                 Invoke-Expression "adb shell `"rm -f /tmp/${PACKAGE_NAME}`""
+                popd # ${FOLDER}
                 throw "Install package to device failed !!!";
             }
         }
@@ -36,43 +41,53 @@ function global:qimsdk-local-sync {
             Invoke-Expression "adb shell `"opkg --force-depends --force-reinstall --force-overwrite install /tmp/${PACKAGE_NAME}`""
             if ($LastExitCode -ne 0) {
                 Invoke-Expression "adb shell `"rm -f /tmp/${PACKAGE_NAME}`""
+                popd # ${FOLDER}
                 throw "Install package to device failed !!!";
             }
         }
 
         $PACKAGE_NAME_NO_VERSION="$PACKAGE_NAME".split("_")[0]
-        Get-Content -Path "${FOLDER}\uninstall.sh" | Select-String -Pattern "${PACKAGE_NAME_NO_VERSION}"
-
-        if ($LastExitCode -ne 0) {
+        if (!(Select-String -Path "${FOLDER}\uninstall.sh" -Pattern "${PACKAGE_NAME_NO_VERSION}" -Quiet)) {
             if ($PACKAGE_FORMAT -eq $FORMAT_DEB) {
-                "dpkg --remove --force-all ${PACKAGE_NAME_NO_VERSION}" | Out-File "${FOLDER}\uninstall.sh"
+                "dpkg --remove --force-all ${PACKAGE_NAME_NO_VERSION}" >> uninstall.sh
             }
 
             if ($PACKAGE_FORMAT -eq $FORMAT_IPK) {
-                "opkg remove --force-depends ${PACKAGE_NAME_NO_VERSION}" | Out-File "${FOLDER}\uninstall.sh"
+                "opkg remove --force-depends ${PACKAGE_NAME_NO_VERSION}" >> uninstall.sh
             }
         }
 
         Invoke-Expression "adb shell rm -f /tmp/${PACKAGE_NAME}"
-        Get-ChildItem -Path ${FOLDER} -Exclude 'uninstall.sh' | ForEach-Object {Remove-Item $_ -Recurse }
+        Remove-Item ${PACKAGE_NAME}
     }
+
+    popd # ${FOLDER}
 
     Write-Host "Device sync ready !!!"
 }
 
 # Uninstall packages previously installed on the device
-#   $FOLDER - (mandatory) path to the packages to be synced
+#   $FOLDER - (mandatory) path to the folder the packages were synced from
 function global:qimsdk-local-packages-remove {
     param(
         [Parameter (Mandatory = $true)] [String]$FOLDER
     )
 
-    Invoke-Expression "adb push ${FOLDER}\uninstall.sh /tmp/"
+    # Resolve relative/wildcard/absolute path
+    $FOLDER = Resolve-Path -Path "$FOLDER"
+
+    pushd ${FOLDER}
+
+    Invoke-Expression "adb push uninstall.sh /tmp/"
 
     Invoke-Expression "adb shell `"source /tmp/uninstall.sh`""
     if ($LastExitCode -ne 0) {
         throw "Uninstall packages failed !!!";
     }
+
+    Remove-Item uninstall.sh
+
+    popd # ${FOLDER}
 
     Write-Host "Packages uninstalled !!!"
 }

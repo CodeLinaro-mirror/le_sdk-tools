@@ -10,3 +10,7 @@
 
 # Setup helper scripts
 [ -f ${QIMSDK_SCRIPTS}/env_setup.sh ] && source ${QIMSDK_SCRIPTS}/env_setup.sh
+
+# Raise priority of installed git packet over esdk git
+PATH=~/bin:$PATH
+[ ! -f ~/bin/git ] && mkdir -p ~/bin/ && ln -s /usr/bin/git ~/bin/git
