@@ -13,7 +13,10 @@ function qimsdk-target-get-updated-packages-all() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*.${PKG_FORMAT}" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*gstreamer*.${PKG_FORMAT}" \) -print0 )
+    while IFS= read -r -d $'\0'; do
+        UPDATED_PACKAGES+=("$REPLY")
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*.${PKG_FORMAT}" ! -iname "*gstreamer*.${PKG_FORMAT}" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 # Get updated release packages
@@ -26,7 +29,10 @@ function qimsdk-target-get-updated-packages-rel() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*.${PKG_FORMAT}" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" ! -iname "*-dbg_*" ! -iname "*-locale-*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*gstreamer*.${PKG_FORMAT}" ! -iname "*gstreamer*-dev_*" ! -iname "*gstreamer*-staticdev_*" ! -iname "*gstreamer*-doc_*" ! -iname "*gstreamer*-dbg_*" ! -iname "*gstreamer*-locale-*" \) -print0 )
+    while IFS= read -r -d $'\0'; do
+        UPDATED_PACKAGES+=("$REPLY")
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*.${PKG_FORMAT}" ! -iname  "*gstreamer*.${PKG_FORMAT}" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" ! -iname "*-dbg_*" ! -iname "*-locale-*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 # Get updated debug packages
@@ -39,7 +45,10 @@ function qimsdk-target-get-updated-packages-dbg() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*-dbg_*.${PKG_FORMAT}" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*gstreamer*-dbg_*.${PKG_FORMAT}" ! -iname "*gstreamer*-dev_*" ! -iname "*gstreamer*-staticdev_*" ! -iname "*gstreamer*-doc_*" \) -print0 )
+    while IFS= read -r -d $'\0'; do
+        UPDATED_PACKAGES+=("$REPLY")
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*-dbg_*.${PKG_FORMAT}" ! -iname  "*gstreamer*.${PKG_FORMAT}" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 function qimsdk-target-get-updated-packages-dev() {
@@ -49,7 +58,10 @@ function qimsdk-target-get-updated-packages-dev() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*-dev_*.${PKG_FORMAT}" ! -iname "*-dbg_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*gstreamer*-dev_*.${PKG_FORMAT}" ! -iname "*gstreamer*-staticdev_*" ! -iname "*gstreamer*-doc_*" ! -iname "*gstreamer*-dbg_*" \) -print0 )
+    while IFS= read -r -d $'\0'; do
+        UPDATED_PACKAGES+=("$REPLY")
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*-dev_*.${PKG_FORMAT}" ! -iname  "*gstreamer*.${PKG_FORMAT}" ! -iname "*-dbg_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" \) -cnewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 function qimsdk-target-get-updated-packages-staticdev() {
@@ -59,7 +71,10 @@ function qimsdk-target-get-updated-packages-staticdev() {
     # Get packages to install since latest sync
     while IFS= read -r -d $'\0'; do
         UPDATED_PACKAGES+=("$REPLY")
-    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*-staticdev_*.${PKG_FORMAT}" ! -iname "*-dbg_*" ! -iname "*-doc_*" \) -anewer ${QIMSDK_WORK_DIR}/prepared -print0)
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*gstreamer*-staticdev_*.${PKG_FORMAT}" ! -iname "*gstreamer*-dbg_*" ! -iname "*gstreamer*-doc_*" \)  -print0 )
+    while IFS= read -r -d $'\0'; do
+        UPDATED_PACKAGES+=("$REPLY")
+    done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "*-staticdev_*.${PKG_FORMAT}" ! -iname  "*gstreamer*.${PKG_FORMAT}" ! -iname "*-dbg_*" ! -iname "*-doc_*" \) -anewer ${QIMSDK_WORK_DIR}/prepared -print0)
 }
 
 # Get target prerequisite packages
