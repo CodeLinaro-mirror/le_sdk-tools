@@ -123,20 +123,25 @@ RUN rm -rf ${QIMSDK_ESDK_BASE_DIR}/layers/src/vendor/qcom/opensource/gst-plugins
 
 # Add image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts
-ADD sdk-tools/scripts/image ${QIMSDK_SCRIPTS}
-RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_SCRIPTS}
+ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
+        sdk-tools/scripts/image ${QIMSDK_SCRIPTS}
 
 # Set work dir
 ENV QIMSDK_WORK_DIR=${QIMSDK_BASE_DIR}/work
 
+# Switch user and work dir
 WORKDIR ${QIMSDK_BASE_DIR}
+USER ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}
 
 # Add src code
-ADD poky ${QIMSDK_ARG_BASE_DIR}/repo/poky
-ADD src ${QIMSDK_ARG_BASE_DIR}/repo/src
-RUN chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/repo/poky  && \
-    chown -R ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} ${QIMSDK_ARG_BASE_DIR}/repo/src
-USER ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}
+ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
+        .repo/repo/hooks ${QIMSDK_ARG_BASE_DIR}/repo/.repo/repo/hooks
+ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
+        .repo/projects ${QIMSDK_ARG_BASE_DIR}/repo/.repo/projects
+ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
+        .repo/project-objects ${QIMSDK_ARG_BASE_DIR}/repo/.repo/project-objects
+ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} poky ${QIMSDK_ARG_BASE_DIR}/repo/poky
+ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} src ${QIMSDK_ARG_BASE_DIR}/repo/src
 RUN [ -d ${QIMSDK_ESDK_BASE_DIR}/src ] || mkdir ${QIMSDK_ESDK_BASE_DIR}/src
 RUN ln -s ${QIMSDK_ARG_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/
 RUN ln -s ${QIMSDK_ARG_BASE_DIR}/repo/poky ${QIMSDK_ARG_BASE_DIR}/poky
