@@ -1,11 +1,9 @@
 {
     "Image_OS": "ubuntu20",
     "Additional_tag": "sdk-20",
-    "eSDK_path": "<path-to-workspace>/build-qti-distro-ubuntu-fullstack-debug/tmp-glibc/deploy/sdk/",
-    "eSDK_shell_file": "ubuntu-fullstack-debug-x86_64-qti-ubuntu-robotics-image-aarch64-qcs6490-odk-toolchain-ext-<AU-ID>.sh",
-    "Base_Dir_Location": "<path-to-the-directory-where-the-project-is-initialized>",
-    "Tflite_path": "<path-to-the-directory-where-the-prebuild-tflite-dev-archive-is-located>",
-    "Tflite_prebuilt_file": "<tf-lite-prebuilt-file>",
+    "eSDK_shell_file": "<path-to-workspace>/build-qti-distro-ubuntu-fullstack-debug/tmp-glibc/deploy/sdk/ubuntu-fullstack-debug-x86_64-qti-ubuntu-robotics-image-aarch64-qcs6490-odk-toolchain-ext-<AU-ID>.sh",
+    "Base_Dir_Location": "<path-to-the-directory-where-the-project-is-initialized-applies-only-for-host-build-variant>",
+    "Tflite_prebuilt_file": "<path-to-the-tf-lite-prebuilt-file>",
     "Acceleration_engines":
     [
         {
@@ -21,7 +19,5 @@
     "Deploy_URL": "",
     "Deploy_dev_URL": "",
     "Deploy_QIMSDK_Artifacts_URL":"",
-    "Deploy_QIMSDK_Artifacts_URL_rel":"",
-    "Deploy_QIMSDK_Artifacts_URL_dev":"",
     "Gst_plugins_qti_oss_dependencies":["ffmpeg gstreamer1.0-alsa gstreamer1.0-gtk3 gstreamer1.0-plugins-bad gstreamer1.0-plugins-good libcdio18 libcdparanoia0 libdvdread7 libgraphene-1.0-0 libjansson4 libopencore-amrnb0 libopencore-amrwb0 libopencv-video4.2 libsidplay1v5 libvisual-0.4-0 mpeg2dec"]
 }

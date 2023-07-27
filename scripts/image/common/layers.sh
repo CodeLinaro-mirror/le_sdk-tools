@@ -11,7 +11,7 @@ function qimsdk-layers-prepare() {
     local LAYER
 
     # Check whether code was already prepared
-    [ -f ${QIMSDK_WORK_DIR}/prepared ] && print-red "Layers are already prepared" && return -1
+    [ -f "${QIMSDK_WORK_DIR}/prepared" ] && print-red "Layers are already prepared" && return -1
 
     # Prepare all layers
     for LAYER in "${QIMSDK_ALL_LAYERS[@]}"; do
@@ -19,7 +19,7 @@ function qimsdk-layers-prepare() {
     done
 
     # Mark that code is already prepared
-    [ ! -d ${QIMSDK_WORK_DIR} ] && mkdir -p ${QIMSDK_WORK_DIR}/
+    [ ! -d "${QIMSDK_WORK_DIR}" ] && mkdir -p ${QIMSDK_WORK_DIR}/
     touch ${QIMSDK_WORK_DIR}/prepared
 
     print-green "All layers prepared successfully !!!"
@@ -30,7 +30,7 @@ function qimsdk-layers-clean() {
     local LAYER
 
     # Check whether code was already prepared
-    [ ! -f ${QIMSDK_WORK_DIR}/prepared ] && print-red "Layers are not prepared" && return -1
+    [ ! -f "${QIMSDK_WORK_DIR}/prepared" ] && print-red "Layers are not prepared" && return -1
 
     # Clean all layers
     for LAYER in "${QIMSDK_ALL_LAYERS[@]}"; do
@@ -38,7 +38,7 @@ function qimsdk-layers-clean() {
     done
 
     # Mark that code is cleaned
-    [ -d ${QIMSDK_WORK_DIR} ] && rm -rf ${QIMSDK_WORK_DIR}/prepared
+    [ -d "${QIMSDK_WORK_DIR}" ] && rm -rf ${QIMSDK_WORK_DIR}/prepared
 
     print-green "All layers cleaned successfully !!!"
 }

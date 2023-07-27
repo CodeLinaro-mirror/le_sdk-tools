@@ -26,7 +26,7 @@ function qimsdk-gst-plugins-qti-clean-layers() {
 function qimsdk-gst-plugins-qti-prepare() {
 
     # Identify the package management configuration
-    [ -d ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb ] && PKG_WRITE_TASK="do_package_write_deb" || PKG_WRITE_TASK="do_package_write_ipk"
+    [ -d "${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb" ] && PKG_WRITE_TASK="do_package_write_deb" || PKG_WRITE_TASK="do_package_write_ipk"
 
     # Remove gstreamer and meta-qti-gst from BBMASK
     sed -i "s/meta\/recipes-multimedia\/gstreamer\///g;s/meta-qti-gst\///g;s/meta-qti-ubuntu\/recipes-toolchain\/ubuntu\/gstreamer1.0\*//g" ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
@@ -96,7 +96,7 @@ function qimsdk-gst-plugins-qti-prepare() {
     for ((i=0 ; i<${QIMSDK_ESDK_ACCELERATION_ENGINE_COUNT} ; i++)); do
         local QIMSDK_ESDK_ACCELERATION_ENGINE=${QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES[i]}
         local ENGINE_INDEX=$(( $i + 1 ))
-        [ ${i} -eq 0 ] && [ ! -f "${QIMSDK_ESDK_BASE_DIR}/downloads/no-acceleration-engine-1-dir-available" ] && \
+        [ "${i}" -eq 0 ] && [ ! -f "${QIMSDK_ESDK_BASE_DIR}/downloads/no-acceleration-engine-1-dir-available" ] && \
             {
                 echo -e "\nDISTRO_FEATURES += \"qti-"${QIMSDK_ESDK_ACCELERATION_ENGINE}"\"" >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
                 mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk
@@ -104,7 +104,7 @@ function qimsdk-gst-plugins-qti-prepare() {
                     echo PV = \"$(grep -m 1 "${QIMSDK_ESDK_ACCELERATION_ENGINE^^} [0-9].*" ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt | awk '{print $2}')\" \
                     >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk/${QIMSDK_ESDK_ACCELERATION_ENGINE}.bbappend
             }
-        [ ${i} -eq 1 ] && [ ! -f "${QIMSDK_ESDK_BASE_DIR}/downloads/no-acceleration-engine-2-dir-available" ] && \
+        [ "${i}" -eq 1 ] && [ ! -f "${QIMSDK_ESDK_BASE_DIR}/downloads/no-acceleration-engine-2-dir-available" ] && \
             {
                 echo -e "\nDISTRO_FEATURES += \"qti-"${QIMSDK_ESDK_ACCELERATION_ENGINE}"\"" >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
                 mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk
@@ -151,7 +151,7 @@ function qimsdk-gst-plugins-qti-inspect() {
 
     # Check output
     adb pull /data/gst-inspect-error-log.txt ${QIMSDK_WORK_DIR}/ 2>&1 > /dev/null
-    [ -f ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt ]                                         && \
+    [ -f "${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt" ]                                       && \
     [ `wc -c ${QIMSDK_WORK_DIR}/gst-inspect-error-log.txt | cut -d ' ' -f 1` -eq 0 ]            && \
         print-green "All gst plugins are inspected successfully !!!"                            || \
         {

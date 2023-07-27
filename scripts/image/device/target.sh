@@ -110,7 +110,7 @@ function qimsdk-target-sync() {
         print-red "Package format argument deb or ipk is required" && return -3
 
     # Check whether code was already prepared
-    [ ! -f ${QIMSDK_WORK_DIR}/prepared ] && print-red "Layers are not prepared" && return -4
+    [ ! -f "${QIMSDK_WORK_DIR}/prepared" ] && print-red "Layers are not prepared" && return -4
 
     # Get updated packages
     local PKGS
@@ -130,7 +130,7 @@ function qimsdk-target-sync() {
         local LOG="Pushing ${PKG} ${DATE}"
         local PKG_NAME=`echo $(basename ${PKG}) | cut -d '_' -f 1`
         local DEV=""
-        [ ${VARIANT} == "dev" ] || [ ${VARIANT} == "staticdev" ]                                && \
+        [ "${VARIANT}" == "dev" ] || [ "${VARIANT}" == "staticdev" ]                            && \
             {
                 DEV="-dev"
             }
@@ -186,12 +186,12 @@ function qimsdk-target-sync-artifacts() {
 
     # Set package format
     local FORMAT=""
-    [ $(qimsdk-get-pkg-format) == "deb" ] && FORMAT=deb
-    [ $(qimsdk-get-pkg-format) == "ipk" ] && FORMAT=ipk
+    [ "$(qimsdk-get-pkg-format)" == "deb" ] && FORMAT=deb
+    [ "$(qimsdk-get-pkg-format)" == "ipk" ] && FORMAT=ipk
     [ -z "${FORMAT}" ] && print-red "FAILED TO GET PACKAGE FORMAT !!!" && return -1
 
     # Check whether code was already prepared
-    [ ! -f ${QIMSDK_WORK_DIR}/prepared ] && print-red "Layers are not prepared" && return -2
+    [ ! -f "${QIMSDK_WORK_DIR}/prepared" ] && print-red "Layers are not prepared" && return -2
 
     # Get updated packages
     local PKGS

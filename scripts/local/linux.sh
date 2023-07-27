@@ -10,25 +10,25 @@ function qimsdk-local-device-command ()
 
     adb shell "$1 && echo 0 > /data/rc.txt"
     rc=$?
-    [ $rc -ne 0 ] && print-red "Executing Command $1 failed !!!" && return $rc
+    [ "${rc}" -ne 0 ] && print-red "Executing Command $1 failed !!!" && return ${rc}
 
     adb pull /data/rc.txt /tmp/rc.txt 2>&1 > /dev/null
     rc=$?
     adb shell "rm -f /data/rc.txt"
-    [ $rc -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command $1 failed !!!") && return $rc
+    [ "${rc}" -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command $1 failed !!!") && return ${rc}
 
     rc=`cat /tmp/rc.txt`
     rm -f /tmp/rc.txt
-    [ $rc -ne 0 ] && print-red "Command $1 return code is not 0 !!!" && return $rc
+    [ "${rc}" -ne 0 ] && print-red "Command $1 return code is not 0 !!!" && return ${rc}
 
-    return $rc
+    return ${rc}
 }
 
 # Sync packages with the device from specified directory
 #   $1 - (mandatory) path to the packages to be synced
 function qimsdk-local-sync() {
     local PACKAGES_PATH=$1
-    [ ! -d "${PACKAGES_PATH}" ] || [ -z "${PACKAGES_PATH}" ]                                    && \
+    [ ! -d "${PACKAGES_PATH}" ]                                                                 && \
         {
             echo "Path to directory with packages must be provided as first argument !!!"
             return -1
@@ -103,7 +103,7 @@ function qimsdk-local-sync() {
 #   $1 - (mandatory) path to the packages to be synced
 function qimsdk-local-packages-remove() {
     local PACKAGES_PATH=$1
-    [ ! -d "${PACKAGES_PATH}" ] || [ -z "${PACKAGES_PATH}" ]                                    && \
+    [ ! -d "${PACKAGES_PATH}" ]                                                                 && \
         {
             echo "Path to directory with packages must be provided as first argument !!!"
             return -1
