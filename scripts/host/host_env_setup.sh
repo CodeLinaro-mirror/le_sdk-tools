@@ -50,6 +50,8 @@ function qimsdk-host-parse-json() {
 
     QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES=`echo ${BUFFER} | jq '.Gst_plugins_qti_oss_dependencies[]' | tr -d '"'`
 
+    QIMSDK_ESDK_DEVICE_INSTALL_PREFIX=`echo ${BUFFER} | jq '.Device_install_prefix' | tr -d '"'`
+
     [ -z "${eSDK_SHELL_FILE}" ] && print-red "ESDK shell file must be provided as an argument of config json !!!" && return -2
     [ ! -f "${eSDK_SHELL_FILE}" ] && print-red "Could not find ESDK_SH !!!" && return -3
     [ ! -d "${BASE_DIR_LOCATION}" ] && print-red "Path to the directory where the project is initialized must be provided as an argument of config json !!!" && return -5
@@ -279,8 +281,8 @@ function qimsdk-host-env-remove() {
             QIMSDK_ESDK_TFLITE_FILENAME QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES                      \
             QIMSDK_ACCELERATION_ENGINE_PATHS QIMSDK_ACCELERATION_ENGINE_COUNT                      \
             QIMSDK_ESDK_DEPLOY_URL QIMSDK_ESDK_DEPLOY_URL_DEV QIMSDK_ESDK_DEPLOY_ARTIFACTS         \
-            QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES                                           \
-            QIMSDK_TOOLS_DIR QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG                                   && \
+            QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES QIMSDK_ESDK_DEVICE_INSTALL_PREFIX         \
+            QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG QIMSDK_TOOLS_DIR                                   && \
         print-green "Environment variables removed !!!"
 }
 

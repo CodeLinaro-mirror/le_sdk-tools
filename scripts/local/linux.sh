@@ -32,6 +32,15 @@ function qimsdk-local-device-command ()
     return ${rc}
 }
 
+# Propagate the correct install path to opkg config
+function qimsdk-local-set-opkg-prefix () {
+    qimsdk-local-device-command "cat /etc/opkg/opkg.conf | grep \"dest qimsdk_install_path ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\"" 1>/dev/null || \
+        {
+            qimsdk-local-device-command 'sed -i '/qimsdk_install_path/d' /etc/opkg/opkg.conf'
+            qimsdk-local-device-command "echo \"dest qimsdk_install_path ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\" >> /etc/opkg/opkg.conf"
+        }
+}
+
 # Sync packages with the device from specified directory
 #   $1 - (mandatory) path to the packages to be synced
 function qimsdk-local-sync() {
@@ -44,6 +53,18 @@ function qimsdk-local-sync() {
 
     PACKAGES_PATH=`echo ${PACKAGES_PATH}/ | sed 's/\/\//\//g'`
 
+    QIMSDK_ESDK_DEVICE_INSTALL_PREFIX="$(cat ${PACKAGES_PATH}qim-sdk-install-prefix.txt 2> /dev/null)"
+
+    [ ! -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]                                             && \
+        {
+            echo 'adb push ${PACKAGES_PATH}qim-sdk.sh /etc/profile.d/' || return -2
+
+            [ -n "$(find ${PACKAGES_PATH} -maxdepth 1 -name '*.ipk' -type f -print -quit)" ]    && \
+                {
+                    qimsdk-local-set-opkg-prefix
+                }
+        }
+
     local FILE
     for FILE in ${PACKAGES_PATH}*; do
         local PACKAGE=$(basename "${FILE}")
@@ -53,33 +74,49 @@ function qimsdk-local-sync() {
 
         [ "${PACKAGE_FORMAT}" == "deb" ]                                                        && \
             {
-                adb push "${FILE}" /tmp/                                                                || \
+                adb push "${FILE}" /tmp/                                                        || \
                     {
                         echo "Push package to device failed !!!";
-                        return -1;
+                        return -3;
                     }
 
-                qimsdk-local-device-command "dpkg --install --force-all /tmp/${PACKAGE}"   || \
+                local DEVICE_INSTALL_PREFIX=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}
+                [ -z ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} ]                                     && \
                     {
-                        adb shell "rm -f /tmp/${PACKAGE}"
+                        DEVICE_INSTALL_PREFIX='/'
+                    }
+                qimsdk-local-device-command "dpkg --instdir=${DEVICE_INSTALL_PREFIX} --install --force-all /tmp/${PACKAGE}" || \
+                    {
+                        qimsdk-local-device-command "rm /tmp/${PACKAGE}";
                         print-red "Install package to device failed !!!";
-                        return -2;
+                        return -4;
                     }
             }
 
         [ "${PACKAGE_FORMAT}" == "ipk" ]                                                        && \
             {
-                adb push "${FILE}" /tmp/                                                                || \
+                adb push "${FILE}" /tmp/                                                        || \
                     {
                         echo "Push package to device failed !!!";
-                        return -1;
+                        return -3;
                     }
 
-                qimsdk-local-device-command "opkg --force-depends --force-reinstall --force-overwrite install /tmp/${PACKAGE}" || \
+                [ -z ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} ]                                     && \
                     {
-                        qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
-                        print-red "Install package to device failed !!!";
-                        return -3;
+                        qimsdk-local-device-command "opkg install --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE}" || \
+                            {
+                                qimsdk-local-device-command "rm /tmp/${PACKAGE}";
+                                print-red "Install package to device failed !!!";
+                                return -5;
+                            }
+                    }                                                                           || \
+                    {
+                        qimsdk-local-device-command "opkg install -d qimsdk_install_path --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE}" || \
+                            {
+                                qimsdk-local-device-command "rm /tmp/${PACKAGE}";
+                                print-red "Install package to device failed !!!";
+                                return -6;
+                            }
                     }
             }
 

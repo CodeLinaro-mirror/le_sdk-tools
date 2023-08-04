@@ -32,7 +32,7 @@ function qimsdk-gst-plugins-qti-prepare() {
     sed -i "s/meta\/recipes-multimedia\/gstreamer\///g;s/meta-qti-gst\///g;s/meta-qti-ubuntu\/recipes-toolchain\/ubuntu\/gstreamer1.0\*//g" ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
 
     # Set WORKSPACE variable or add it to bblayers.conf if not exist
-    grep -wq WORKSPACE ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf && sed -i "s+WORKSPACE\s*=\s*\"..TOPDIR./.*\"+WORKSPACE = \"\$\{TOPDIR\}/src\"+g" ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf || echo 'WORKSPACE = ""${TOPDIR}/src"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
+    grep -wq WORKSPACE ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf && sed -i "s+WORKSPACE\s*=\s*\"..TOPDIR./.*\"+WORKSPACE = \"\$\{TOPDIR\}/src\"+g" ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf || echo 'WORKSPACE = "${TOPDIR}/src"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
 
     # Remove meta-qti-gst and meta-qti-gst-prop from bblayers.conf
     sed -i "s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst-prop//g;s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst//g" ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
@@ -63,16 +63,45 @@ function qimsdk-gst-plugins-qti-prepare() {
     done
     echo '    '\" >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
 
+    [ -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]                                               || \
+        {
+            sed -i "s|ExecStart=/usr/bin/gstd|ExecStart=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gstd|g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd/gstd.service
+            sed -i "s|GST_ML_MODULES_DIR=\"\${GST_PLUGINS_QTI_OSS_INSTALL_LIBDIR}/gstreamer-1.0/ml/modules\"|GST_ML_MODULES_DIR=\"${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\${GST_PLUGINS_QTI_OSS_INSTALL_LIBDIR}/gstreamer-1.0/ml/modules\"|g" ${QIMSDK_BASE_DIR}/repo/src/vendor/qcom/opensource/gst-plugins-qti-oss/gst-plugin-base/gst/ml/CMakeLists.txt
+            sed -i "s|/usr/bin/gst-client-1.0|/data/sdk/usr/bin/gst-client-1.0|g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd_%.bbappend
+
+            echo "export PATH=\$PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin" > ${QIMSDK_BASE_DIR}/qim-sdk.sh
+
+            [ "${PKG_WRITE_TASK}" == "do_package_write_ipk" ]                                   && \
+                {
+                    echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                    echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                    echo "export GST_PLUGIN_PATH=\$GST_PLUGIN_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/gstreamer-1.0" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                    echo "export GST_PLUGIN_SCANNER=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/libexec/gstreamer-1.0/gst-plugin-scanner" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                }                                                                               || \
+                    {
+                        echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                        echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                        echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/aarch64-linux-gnu" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                        echo "export GST_PLUGIN_PATH=\$GST_PLUGIN_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu/gstreamer-1.0" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                        echo "export GST_PLUGIN_SCANNER=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                    }
+            echo "rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/ && \\" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "mkdir -p ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/ && \\" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "ln -s /etc/systemd/system ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+
+            echo "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" >> ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt
+        }
+
     # apt-get install gst_plugins_qti_oss_dependencies
     [ "${PKG_WRITE_TASK}" == "do_package_write_deb" ]                                           && \
-    {
-        echo 'do_compile[depends] = "ubuntu-base:do_ubuntu_install"' > ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
-        sed -i "s/\${UBUN_FULLSTACK_PERF_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;s/\${UBUN_FULLSTACK_DEBUG_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
-        sed -i "s/rm \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/rm -f \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/g;s/rm \${TMP_WKDIR}\/lib\/udev\/v4l_id/rm -f \${TMP_WKDIR}\/lib\/udev\/v4l_id/g;s/60-persistent-storage.rules/60-persistent-storage-dm.rules/g" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
-        grep -wq RM_WORK_EXCLUDE ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb || echo 'RM_WORK_EXCLUDE += "${PN}"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
-        sed -i '/ssh_import_id/d;/\thumanity_theme_install/d;/ do_tzdata_install/d' ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
-        sed -i 's/do_package_write_ipk/do_package_write_deb/g' ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
-    }
+        {
+            echo 'do_compile[depends] = "ubuntu-base:do_ubuntu_install"' > ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+            sed -i "s/\${UBUN_FULLSTACK_PERF_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;s/\${UBUN_FULLSTACK_DEBUG_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+            sed -i "s/rm \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/rm -f \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/g;s/rm \${TMP_WKDIR}\/lib\/udev\/v4l_id/rm -f \${TMP_WKDIR}\/lib\/udev\/v4l_id/g;s/60-persistent-storage.rules/60-persistent-storage-dm.rules/g" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+            grep -wq RM_WORK_EXCLUDE ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb || echo 'RM_WORK_EXCLUDE += "${PN}"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+            sed -i '/ssh_import_id/d;/\thumanity_theme_install/d;/ do_tzdata_install/d' ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+            sed -i 's/do_package_write_ipk/do_package_write_deb/g' ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+        }
 
     # Remove tensorflow-lite from DISTRO_FEATURES
     sed -i "s/tensorflow-lite//g" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-distro/conf/distro/include/qti-distro-fullstack.inc
@@ -115,15 +144,91 @@ function qimsdk-gst-plugins-qti-prepare() {
         qimsdk-gst-plugins-qti-prepare-layer
 }
 
+# Prepare gst-plugins-qti device install prefix
+function qimsdk-gst-plugins-qti-device-install-prefix() {
+
+    # Amend hardcoded install paths in prebuilt apt-get downloaded packages
+    local PPKGS="libgstreamer1.0-0 x11-common timgm6mb-soundfont"
+
+    for PPKG in $PPKGS; do
+        mkdir -p ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp
+        PPKG_NAME=$(basename -- ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/${PPKG}*.deb)
+        [ -f "${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/${PPKG_NAME}" ] && \
+            {
+                dpkg-deb -R ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/${PPKG_NAME} \
+                    ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp
+                grep -q "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp/DEBIAN/postinst || \
+                sed -i "s|/usr/lib|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib|g;s|/usr/share|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/share|g;s|#!bin/sh|#!/bin/sh|g" ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp/DEBIAN/postinst ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp/DEBIAN/preinst
+                dpkg-deb -b ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp \
+                    ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/${PPKG_NAME}
+                rm -rf ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp
+            }
+    done
+
+    #Amend update-alternatives path in aarch64 gst-plugins-qti packages
+    local GPKGS="qti-gstreamer1.0-plugins-good-v4l2 qti-gstreamer1.0-plugins-good-pulse qti-gstreamer1.0-plugins-base-audio"
+
+    for GPKG in $GPKGS; do
+        mkdir -p ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp
+        GPKG_NAME=$(basename -- ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/${GPKG}*.deb)
+        [ -f "${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/${GPKG_NAME}" ] && \
+            {
+                dpkg-deb -R ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/${GPKG_NAME} \
+                    ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp
+                grep -q "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp/DEBIAN/postinst || \
+                sed -i "s| /usr/lib| ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib|g;s|//opt|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/opt|g;" ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp/DEBIAN/postinst \
+                ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp/DEBIAN/prerm
+                [ "${GPKG}" == "qti-gstreamer1.0-plugins-good-v4l2" ]                                   && \
+                    {
+                        cd ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp/usr/lib/gstreamer-1.0/
+                        ln -sf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/opt/qti/usr/lib/gstreamer-1.0/libgstvideo4linux2.so.gstreamer1.0-plugins-good libgstvideo4linux2.so
+                        cd -
+                    }
+                [ "${GPKG}" == "qti-gstreamer1.0-plugins-good-pulse" ]                                  && \
+                    {
+                        cd ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp/usr/lib/gstreamer-1.0/
+                        ln -sf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/opt/qti/usr/lib/gstreamer-1.0/libgstpulseaudio.so.gstreamer1.0-plugins-good libgstpulseaudio.so
+                        cd -
+                    }
+                dpkg-deb -b ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp \
+                    ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/${GPKG_NAME}
+                rm -rf ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp
+            }
+    done
+
+    #Amend update-alternatives path in qcs6490_odk gst-plugins-qti packages
+    local QPKGS="qti-gstreamer1.0-plugins-bad-waylandsink"
+
+    for QPKG in $QPKGS; do
+        mkdir -p ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp
+        QPKG_NAME=$(basename -- ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/${QPKG}*.deb)
+        [ -f "${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/${QPKG_NAME}" ] && \
+            {
+                dpkg-deb -R ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/${QPKG_NAME} \
+                    ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp
+                grep -q "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp/DEBIAN/postinst || \
+                sed -i "s| /usr/lib| ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib|g;s|//opt|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/opt|g;" ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp/DEBIAN/postinst \
+                ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp/DEBIAN/prerm
+                cd ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp/usr/lib/gstreamer-1.0/
+                ln -sf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/opt/qti/usr/lib/gstreamer-1.0/libgstwaylandsink.so.gstreamer1.0-plugins-bad libgstwaylandsink.so
+                cd -
+                dpkg-deb -b ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp \
+                    ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/${QPKG_NAME}
+                rm -rf ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp
+            }
+    done
+}
+
 # Clean gst-plugins-qti
 function qimsdk-gst-plugins-qti-clean() {
     qimsdk-gst-plugins-qti-clean-layers
 }
 
-
 # Build gst-plugins-qti
 function qimsdk-gst-plugins-qti-build() {
     devtool build packagegroup-qti-gst
+    [ "${PKG_WRITE_TASK}" == "do_package_write_deb" ] && [ -n "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ] && \
+        qimsdk-gst-plugins-qti-device-install-prefix || true
 }
 
 # Package gst-plugins-qti

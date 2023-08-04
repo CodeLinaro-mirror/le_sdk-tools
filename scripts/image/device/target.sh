@@ -109,15 +109,30 @@ function qimsdk-target-sync() {
     [ ! "${FORMAT}" == "deb" ] && [ ! "${FORMAT}" == "ipk" ]                                    && \
         print-red "Package format argument deb or ipk is required" && return -3
 
+    [ "${TARGET}" == "device" ] && [ ! -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]              && \
+        {
+            adb push ${QIMSDK_BASE_DIR}/qim-sdk.sh /etc/profile.d/ || return -4
+            qimsdk-device-command "source /etc/profile.d/qim-sdk.sh" || return -5
+
+            [ "${FORMAT}" == "ipk" ]                                                            && \
+                {
+                    qimsdk-device-command "cat /etc/opkg/opkg.conf | grep \"dest qimsdk_install_path ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\"" 1>/dev/null || \
+                        {
+                            qimsdk-device-command 'sed -i '/qimsdk_install_path/d' /etc/opkg/opkg.conf'
+                            qimsdk-device-command "echo \"dest qimsdk_install_path ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\" >> /etc/opkg/opkg.conf"
+                        }
+                }
+        }
+
     # Check whether code was already prepared
-    [ ! -f "${QIMSDK_WORK_DIR}/prepared" ] && print-red "Layers are not prepared" && return -4
+    [ ! -f "${QIMSDK_WORK_DIR}/prepared" ] && print-red "Layers are not prepared" && return -6
 
     # Get updated packages
     local PKGS
     qimsdk-target-get-updated-packages-${VARIANT} PKGS ${FORMAT}                                || \
         {
             print-red "Failed to get updated packages";
-            return -5;
+            return -7;
         }
 
     # Sync only new packages
@@ -166,7 +181,7 @@ function qimsdk-target-sync() {
                         echo "adb shell \"dpkg --remove --force-all ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE} || \
                     echo "adb shell \"opkg remove --force-depends ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE}
                 }                                                                               || \
-                return -6
+                return -8
             }
         PKG=$(basename ${PKG})
         sed -i "/${PKG}/d" ${SYNC_FILE} 2>/dev/null
@@ -188,17 +203,17 @@ function qimsdk-target-sync-artifacts() {
     local FORMAT=""
     [ "$(qimsdk-get-pkg-format)" == "deb" ] && FORMAT=deb
     [ "$(qimsdk-get-pkg-format)" == "ipk" ] && FORMAT=ipk
-    [ -z "${FORMAT}" ] && print-red "FAILED TO GET PACKAGE FORMAT !!!" && return -1
+    [ -z "${FORMAT}" ] && print-red "FAILED TO GET PACKAGE FORMAT !!!" && return -2
 
     # Check whether code was already prepared
-    [ ! -f "${QIMSDK_WORK_DIR}/prepared" ] && print-red "Layers are not prepared" && return -2
+    [ ! -f "${QIMSDK_WORK_DIR}/prepared" ] && print-red "Layers are not prepared" && return -3
 
     # Get updated packages
     local PKGS
     qimsdk-target-get-updated-packages-${VARIANT} PKGS ${FORMAT}                                || \
         {
             print-red "Failed to get updated packages";
-            return -3;
+            return -4;
         }
 
     # Set variant postfix depending on variant
@@ -222,13 +237,17 @@ function qimsdk-target-sync-artifacts() {
                 rsync -a --progress ${PKG} ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}      || \
                     {
                         print-red "rsync package ${PKG_NAME} to artifacts dir failed !!!";
-                        return -4;
+                        return -5;
                     }
             }
         PKG=$(basename ${PKG})
         sed -i "/${PKG}/d" ${SYNC_FILE} 2>/dev/null
         echo "${LOG}" >> ${SYNC_FILE}
     done
+
+    # Copy Files needed in install scripts to packages dir to be added to artifacts zip
+    cp ${QIMSDK_BASE_DIR}/qim-sdk.sh ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}
+    cp ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}
 
     # Remove old artifacts archive
     rm -f ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}.zip
@@ -250,6 +269,8 @@ function qimsdk-target-sync-artifacts-dev() {
 }
 
 function qimsdk-target-sync-artifacts-all() {
+    qimsdk-target-sync-artifacts rel
+    qimsdk-target-sync-artifacts dev
     qimsdk-target-sync-artifacts all
 }
 

@@ -114,24 +114,44 @@ function qimsdk-device-pkg-sync() {
 
     [ "${PKG_FORMAT}" == "deb" ]                                                                && \
         {
-        qimsdk-device-command "dpkg --install --force-all /tmp/${PACKAGE_NAME}"                 || \
-            {
-                qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
-                print-red "Install package to device failed !!!";
-                return -5;
-            }
-        }                                                                                       || \
-    qimsdk-device-command "opkg install --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE_NAME}" || \
+            local DEVICE_INSTALL_PREFIX=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}
+            [ -z ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} ]                                         && \
+                {
+                    DEVICE_INSTALL_PREFIX='/'
+                }
+            qimsdk-device-command "dpkg --instdir=${DEVICE_INSTALL_PREFIX} --install --force-all /tmp/${PACKAGE_NAME}" || \
+                {
+                    qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
+                    print-red "Install package to device failed !!!";
+                    return -5;
+                }
+        }
+
+    [ "${PKG_FORMAT}" == "ipk" ]                                                                && \
         {
-            qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
-            print-red "Install package to device failed !!!";
-            return -6;
+            [ -z ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} ]                                         && \
+                {
+                    qimsdk-device-command "opkg install --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE_NAME}" || \
+                        {
+                            qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
+                            print-red "Install package to device failed !!!";
+                            return -6;
+                        }
+                }                                                                               || \
+                {
+                    qimsdk-device-command "opkg install -d qimsdk_install_path --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE_NAME}" || \
+                        {
+                            qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
+                            print-red "Install package to device failed !!!";
+                            return -7;
+                        }
+                }
         }
 
     qimsdk-device-command "rm /tmp/${PACKAGE_NAME}"                                             || \
         {
             print-red "Remove package from device /tmp directory failed !!!";
-            return -7;
+            return -8;
         }
 
     return 0

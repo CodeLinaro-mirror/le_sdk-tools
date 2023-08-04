@@ -137,6 +137,9 @@ function qimsdk-docker-build-image() {
 
     local QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES=`cat ${PATH_TO_CONFIG_JSON} | jq '.Gst_plugins_qti_oss_dependencies[]' | tr -d '"'`
 
+    local QIMSDK_ARG_DEVICE_INSTALL_PREFIX=`cat ${PATH_TO_CONFIG_JSON} | jq '.Device_install_prefix' | tr -d '"'`
+    QIMSDK_ARG_DEVICE_INSTALL_PREFIX="${QIMSDK_ARG_DEVICE_INSTALL_PREFIX%/}"
+
     DOCKER_BUILDKIT=1 docker build                                                                 \
             --build-arg QIMSDK_ARG_HOST_USER_ID=$(id -u ${USER})                                   \
             --build-arg QIMSDK_ARG_HOST_GROUP_ID=$(id -g ${USER})                                  \
@@ -151,6 +154,7 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_DEPLOY_URL_DEV=${QIMSDK_ARG_DEPLOY_URL_DEV}                     \
             --build-arg QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG=${QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG}         \
             --build-arg QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES="${QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES}" \
+            --build-arg QIMSDK_ARG_DEVICE_INSTALL_PREFIX=${QIMSDK_ARG_DEVICE_INSTALL_PREFIX}       \
             -f ${QIMSDK_DOCKER_DIR}/Dockerfile                                                     \
             --progress=plain --target qimsdk ${QIMSDK_REPO_BASE_DIR} -t qimsdk:${TAG}
 

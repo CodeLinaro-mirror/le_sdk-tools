@@ -112,10 +112,6 @@ RUN rm -rf ${QIMSDK_ESDK_BASE_DIR}/${QIMSDK_ESDK_SH}
 ADD sdk-tools/.bash_aliases /home/${QIMSDK_ARG_HOST_USER}/.bash_aliases
 RUN chown ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} /home/${QIMSDK_ARG_HOST_USER}/.bash_aliases
 
-# Set gst plugins qti oss dependencies
-ARG QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES
-ENV QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES=${QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES}
-
 # Remove meta layers and src code to be cloned
 RUN rm -rf ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-gst
 RUN rm -rf ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-gst-prop
@@ -143,8 +139,8 @@ ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                    
 ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} poky ${QIMSDK_ARG_BASE_DIR}/repo/poky
 ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} src ${QIMSDK_ARG_BASE_DIR}/repo/src
 RUN [ -d ${QIMSDK_ESDK_BASE_DIR}/src ] || mkdir ${QIMSDK_ESDK_BASE_DIR}/src
-RUN ln -s ${QIMSDK_ARG_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/
-RUN ln -s ${QIMSDK_ARG_BASE_DIR}/repo/poky ${QIMSDK_ARG_BASE_DIR}/poky
+RUN ln -sf ${QIMSDK_ARG_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/
+RUN ln -sf ${QIMSDK_ARG_BASE_DIR}/repo/poky ${QIMSDK_ARG_BASE_DIR}/poky
 
 # Set tflite filename
 ARG QIMSDK_ARG_TFLITE_FILENAME
@@ -176,6 +172,10 @@ ENV QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG=${QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG}
 # Set gst plugins qti oss dependencies
 ARG QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES
 ENV QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES=${QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES}
+
+# Set device install prefix
+ARG QIMSDK_ARG_DEVICE_INSTALL_PREFIX
+ENV QIMSDK_ESDK_DEVICE_INSTALL_PREFIX=${QIMSDK_ARG_DEVICE_INSTALL_PREFIX}
 
 # Prepare, build and package all layers
 RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-layers-prepare-build-package
