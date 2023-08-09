@@ -1,6 +1,6 @@
 {
     "Image_OS": "ubuntu18",
-    "Additional_tag": "",
+    "Additional_tag": "sdk-18",
     "eSDK_path": "<path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk/",
     "eSDK_shell_file": "rb-debug-x86_64-qti-robotics-image-armv8a-kalama-toolchain-ext-<AU-ID>.sh",
     "Base_Dir_Location": "<path-to-the-directory-where-the-project-is-initialized>",
