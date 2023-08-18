@@ -1,6 +1,6 @@
 {
     "Image_OS": "ubuntu20",
-    "Additional_tag": "",
+    "Additional_tag": "sdk-20",
     "eSDK_path": "<path-to-workspace>/build-qti-distro-ubuntu-fullstack-debug/tmp-glibc/deploy/sdk/",
     "eSDK_shell_file": "ubuntu-fullstack-debug-x86_64-qti-ubuntu-robotics-image-aarch64-qcs6490-odk-toolchain-ext-<AU-ID>.sh",
     "Base_Dir_Location": "<path-to-the-directory-where-the-project-is-initialized>",

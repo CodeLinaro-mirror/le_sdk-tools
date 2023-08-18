@@ -1,0 +1,3 @@
+# List projects which must not be propagated to docker image
+**/sdk-tools.git
+**/*release.git

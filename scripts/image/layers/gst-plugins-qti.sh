@@ -71,6 +71,7 @@ function qimsdk-gst-plugins-qti-prepare() {
         sed -i "s/rm \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/rm -f \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/g;s/rm \${TMP_WKDIR}\/lib\/udev\/v4l_id/rm -f \${TMP_WKDIR}\/lib\/udev\/v4l_id/g;s/60-persistent-storage.rules/60-persistent-storage-dm.rules/g" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
         grep -wq RM_WORK_EXCLUDE ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb || echo 'RM_WORK_EXCLUDE += "${PN}"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
         sed -i '/ssh_import_id/d;/\thumanity_theme_install/d;/ do_tzdata_install/d' ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+        sed -i 's/do_package_write_ipk/do_package_write_deb/g' ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
     }
 
     # Remove tensorflow-lite from DISTRO_FEATURES
@@ -89,15 +90,26 @@ function qimsdk-gst-plugins-qti-prepare() {
             sed -i '/tensorflow-lite/d' ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
         }
 
-    # Setup acceleration engine dir, if available
-    [ "${QIMSDK_ESDK_ACCELERATION_ENGINE_DIR}" != "no-acceleration-engine-dir-available" ]      && \
-        {
-            echo -e "\nDISTRO_FEATURES += \"qti-"${QIMSDK_ESDK_ACCELERATION_ENGINE}"\"" >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
-            mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk
-            [ -f ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt ] && \
-                echo PV = \"$(grep -m 1 "${QIMSDK_ESDK_ACCELERATION_ENGINE^^} [0-9].*" ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt | awk '{print $2}')\" \
-                >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk/${QIMSDK_ESDK_ACCELERATION_ENGINE}.bbappend
-        }
+    local QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES=(${QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES})
+    local QIMSDK_ESDK_ACCELERATION_ENGINE_COUNT=${#QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES[@]}
+
+    for ((i=0 ; i<${QIMSDK_ESDK_ACCELERATION_ENGINE_COUNT} ; i++)); do
+        local QIMSDK_ESDK_ACCELERATION_ENGINE=${QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES[i]}
+        local ENGINE_INDEX=$(( $i + 1 ))
+        [ ${i} -eq 0 ] && [ ! -f "${QIMSDK_ESDK_BASE_DIR}/downloads/no-acceleration-engine-1-dir-available" ] && \
+            {
+                echo -e "\nDISTRO_FEATURES += \"qti-"${QIMSDK_ESDK_ACCELERATION_ENGINE}"\"" >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
+                mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk
+                [ -f ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt ] && \
+                    echo PV = \"$(grep -m 1 "${QIMSDK_ESDK_ACCELERATION_ENGINE^^} [0-9].*" ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt | awk '{print $2}')\" \
+                    >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk/${QIMSDK_ESDK_ACCELERATION_ENGINE}.bbappend
+            }
+        [ ${i} -eq 1 ] && [ ! -f "${QIMSDK_ESDK_BASE_DIR}/downloads/no-acceleration-engine-2-dir-available" ] && \
+            {
+                echo -e "\nDISTRO_FEATURES += \"qti-"${QIMSDK_ESDK_ACCELERATION_ENGINE}"\"" >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
+                mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk
+            }
+    done
 
     qimsdk-gst-plugins-qti-add-layers                                                           && \
         qimsdk-gst-plugins-qti-prepare-layer
