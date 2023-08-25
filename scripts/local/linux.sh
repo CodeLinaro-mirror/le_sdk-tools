@@ -43,14 +43,14 @@ function qimsdk-local-sync() {
 
         PACKAGE_FORMAT="${PACKAGE_FORMAT##*.}"
 
-        adb push "${FILE}" /tmp/                                                                || \
-            {
-                echo "Push package to device failed !!!";
-                return -1;
-            }
-
         [ "${PACKAGE_FORMAT}" == "deb" ]                                                        && \
             {
+                adb push "${FILE}" /tmp/                                                                || \
+                    {
+                        echo "Push package to device failed !!!";
+                        return -1;
+                    }
+
                 qimsdk-local-device-command "dpkg --install --force-all /tmp/${PACKAGE}"   || \
                     {
                         adb shell "rm -f /tmp/${PACKAGE}"
@@ -61,6 +61,12 @@ function qimsdk-local-sync() {
 
         [ "${PACKAGE_FORMAT}" == "ipk" ]                                                        && \
             {
+                adb push "${FILE}" /tmp/                                                                || \
+                    {
+                        echo "Push package to device failed !!!";
+                        return -1;
+                    }
+
                 qimsdk-local-device-command "opkg --force-depends --force-reinstall --force-overwrite install /tmp/${PACKAGE}" || \
                     {
                         qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
@@ -68,6 +74,8 @@ function qimsdk-local-sync() {
                         return -3;
                     }
             }
+
+        [ "${PACKAGE_NAME}" == "uninstall.sh" ] && continue;
 
         # Get package name and add it to uninstall script
         local PACKAGE_NAME=`echo ${PACKAGE} | cut -d '_' -f 1`
