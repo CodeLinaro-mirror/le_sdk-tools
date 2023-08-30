@@ -14,14 +14,20 @@ function qimsdk-device-command()
     rc=$?
     [ "${rc}" -ne 0 ] && print-red "Executing Command ${CMD} failed !!!" && return ${rc}
 
-    adb pull /data/rc.txt /tmp/rc.txt 2>&1 > /dev/null
+    local TMP_DIR=`mktemp -d`
+
+    adb pull /data/rc.txt ${TMP_DIR}/rc.txt 2>&1 > /dev/null
     rc=$?
     adb shell "rm -f /data/rc.txt"
-    [ "${rc}" -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command ${CMD} failed !!!") && return ${rc}
+    [ "${rc}" -ne 0 ] && (rm -f ${TMP_DIR}/rc.txt; print-red "Command ${CMD} failed !!!") && return ${rc}
 
-    rc=`cat /tmp/rc.txt`
-    rm -f /tmp/rc.txt
-    [ "${rc}" -ne 0 ] && print-red "Command ${CMD} return code is not 0 !!!" && return ${rc}
+    rc=`cat ${TMP_DIR}/rc.txt`
+    rm -f ${TMP_DIR}/rc.txt
+    [ "${rc}" == "0" ]                                                                          || \
+        {
+            print-red "Command ${CMD} return code is not 0 !!!";
+            return ${rc};
+        }
 
     return ${rc}
 }
