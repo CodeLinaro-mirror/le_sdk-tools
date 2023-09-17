@@ -42,6 +42,12 @@ function qimsdk-host-parse-json() {
             QIMSDK_ESDK_DEPLOY_ARTIFACTS=`echo ${QIMSDK_ESDK_DEPLOY_ARTIFACTS}/ | sed 's/\/\//\//g'`
         }
 
+    QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG=`echo ${BUFFER} |  jq '.Deploy_QIMSDK_Artifacts_tag' | tr -d '"'`
+    [ -z "${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}" ]                                                || \
+        {
+            QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG="_${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}"
+        }
+
     QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES=`echo ${BUFFER} | jq '.Gst_plugins_qti_oss_dependencies[]' | tr -d '"'`
 
     [ -z "${eSDK_SHELL_FILE}" ] && print-red "ESDK shell file must be provided as an argument of config json !!!" && return -2
@@ -217,7 +223,7 @@ function qimsdk-host-sync-artifacts-all() {
             return -2
         }                                                                                       || \
         {
-            rsync -a ${QIMSDK_WORK_DIR}/artifacts/packages.zip ${QIMSDK_ESDK_DEPLOY_ARTIFACTS}  || \
+            rsync -a ${QIMSDK_WORK_DIR}/artifacts/packages${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}.zip ${QIMSDK_ESDK_DEPLOY_ARTIFACTS}  || \
                 {
                     print-red "Syncing QIMSDK artifacts from host environment failed !!!"
                     return -3
@@ -273,7 +279,8 @@ function qimsdk-host-env-remove() {
             QIMSDK_ESDK_TFLITE_FILENAME QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES                      \
             QIMSDK_ACCELERATION_ENGINE_PATHS QIMSDK_ACCELERATION_ENGINE_COUNT                      \
             QIMSDK_ESDK_DEPLOY_URL QIMSDK_ESDK_DEPLOY_URL_DEV QIMSDK_ESDK_DEPLOY_ARTIFACTS         \
-            QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES QIMSDK_TOOLS_DIR                       && \
+            QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES                                           \
+            QIMSDK_TOOLS_DIR QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG                                   && \
         print-green "Environment variables removed !!!"
 }
 
@@ -291,7 +298,7 @@ function qimsdk-host-sync-artifacts-rel() {
             return -2
         }                                                                                       || \
         {
-            rsync -a ${QIMSDK_WORK_DIR}/artifacts/packages_rel.zip ${QIMSDK_ESDK_DEPLOY_ARTIFACTS} || \
+            rsync -a ${QIMSDK_WORK_DIR}/artifacts/packages_rel${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}.zip ${QIMSDK_ESDK_DEPLOY_ARTIFACTS} || \
                 {
                     print-red "Syncing QIMSDK release artifacts from host environment failed !!!"
                     return -3
@@ -313,7 +320,7 @@ function qimsdk-host-sync-artifacts-dev() {
             return -2
         }                                                                                       || \
         {
-            rsync -a ${QIMSDK_WORK_DIR}/artifacts/packages_dev.zip ${QIMSDK_ESDK_DEPLOY_ARTIFACTS} || \
+            rsync -a ${QIMSDK_WORK_DIR}/artifacts/packages_dev${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}.zip ${QIMSDK_ESDK_DEPLOY_ARTIFACTS} || \
                 {
                     print-red "Syncing QIMSDK development artifacts from host environment failed !!!"
                     return -3

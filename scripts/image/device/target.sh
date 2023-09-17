@@ -231,11 +231,11 @@ function qimsdk-target-sync-artifacts() {
     done
 
     # Remove old artifacts archive
-    rm -f ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}.zip
+    rm -f ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}.zip
 
     # Create new artifacts archive
     pushd ${QIMSDK_WORK_DIR}/artifacts 1>/dev/null
-        zip -j packages${VARIANT}.zip ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}/*
+        zip -j packages${VARIANT}${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}.zip ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}/*
     popd 1>/dev/null
 
     print-green "Artifacts synced successfully !!!"

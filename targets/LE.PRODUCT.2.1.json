@@ -19,5 +19,6 @@
     "Deploy_URL": "",
     "Deploy_dev_URL": "",
     "Deploy_QIMSDK_Artifacts_URL":"",
+    "Deploy_QIMSDK_Artifacts_tag":"",
     "Gst_plugins_qti_oss_dependencies":["cairo", "ffmpeg", "gdk-pixbuf", "json-glib", "liba52", "libdaemon", "libgudev", "lame", "libpsl", "librsvg", "libsoup-2.4", "libtheora", "libusb1", "libwebp", "mpg123", "orc", "sbc", "speex", "taglib", "vulkan-loader"]
 }
