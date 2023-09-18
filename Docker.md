@@ -270,6 +270,7 @@ The functions inside env_setup.sh are propagated through to .bashrc, so they are
 
 - ```qimsdk-layers-build``` - Must be invoked to compile modified layers in the container
 - ```qimsdk-layers-package``` - Must be invoked after invoking qimsdk-layers-build to package compiled recipes in the container
+- ```qimsdk-device-select```  - Must be invoked to select device when multiple devices are connected
 - ```qimsdk-device-prepare``` - Must be invoked to prepare device for package sync
 - ```qimsdk-device-sync-rel``` -Must be invoked to sync release packages with the device
 - ```qimsdk-device-sync-dbg``` - Must be invoked to sync debug packages with the device

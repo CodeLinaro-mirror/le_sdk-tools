@@ -157,6 +157,40 @@ function qimsdk-device-packages-remove() {
     qimsdk-target-packages-remove device
 }
 
+# Choose which device to use when more than one device is available in adb devices
+function qimsdk-device-select() {
+    local QIMSDK_INPUT_DEVICE
+    local QIMSDK_DEVICES=(`adb devices -l | grep 'device ' | rev | cut -f2 -d\: | rev | cut -f1 -d\-`)
+    local i=0
+
+    echo "adb connected devices:"
+    for DEVICE in ${QIMSDK_DEVICES[@]}; do
+        i=$((i+1))
+        echo "    $i. ${DEVICE}"
+    done
+
+    while true; do
+        echo -e "\n"
+        read -p 'Please choose device: ' QIMSDK_INPUT_DEVICE
+
+        [ $QIMSDK_INPUT_DEVICE -lt 1 ] || [ $QIMSDK_INPUT_DEVICE -gt $i ]                                     && \
+            {
+                echo "Please enter a number between 1 and $i!!!"
+                continue
+            }
+
+        break
+    done
+
+    local QIMSDK_SELECTED_DEVICE=${QIMSDK_DEVICES[$((QIMSDK_INPUT_DEVICE-1))]}
+    local QIMSDK_SELECTED_DEVICE_ID=`adb devices -l | grep ${QIMSDK_SELECTED_DEVICE} | cut -d ' ' -f1`
+
+    export ANDROID_SERIAL=${QIMSDK_SELECTED_DEVICE_ID}
+
+    echo "Device ${QIMSDK_SELECTED_DEVICE} set successfully!"
+    return 0
+}
+
 # Print help
 print-red "qimsdk-device-prepare"
 echo "    must be invoked to prepare device for pkg installation"
@@ -166,3 +200,5 @@ print-red "qimsdk-device-sync-dbg"
 echo "    must be invoked to sync debug packages with the device"
 print-red "qimsdk-device-packages-remove"
 echo "    must be invoked to remove installed packages from the device"
+print-red "qimsdk-device-select"
+echo "    must be invoked to select device when multiple devices are connected"
