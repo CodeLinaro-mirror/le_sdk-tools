@@ -12,18 +12,24 @@ function qimsdk-device-command()
 
     adb shell "${CMD} && echo 0 > /data/rc.txt"
     rc=$?
-    [ $rc -ne 0 ] && print-red "Executing Command ${CMD} failed !!!" && return $rc
+    [ "${rc}" -ne 0 ] && print-red "Executing Command ${CMD} failed !!!" && return ${rc}
 
-    adb pull /data/rc.txt /tmp/rc.txt 2>&1 > /dev/null
+    local TMP_DIR=`mktemp -d`
+
+    adb pull /data/rc.txt ${TMP_DIR}/rc.txt 2>&1 > /dev/null
     rc=$?
     adb shell "rm -f /data/rc.txt"
-    [ $rc -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command ${CMD} failed !!!") && return $rc
+    [ "${rc}" -ne 0 ] && (rm -f ${TMP_DIR}/rc.txt; print-red "Command ${CMD} failed !!!") && return ${rc}
 
-    rc=`cat /tmp/rc.txt`
-    rm -f /tmp/rc.txt
-    [ $rc -ne 0 ] && print-red "Command ${CMD} return code is not 0 !!!" && return $rc
+    rc=`cat ${TMP_DIR}/rc.txt`
+    rm -f ${TMP_DIR}/rc.txt
+    [ "${rc}" == "0" ]                                                                          || \
+        {
+            print-red "Command ${CMD} return code is not 0 !!!";
+            return ${rc};
+        }
 
-    return $rc
+    return ${rc}
 }
 
 # Invoke script file on the device
@@ -46,19 +52,19 @@ function qimsdk-device-prepare() {
     echo "Waiting for device"
     adb wait-for-device root
     rc=$?
-    [ $rc -ne 0 ] && print-red "adb root failed !!!" && return -1
+    [ "${rc}" -ne 0 ] && print-red "adb root failed !!!" && return -1
 
     adb wait-for-device remount wait-for-device
     rc=$?
-    [ $rc -ne 0 ] && print-red "adb remount failed !!!" && return -2
+    [ "${rc}" -ne 0 ] && print-red "adb remount failed !!!" && return -2
 
     qimsdk-device-command "mount -o remount,rw / > /dev/null"
     rc=$?
-    [ $rc -ne 0 ] && print-red "adb file system remount failed !!!" && return -3
+    [ "${rc}" -ne 0 ] && print-red "adb file system remount failed !!!" && return -3
 
     qimsdk-device-command "! command -v setenforce || setenforce 0"
     rc=$?
-    [ $rc -ne 0 ] && print-red "adb disable SE Linux failed !!!" && return -4
+    [ "${rc}" -ne 0 ] && print-red "adb disable SE Linux failed !!!" && return -4
 
     print-green "Device prepared successfully !!!"
 }
@@ -74,9 +80,9 @@ function qimsdk-device-pkg-check() {
     local FULL_PACKAGE=$1
     local PACKAGE=`echo ${FULL_PACKAGE} | cut -d '_' -f 1`
 
-    [ $(qimsdk-get-pkg-format) == "deb" ]                                                       && \
+    [ "$(qimsdk-get-pkg-format)" == "deb" ]                                                     && \
         adb shell "dpkg --list ${PACKAGE} > /tmp/log.txt"
-    [ $(qimsdk-get-pkg-format) == "ipk" ]                                                       && \
+    [ "$(qimsdk-get-pkg-format)" == "ipk" ]                                                     && \
     adb shell "opkg list-installed ${PACKAGE} > /tmp/log.txt"
     adb pull /tmp/log.txt /tmp/log.txt 1>/dev/null
     local rc=$?
@@ -85,7 +91,7 @@ function qimsdk-device-pkg-check() {
     adb shell "rm -f /tmp/log.txt"
     rm -f /tmp/log.txt
 
-    return $rc
+    return ${rc}
 }
 
 # Sync compiled package with the device

@@ -27,6 +27,7 @@
   * [Modifications in QMMF SDK](#Modifications_in_QMMF_SDK)
   * [Modifications in Weston](#Modifications_in_Weston)
 * [Compiling gst-plugins-qti-oss Against tflite-dev.tar.gz](#Compiling_gst-plugins-qti-oss_Against_tflite-dev.tar.gz)
+* [Adding One More Poky Layer In The QIMSDK](#Adding_One_More_Poky_Layer_In_The_QIMSDK)
 
 <div id="Prerequisites">
 
@@ -145,7 +146,7 @@ ps faux
 # Check docker directory structure
 sudo ls /var/lib/docker/
 # Backup current docker dir
-tar -zcC /var/lib docker > /mnt/pd0/var_lib_docker-backup-$(date +%s).tar.gz
+tar zcC /var/lib docker > /mnt/pd0/var_lib_docker-backup-$(date +%s).tar.gz
 # Move the docker dir to a new partition
 mv /var/lib/docker /local/mnt/docker
 # Make a symlink to the docker dir in the new partition
@@ -208,20 +209,16 @@ The json file must contain certain data :
 
 * 1. ***MANDATORY*** - **Image_OS** - Available options are "ubuntu18" and "ubuntu20" - The linux distribution that will run inside the docker container
 * 2. ***OPTIONAL*** - **Additional_tag** - Additional tag to be appended to the name of the container - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
-* 3. ***MANDATORY*** - **eSDK_path** - Path to the directory in the work environment that contains the eSDK .sh and json file generated after eSDK compilation (refer to steps above) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
-* 4. ***MANDATORY*** - **eSDK_shell_file** - name of the shell file inside eSDK directory
-* 5. ***OPTIONAL*** - **Tflite_path** - Path to the directory where the prebuild tflite dev archive is located ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
-* 6. ***OPTIONAL*** - **Tflite_prebuilt_file** - name of the prebuilt archive
-* 7. ***OPTIONAL*** - **Acceleration_engines** - An array of Acceleration engines to be used in QIMSDK environment. If not needed, leave as is in the example config json. ***Every Acceleration engine from the array must contain:***
-  * 7.1. ***OPTIONAL*** - **Acceleration_engine** - Acceleration engine to be used. If not needed, leave this field and the "Acceleration_engine_path" field with "-" value
-  * 7.2. ***OPTIONAL*** - **Acceleration_engine_path** - path to unzipped acceleration engine archive directory with unzipped files for the AI engine specified in the "Acceleration_engine" field ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
-* 8. ***OPTIONAL*** - **Host_dir_mounted_in_container** - A work environment directory to be exported inside the docker container (if mounting a directory is not necessary, just leave the value for this field empty)
-* 9. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send ipk packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
-* 10. ***OPTIONAL*** - **Deploy_dev_URL** - This enables sending dev packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send dev packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
-* 11. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL** - This enables sending ipk packages built inside docker container to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
-* 12. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL_rel** - This enables sending release ipk packages built inside docker container to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
-* 13. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL_dev** - This enables sending development ipk packages built inside docker container to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
-* 14. ***OPTIONAL*** - **Gst_plugins_qti_oss_dependencies** - List of the dependency packages that will be compiled and installed to the target device.
+* 3. ***MANDATORY*** - **eSDK_shell_file** - Complete absolute path to the eSDK shell file ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+* 4. ***OPTIONAL*** - **Tflite_prebuilt_file** - Complete Absolute path to the tflite prebuilt dev tar.gz file ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+* 5. ***OPTIONAL*** - **Acceleration_engines** - An array of Acceleration engines to be used in QIMSDK environment. If not needed, leave as is in the example config json. ***Every Acceleration engine from the array must contain:***
+  * 5.1. ***OPTIONAL*** - **Acceleration_engine** - Acceleration engine to be used. If not needed, leave this field and the "Acceleration_engine_path" field with "-" value
+  * 5.2. ***OPTIONAL*** - **Acceleration_engine_path** - path to unzipped acceleration engine archive directory with unzipped files for the AI engine specified in the "Acceleration_engine" field ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+* 6. ***OPTIONAL*** - **Host_dir_mounted_in_container** - A work environment directory to be exported inside the docker container (if mounting a directory is not necessary, just leave the value for this field empty)
+* 7. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send ipk packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+* 8. ***OPTIONAL*** - **Deploy_dev_URL** - This enables sending dev packages built inside docker container to remote target or local filesystem folder specified in **Host_dir_mounted_in_container**, which is mounted to `~/work` inside container. Scripts are available to send dev packages to the remote path specified in this field (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+* 9. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL** - This enables sending ipk packages built inside docker container to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+* 10. ***OPTIONAL*** - **Gst_plugins_qti_oss_dependencies** - List of the dependency packages that will be compiled and installed to the target device.
 
 The json files must be created in the ```<snapdragon-iot-qimsdk>/sdk-tools/targets/``` directory. ```<snapdragon-iot-qimsdk>/sdk-tools/targets/LE.UM.6.4.2.json``` can be used as an example.
 
@@ -250,8 +247,8 @@ The developer generally needs to build the image and run the container.
 - ```qimsdk-docker-start-container ./targets/<config.json>``` - This function starts the container with the tag and additional tag provided by the json.
 - ```qimsdk-docker-stop-container ./targets/<config.json>``` - This function stops the container with the tag and additional tag provided by the json.
 - ```qimsdk-docker-build-and-sync-artifacts-all ./targets/<config.json>``` - This is a wrapper function to build docker image and extract QIMSDK Artifacts to user specified directory in host machine. Directory to sync artifacts to is selected via the "Deploy_QIMSDK_Artifacts_URL" field in the configuration json.
-- ```qimsdk-docker-build-and-sync-artifacts-rel ./targets/<config.json>``` - This is a wrapper function to build docker image and extract QIMSDK Release Artifacts to user specified directory in host machine. Directory to sync artifacts to is selected via the "Deploy_QIMSDK_Artifacts_URL_rel" field in the configuration json.
-- ```qimsdk-docker-build-and-sync-artifacts-dev ./targets/<config.json>``` - This is a wrapper function to build docker image and extract QIMSDK Development Artifacts to user specified directory in host machine. Directory to sync artifacts to is selected via the "Deploy_QIMSDK_Artifacts_URL_dev" field in the configuration json.
+- ```qimsdk-docker-build-and-sync-artifacts-rel ./targets/<config.json>``` - This is a wrapper function to build docker image and extract QIMSDK Release Artifacts to user specified directory in host machine. Directory to sync artifacts to is selected via the "Deploy_QIMSDK_Artifacts_URL" field in the configuration json.
+- ```qimsdk-docker-build-and-sync-artifacts-dev ./targets/<config.json>``` - This is a wrapper function to build docker image and extract QIMSDK Development Artifacts to user specified directory in host machine. Directory to sync artifacts to is selected via the "Deploy_QIMSDK_Artifacts_URL" field in the configuration json.
 
 Next step is to attach to the container and work with helper scripts inside the container. Container name is printed in the end of *qimsdk-docker-run-container* function after following print *Please attach to docker container with name:*
 
@@ -691,4 +688,44 @@ qimsdk-local-sync <folder to sync>
 
 ## Compiling gst-plugins-qti-oss Against tflite-dev.tar.gz
 
-tflite-dev.tar.gz can be generated in a separate container or Bazel environment. Path and name to that file needs to be specified in the JSON configuration file with tags **Tflite_path** (***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***) and **Tflite_prebuilt_file**
+tflite-dev.tar.gz can be generated in a separate container or Bazel environment. Path to that file needs to be specified in the JSON configuration file with tag **Tflite_prebuilt_file** (***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***)
+
+<div id="Adding_One_More_Poky_Layer_In_The_QIMSDK">
+
+## Adding One More Poky Layer In The QIMSDK
+
+New bash shell file must be added in the *<project root>/sdk-tools/scripts/image/layers*. This file automatically is sourced in the environment and all functions are available. <br />
+Template content for that file is available bellow. <br />
+Please note that variables **\${LAYER_NAME}**, **\${PACKAGE_GROUP}** and **\${PATH_TO_LAYER}** should be updated according corresponding layer. <br />
+Functions **qimsdk-\${LAYER_NAME}-prepare**, **qimsdk-\${LAYER_NAME}-build**, **qimsdk-\${LAYER_NAME}-package** and **qimsdk-\${LAYER_NAME}-clean** are mandatory. They are invoked automatically when common prepare, build, package or clean functions are invoked. <br />
+Example content is provided to utilize corresponding devtool functions. But if needed modifications should be implemented as needed. <br />
+Please refer to existing gst-plugins-qti-oss layer in the *<project root>/sdk-tools/scripts/image/layers/gst-plugins-qti.sh <br />
+
+```bash
+#!/bin/bash
+
+# Register layer
+QIMSDK_ALL_LAYERS+=("${LAYER_NAME}")
+
+# Prepare ${LAYER_NAME}
+function qimsdk-${LAYER_NAME}-prepare() {
+    qimsdk-bitbake-add-layers ${PATH_TO_LAYER}                              && \
+    devtool modify ${PACKAGE_GROUP}
+}
+
+# Build ${LAYER_NAME}
+function qimsdk-${LAYER_NAME}-build() {
+    devtool build ${PACKAGE_GROUP}
+}
+
+# Package ${LAYER_NAME}
+function qimsdk-${LAYER_NAME}-package() {
+    devtool package ${PACKAGE_GROUP}
+}
+
+# Clean ${LAYER_NAME}
+function qimsdk-${LAYER_NAME}-clean() {
+    devtool reset ${PACKAGE_GROUP}
+    rm -rf ${QIMSDK_ESDK_BASE_DIR}/workspace/sources/${PACKAGE_GROUP}
+}
+```

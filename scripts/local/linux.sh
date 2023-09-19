@@ -4,31 +4,39 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # Propagate errors from adb shell
+#   $1 - (mandatory) device command to be executed
 function qimsdk-local-device-command ()
 {
+    local CMD=$1
     local rc
 
-    adb shell "$1 && echo 0 > /data/rc.txt"
+    adb shell "${CMD} && echo 0 > /data/rc.txt"
     rc=$?
-    [ $rc -ne 0 ] && print-red "Executing Command $1 failed !!!" && return $rc
+    [ "${rc}" -ne 0 ] && print-red "Executing Command ${CMD} failed !!!" && return ${rc}
 
-    adb pull /data/rc.txt /tmp/rc.txt 2>&1 > /dev/null
+    local TMP_DIR=`mktemp -d`
+
+    adb pull /data/rc.txt ${TMP_DIR}/rc.txt 2>&1 > /dev/null
     rc=$?
     adb shell "rm -f /data/rc.txt"
-    [ $rc -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command $1 failed !!!") && return $rc
+    [ "${rc}" -ne 0 ] && (rm -f ${TMP_DIR}/rc.txt; print-red "Command ${CMD} failed !!!") && return ${rc}
 
-    rc=`cat /tmp/rc.txt`
-    rm -f /tmp/rc.txt
-    [ $rc -ne 0 ] && print-red "Command $1 return code is not 0 !!!" && return $rc
+    rc=`cat ${TMP_DIR}/rc.txt`
+    rm -f ${TMP_DIR}/rc.txt
+    [ "${rc}" == "0" ]                                                                          || \
+        {
+            print-red "Command ${CMD} return code is not 0 !!!";
+            return ${rc};
+        }
 
-    return $rc
+    return ${rc}
 }
 
 # Sync packages with the device from specified directory
 #   $1 - (mandatory) path to the packages to be synced
 function qimsdk-local-sync() {
     local PACKAGES_PATH=$1
-    [ ! -d "${PACKAGES_PATH}" ] || [ -z "${PACKAGES_PATH}" ]                                    && \
+    [ ! -d "${PACKAGES_PATH}" ]                                                                 && \
         {
             echo "Path to directory with packages must be provided as first argument !!!"
             return -1
@@ -43,14 +51,14 @@ function qimsdk-local-sync() {
 
         PACKAGE_FORMAT="${PACKAGE_FORMAT##*.}"
 
-        adb push "${FILE}" /tmp/                                                                || \
-            {
-                echo "Push package to device failed !!!";
-                return -1;
-            }
-
         [ "${PACKAGE_FORMAT}" == "deb" ]                                                        && \
             {
+                adb push "${FILE}" /tmp/                                                                || \
+                    {
+                        echo "Push package to device failed !!!";
+                        return -1;
+                    }
+
                 qimsdk-local-device-command "dpkg --install --force-all /tmp/${PACKAGE}"   || \
                     {
                         adb shell "rm -f /tmp/${PACKAGE}"
@@ -61,6 +69,12 @@ function qimsdk-local-sync() {
 
         [ "${PACKAGE_FORMAT}" == "ipk" ]                                                        && \
             {
+                adb push "${FILE}" /tmp/                                                                || \
+                    {
+                        echo "Push package to device failed !!!";
+                        return -1;
+                    }
+
                 qimsdk-local-device-command "opkg --force-depends --force-reinstall --force-overwrite install /tmp/${PACKAGE}" || \
                     {
                         qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
@@ -68,6 +82,8 @@ function qimsdk-local-sync() {
                         return -3;
                     }
             }
+
+        [ "${PACKAGE_NAME}" == "uninstall.sh" ] && continue;
 
         # Get package name and add it to uninstall script
         local PACKAGE_NAME=`echo ${PACKAGE} | cut -d '_' -f 1`
@@ -95,7 +111,7 @@ function qimsdk-local-sync() {
 #   $1 - (mandatory) path to the packages to be synced
 function qimsdk-local-packages-remove() {
     local PACKAGES_PATH=$1
-    [ ! -d "${PACKAGES_PATH}" ] || [ -z "${PACKAGES_PATH}" ]                                    && \
+    [ ! -d "${PACKAGES_PATH}" ]                                                                 && \
         {
             echo "Path to directory with packages must be provided as first argument !!!"
             return -1

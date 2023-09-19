@@ -27,7 +27,7 @@ function qimsdk-remote-script-invoke() {
 # Sync compiled package with the remote
 #   $1 - (mandatory) path to the package to be synced
 function qimsdk-remote-pkg-sync() {
-    [ -z ${QIMSDK_ESDK_DEPLOY_URL} ] && print-red "Deploy URL must be provided in config json !!!" && return -1
+    [ -z "${QIMSDK_ESDK_DEPLOY_URL}" ] && print-red "Deploy URL must be provided in config json !!!" && return -1
 
     local PATH_TO_PACKAGE=$1
     [ -z "${PATH_TO_PACKAGE}" ] && print-red "Package name must be provided as first argument !!!" && return -2
@@ -46,7 +46,7 @@ function qimsdk-remote-pkg-sync() {
 # Sync compiled package with the remote
 #   $1 - (mandatory) path to the package to be synced
 function qimsdk-remote-pkg-sync-dev() {
-    [ -z ${QIMSDK_ESDK_DEPLOY_URL_DEV} ] && print-red "Deploy URL must be provided in config json !!!" && return -1
+    [ -z "${QIMSDK_ESDK_DEPLOY_URL_DEV}" ] && print-red "Deploy URL must be provided in config json !!!" && return -1
 
     local PATH_TO_PACKAGE=$1
     [ -z "${PATH_TO_PACKAGE}" ] && print-red "Package name must be provided as first argument !!!" && return -2
@@ -90,7 +90,7 @@ function qimsdk-remote-packages-remove() {
     qimsdk-target-packages-remove remote
 }
 
-[ ! -z ${QIMSDK_ESDK_DEPLOY_URL} ]                                                              && \
+[ ! -z "${QIMSDK_ESDK_DEPLOY_URL}" ]                                                            && \
     {
         print-blue "qimsdk-remote-sync-rel";
         echo "    must be invoked to sync release packages with the remote target";

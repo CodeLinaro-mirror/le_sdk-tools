@@ -9,11 +9,11 @@ function qimsdk-bitbake-add-layers() {
     local LAYER=$1
     local rc
 
-    [ -z "${LAYER}" ] && print-red "Layer folder must be provided as first argument !!!" && return -1
+    [ -z "${LAYER}" ] && print-red "Layer directory must be provided as first argument !!!" && return -1
 
     pushd ${QIMSDK_ESDK_BASE_DIR} 1>/dev/null
     layers/poky/bitbake/bin/bitbake-layers add-layer ${LAYER}
     rc=$?
     popd 1>/dev/null
-    return $rc
+    return ${rc}
 }

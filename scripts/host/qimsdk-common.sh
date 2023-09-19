@@ -5,53 +5,33 @@
 
 # Create essential directories
 function qimsdk-create-dirs() {
-    local rc
-
-    local BASE_DIR="${BASE_DIR_LOCATION}/base_dir"
-    local COMMON_DIR="common"
-
-    export QIMSDK_BASE_DIR="${BASE_DIR_LOCATION}"
-    export QIMSDK_DOWNLOAD_DIR=${BASE_DIR}/${COMMON_DIR}/download
-    export QIMSDK_STATUS=${BASE_DIR}/${COMMON_DIR}/.status
-    export QIMSDK_ESDK_BASE_DIR=${BASE_DIR}/esdk/${eSDK_NAME}
-    export QIMSDK_SRC_DIR=${QIMSDK_ESDK_BASE_DIR}/src
-    export QIMSDK_ESDK_DOWNLOAD_DIR=${QIMSDK_ESDK_BASE_DIR}/downloads
-    export QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/sdk-tools/scripts/image
-    export QIMSDK_WORK_DIR=${QIMSDK_BASE_DIR}/work
-
-    mkdir -p ${QIMSDK_BASE_DIR}
-    mkdir -p ${QIMSDK_DOWNLOAD_DIR}
-    mkdir -p ${QIMSDK_STATUS}
-    mkdir -p ${QIMSDK_ESDK_BASE_DIR}
-    mkdir -p ${QIMSDK_SRC_DIR}
-    mkdir -p ${QIMSDK_ESDK_DOWNLOAD_DIR}
-    mkdir -p ${QIMSDK_WORK_DIR}
-
-    return 0
+    mkdir -p ${QIMSDK_SCRIPTS} ${QIMSDK_DOWNLOAD_DIR} ${QIMSDK_STATUS} ${QIMSDK_ESDK_BASE_DIR}     \
+            ${QIMSDK_WORK_DIR} ${QIMSDK_ESDK_BASE_DIR}/downloads ${QIMSDK_BASE_DIR}/repo/src       \
+            ${QIMSDK_BASE_DIR}/repo/poky ${QIMSDK_BASE_DIR}/repo/.repo/repo/hooks                  \
+            ${QIMSDK_BASE_DIR}/repo/.repo/projects                                                 \
+            ${QIMSDK_BASE_DIR}/repo/.repo/project-objects
 }
 
 # Install eSDK
 function qimsdk-install-esdk() {
     local rc
 
-    [ ! -f ${QIMSDK_STATUS}/${eSDK_NAME} ] && {
+    [ ! -f "${QIMSDK_STATUS}/${eSDK_NAME}" ] && {
         echo "Installing ${eSDK_NAME} eSDK..."
 
-        chmod a+r ${eSDK_PATH}/${eSDK_NAME}
+        chmod a+r ${eSDK_SHELL_FILE}
         # umask 022
-        ${eSDK_PATH}/${eSDK_NAME} -y -d ${QIMSDK_ESDK_BASE_DIR}/
+        ${eSDK_SHELL_FILE} -y -d ${QIMSDK_ESDK_BASE_DIR}/
 
         rc=$?
-        [ $rc -ne 0 ] && {
+        [ "${rc}" -ne 0 ] && {
             rm -rf ${QIMSDK_STATUS}/${eSDK_NAME}
-            return $rc
+            return ${rc}
         }
 
         touch ${QIMSDK_STATUS}/${eSDK_NAME}
 
     } || echo "The ${eSDK_NAME} eSDK: Already installed"
-
-    export QIMSDK_SETUP="source ${QIMSDK_ESDK_BASE_DIR}/environment-setup-armv8a-oe-linux-sdllvm 2>/dev/null"
 
     return 0
 }
@@ -65,17 +45,17 @@ function qimsdk-uninstall-esdk() {
 
     qimsdk-host-parse-json ${PATH_TO_CONFIG_JSON}
     rc=$?
-    [ $rc -ne 0 ] && {
+    [ "${rc}" -ne 0 ] && {
         print-red "FAILED: qimsdk-host-parse-json"
-        return $rc
+        return ${rc}
     }
 
     local BASE_DIR="${BASE_DIR_LOCATION}/base_dir"
     local COMMON_DIR="common"
     local eSDK_TO_REMOVE=${BASE_DIR}/esdk
 
-    [ -f ${QIMSDK_STATUS}/${eSDK_NAME} ]                                                        && \
-    [ -d ${eSDK_TO_REMOVE} ] && {
+    [ -f "${QIMSDK_STATUS}/${eSDK_NAME}" ]                                                      && \
+    [ -d "${eSDK_TO_REMOVE}" ] && {
 
         pushd ${eSDK_TO_REMOVE} 1>/dev/null
 
@@ -91,13 +71,13 @@ function qimsdk-uninstall-esdk() {
 # Setup tflite
 function qimsdk-setup-tflite() {
     [ "${QIMSDK_ESDK_TFLITE_FILENAME}" != "no-tflite-dev-archive-available" ]                   && \
-        ( ln ${QIMSDK_ESDK_TFLITE_FILE} ${QIMSDK_ESDK_BASE_DIR}/downloads/ 2>/dev/null          || \
+        { ln ${QIMSDK_ESDK_TFLITE_FILE} ${QIMSDK_ESDK_BASE_DIR}/downloads/ 2>/dev/null          || \
             rsync -a ${QIMSDK_ESDK_TFLITE_FILE} ${QIMSDK_ESDK_BASE_DIR}/downloads               || \
                 {
-                    print-red "Cannot add tflite dev archive to esdk base downloads folder !!!"
+                    print-red "Cannot add tflite dev archive to esdk base downloads directory !!!"
                     return -1
                 }
-        )                                                                                       || \
+        }                                                                                       || \
             {
                 local QIMSDK_ESDK_TFLITE_FILENAME=no-tflite-dev-archive-available
                 touch ${QIMSDK_ESDK_BASE_DIR}/${QIMSDK_ESDK_TFLITE_FILENAME}
@@ -123,13 +103,13 @@ function qimsdk-setup-acceleration-engines() {
         local ENGINE_INDEX=$(( $i + 1 ))
         [ -d "${ACCELERATION_ENGINE_DIR}" ]                                                     && \
             QIMSDK_ESDK_ACCELERATION_ENGINE_DIR=${ACCELERATION_ENGINE}                          && \
-                ( rsync -a ${ACCELERATION_ENGINE_DIR}/* ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE_DIR}/ || \
+                { rsync -a ${ACCELERATION_ENGINE_DIR}/* ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE_DIR}/ || \
                     {
                         print-red "Cannot add ${ACCELERATION_ENGINE} dir to downloads folder !!!"
                         return -1
                     }
                     rm -f ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE_DIR}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
-                )                                                                               || \
+                }                                                                               || \
                     {
                         local ACCELERATION_ENGINE_TMP_PATH="no-acceleration-engine-${ENGINE_INDEX}-dir-available"
                         touch ${QIMSDK_ESDK_BASE_DIR}/downloads/${ACCELERATION_ENGINE_TMP_PATH}
@@ -148,4 +128,18 @@ function qimsdk-remove-acceleration-engines() {
     done
 
     return 0
+}
+
+# Propagate scripts, src code and recipes to work folder
+function qimsdk-fetch-scripts-src-poky() {
+    mkdir -p ${QIMSDK_ESDK_BASE_DIR}/src
+
+    rsync -a ${QIMSDK_TOOLS_DIR}/scripts/image/* ${QIMSDK_SCRIPTS}/                             && \
+    rsync -a ${QIMSDK_TOOLS_DIR}/../src/* ${QIMSDK_BASE_DIR}/repo/src/                          && \
+    rsync -a ${QIMSDK_TOOLS_DIR}/../poky/* ${QIMSDK_BASE_DIR}/repo/poky/                        && \
+    rsync -a ${QIMSDK_TOOLS_DIR}/../.repo/projects/* ${QIMSDK_BASE_DIR}/repo/.repo/projects/    && \
+    rsync -a ${QIMSDK_TOOLS_DIR}/../.repo/project-objects/* ${QIMSDK_BASE_DIR}/repo/.repo/project-objects/ && \
+    rsync -a ${QIMSDK_TOOLS_DIR}/../.repo/repo/hooks/* ${QIMSDK_BASE_DIR}/repo/.repo/repo/hooks/ && \
+    ln -sf ${QIMSDK_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/                           && \
+    ln -sf ${QIMSDK_BASE_DIR}/repo/poky ${QIMSDK_BASE_DIR}/poky
 }
