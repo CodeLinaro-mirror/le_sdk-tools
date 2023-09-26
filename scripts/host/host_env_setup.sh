@@ -211,7 +211,7 @@ function qimsdk-check-required-packages() {
 
 # Sync QIMSDK artifacts to directory specified in config json
 function qimsdk-host-sync-artifacts-all() {
-    ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-target-sync-artifacts-all                             || \
+    source ${QIMSDK_SCRIPTS}/env_setup.sh && qimsdk-target-sync-artifacts-all                   || \
         {
             print-red "qimsdk-target-sync-artifacts-all function failed !!!"
             return -1
@@ -286,7 +286,7 @@ function qimsdk-host-env-remove() {
 
 # Sync QIMSDK release artifacts to directory specified in config json
 function qimsdk-host-sync-artifacts-rel() {
-    ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-target-sync-artifacts-rel                             || \
+    source ${QIMSDK_SCRIPTS}/env_setup.sh && qimsdk-target-sync-artifacts-rel                   || \
         {
             print-red "qimsdk-target-sync-artifacts-rel function failed !!!"
             return -1
@@ -308,7 +308,7 @@ function qimsdk-host-sync-artifacts-rel() {
 
 # Sync QIMSDK development artifacts to directory specified in config json
 function qimsdk-host-sync-artifacts-dev() {
-    ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-target-sync-artifacts-dev                             || \
+    source ${QIMSDK_SCRIPTS}/env_setup.sh && qimsdk-target-sync-artifacts-dev                   || \
         {
             print-red "qimsdk-target-sync-artifacts-dev function failed !!!"
             return -1
