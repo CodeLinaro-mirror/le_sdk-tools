@@ -271,6 +271,10 @@ function qimsdk-host-env-setup() {
     QIMSDK_WORK_DIR=${QIMSDK_BASE_DIR}/work
     QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts
 
+    # shift removes one input argument to avoid using it by env_setup.sh
+    shift
+    source ${QIMSDK_SCRIPTS}/env_setup.sh
+
     print-green "Environment variables setup completed !!!"
 }
 
