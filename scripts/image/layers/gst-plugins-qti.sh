@@ -13,13 +13,13 @@ function qimsdk-gst-plugins-qti-add-layers() {
 
 # Prepare all recipes in layer
 function qimsdk-gst-plugins-qti-prepare-layer() {
-    devtool modify packagegroup-qti-gst
+    devtool modify ${QIMSDK_ESDK_GST_PACKAGE_GROUP}
 }
 
 # Clean all recipes in layer
 function qimsdk-gst-plugins-qti-clean-layers() {
-    devtool reset packagegroup-qti-gst
-    rm -rf ${QIMSDK_ESDK_BASE_DIR}/workspace/sources/packagegroup-qti-gst
+    devtool reset ${QIMSDK_ESDK_GST_PACKAGE_GROUP}
+    rm -rf ${QIMSDK_ESDK_BASE_DIR}/workspace/sources/${QIMSDK_ESDK_GST_PACKAGE_GROUP}
 }
 
 # Prepare gst-plugins-qti
@@ -51,27 +51,29 @@ function qimsdk-gst-plugins-qti-prepare() {
 
     # Remove packagegroup class
     sed -i "s/inherit packagegroup//g" \
-        ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+        ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bb
 
     # Transpose packagegroup specific RDEPENDS packages as do_package task dependencies
-    sed -i "s/RDEPENDS.packagegroup-qti-gst /do_package[depends]/g" \
-        ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    sed -i "s/RDEPENDS.${QIMSDK_ESDK_GST_PACKAGE_GROUP} /do_package[depends]/g" \
+        ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bb
 
     # Append do_package_write_ipk or do_package_write_deb task to packages
-    grep -q ${PKG_WRITE_TASK} ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb || \
+    grep -q ${PKG_WRITE_TASK} ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bb || \
         sed -i "s/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:${PKG_WRITE_TASK}/g" \
-            ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+            ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bb
 
-    # Remove packagegroup-qti-gst.bbappend
-    rm -rf ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+    # Remove ${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bbappend
+    rm -rf ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bbappend
 
     # Add gst qti oss dependencies
-    echo do_compile[depends] = \" \\ >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+    [ ! -z "${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}" ] && {
+        echo do_compile[depends] = \" \\ >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bbappend
 
-    for package in ${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES[@]}; do
-        echo '      '${package}:${PKG_WRITE_TASK} \\ >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
-    done
-    echo '    '\" >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+        for package in ${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES[@]}; do
+            echo '      '${package}:${PKG_WRITE_TASK} \\ >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bbappend
+        done
+        echo '    '\" >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bbappend
+    }
 
     [ -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]                                               || \
         {
@@ -110,7 +112,7 @@ function qimsdk-gst-plugins-qti-prepare() {
     # apt-get install gst_plugins_qti_oss_dependencies
     [ "${PKG_WRITE_TASK}" == "do_package_write_deb" ]                                           && \
         {
-            echo 'do_compile[depends] = "ubuntu-base:do_ubuntu_install"' > ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
+            echo 'do_compile[depends] = "ubuntu-base:do_ubuntu_install"' > ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bbappend
             sed -i "s/\${UBUN_FULLSTACK_PERF_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;s/\${UBUN_FULLSTACK_DEBUG_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g" \
                 ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
             sed -i "s/rm \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/rm -f \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/g;s/rm \${TMP_WKDIR}\/lib\/udev\/v4l_id/rm -f \${TMP_WKDIR}\/lib\/udev\/v4l_id/g;s/60-persistent-storage.rules/60-persistent-storage-dm.rules/g" \
@@ -146,8 +148,9 @@ function qimsdk-gst-plugins-qti-prepare() {
         }
 
     # Remove tensorflow-lite from DISTRO_FEATURES
-    sed -i "s/tensorflow-lite//g" \
-        ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-distro/conf/distro/include/qti-distro-fullstack.inc
+    [ -d ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-distro ]                                  && \
+        sed -i "s/tensorflow-lite//g" \
+            ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-distro/conf/distro/include/qti-distro-fullstack.inc
 
     # Check if tf lite prebuilt is available
     [ "${QIMSDK_ESDK_TFLITE_FILENAME}" != "no-tflite-dev-archive-available" ]                   && \
@@ -312,7 +315,7 @@ function qimsdk-gst-plugins-qti-clean() {
 
 # Build gst-plugins-qti
 function qimsdk-gst-plugins-qti-build() {
-    devtool build packagegroup-qti-gst                                                          && \
+    devtool build ${QIMSDK_ESDK_GST_PACKAGE_GROUP}                                              && \
             {
                 [ "${PKG_WRITE_TASK}" == "do_package_write_deb" ]                               && \
                     qimsdk-gst-plugins-qti-modify-systemd-services                              && \
@@ -325,7 +328,7 @@ function qimsdk-gst-plugins-qti-build() {
 # Package gst-plugins-qti
 function qimsdk-gst-plugins-qti-package() {
     # Build task of that recipe generates all ipk or deb files for dependent packages
-    devtool package packagegroup-qti-gst                                                        && \
+    devtool package ${QIMSDK_ESDK_GST_PACKAGE_GROUP}                                            && \
         qimsdk-gst-plugins-qti-update-local-hash
 }
 

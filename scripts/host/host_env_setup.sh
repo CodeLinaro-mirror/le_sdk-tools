@@ -54,6 +54,12 @@ function qimsdk-host-parse-json() {
             QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG="_${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}"
         }
 
+    QIMSDK_ESDK_GST_PACKAGE_GROUP=`cat ${PATH_TO_CONFIG_JSON} | jq '.Gst_package_group' | tr -d '"'`
+    [ "${QIMSDK_ESDK_GST_PACKAGE_GROUP}" != "packagegroup-qti-gst" ]                            && \
+        [ "${QIMSDK_ESDK_GST_PACKAGE_GROUP}" != "packagegroup-qti-gst-basic" ]                  && \
+        print-red "Gst package group is not packagegroup-qti-gst or packagegroup-qti-gst-basic !!!" && \
+        return -2
+
     QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES=`echo ${BUFFER} | jq '.Gst_plugins_qti_oss_dependencies[]' | tr -d '"'`
 
     QIMSDK_ESDK_DEVICE_INSTALL_PREFIX=`echo ${BUFFER} | jq '.Device_install_prefix' | tr -d '"'`
@@ -67,6 +73,18 @@ function qimsdk-host-parse-json() {
     [ -z "${eSDK_SHELL_FILE}" ] && print-red "ESDK shell file must be provided as an argument of config json !!!" && return -3
     [ ! -f "${eSDK_SHELL_FILE}" ] && print-red "Could not find ESDK_SH !!!" && return -4
     [ ! -d "${BASE_DIR_LOCATION}" ] && print-red "Path to the directory where the project is initialized must be provided as an argument of config json !!!" && return -5
+
+    local ESDK_JSON="${eSDK_SHELL_FILE%.*}"
+    ESDK_JSON="${ESDK_JSON}.testdata.json"
+    [ ! -f "${ESDK_JSON}" ] && print-red "Could not find ESDK json file !!!" && return -6
+
+    local ENV_SCRIPT_VAR_SUFFIX=""
+    cat ${ESDK_JSON} | grep env_setup_script_llvm > /dev/null && ENV_SCRIPT_VAR_SUFFIX="_llvm"
+    local ENV_SCRIPT_VAR="env_setup_script${ENV_SCRIPT_VAR_SUFFIX}"
+
+    QIMSDK_ENV_SETUP_SCRIPT=$(cat ${ESDK_JSON} | grep "${ENV_SCRIPT_VAR}")
+    QIMSDK_ENV_SETUP_SCRIPT=${QIMSDK_ENV_SETUP_SCRIPT#*$ENV_SCRIPT_VAR}
+    QIMSDK_ENV_SETUP_SCRIPT=$(echo ${QIMSDK_ENV_SETUP_SCRIPT} | cut -d '\' -f 2 | cut -d '/' -f 2)
 
     return 0
 }

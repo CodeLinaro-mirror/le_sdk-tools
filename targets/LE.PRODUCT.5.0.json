@@ -20,6 +20,7 @@
     "Deploy_dev_URL": "",
     "Deploy_QIMSDK_Artifacts_URL":"",
     "Deploy_QIMSDK_Artifacts_tag":"",
+    "Gst_package_group": "packagegroup-qti-gst",
     "Gst_plugins_qti_oss_dependencies":["ffmpeg gstreamer1.0-alsa gstreamer1.0-gtk3 gstreamer1.0-plugins-bad gstreamer1.0-plugins-good libcdio18 libcdparanoia0 libdvdread7 libgraphene-1.0-0 libjansson4 libopencore-amrnb0 libopencore-amrwb0 libopencv-video4.2 libsidplay1v5 libvisual-0.4-0 mpeg2dec"],
     "Device_install_prefix":"/opt/qti/qimsdk"
 }
