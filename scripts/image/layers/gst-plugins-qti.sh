@@ -132,6 +132,13 @@ function qimsdk-gst-plugins-qti-prepare() {
                 [ -f ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt ] && \
                     echo PV = \"$(grep -m 1 "${QIMSDK_ESDK_ACCELERATION_ENGINE^^} [0-9].*" ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_ACCELERATION_ENGINE}/ReleaseNotes.txt | awk '{print $2}')\" \
                     >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk/${QIMSDK_ESDK_ACCELERATION_ENGINE}.bbappend
+
+                # Add do_configure dependency on Acceleration engine sdk, needed inside qimsdk environment, if not added already
+                grep -q "${QIMSDK_ESDK_ACCELERATION_ENGINE}:${PKG_WRITE_TASK}" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb || \
+                    {
+                        sed -i "/${QIMSDK_ESDK_ACCELERATION_ENGINE}:do_package_write_/d" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb
+                        sed -i "s/DEPENDS += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}\"/DEPENDS += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}\"\\ndo_configure[depends] += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}:${PKG_WRITE_TASK}\"/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb
+                    }
             }
         [ "${i}" -eq 1 ] && [ ! -f "${QIMSDK_ESDK_BASE_DIR}/downloads/no-acceleration-engine-2-dir-available" ] && \
             {
