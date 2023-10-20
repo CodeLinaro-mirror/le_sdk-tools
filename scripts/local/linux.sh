@@ -57,7 +57,8 @@ function qimsdk-local-sync() {
 
     [ ! -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]                                             && \
         {
-            echo 'adb push ${PACKAGES_PATH}qim-sdk.sh /etc/profile.d/' || return -2
+            adb push ${PACKAGES_PATH}qim-sdk.sh /etc/profile.d/ || return -2
+            qimsdk-local-device-command "source /etc/profile.d/qim-sdk.sh" || return -3
 
             [ -n "$(find ${PACKAGES_PATH} -maxdepth 1 -name '*.ipk' -type f -print -quit)" ]    && \
                 {
@@ -77,11 +78,11 @@ function qimsdk-local-sync() {
                 adb push "${FILE}" /tmp/                                                        || \
                     {
                         echo "Push package to device failed !!!";
-                        return -3;
+                        return -4;
                     }
 
                 local DEVICE_INSTALL_PREFIX=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}
-                [ -z ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} ]                                     && \
+                [ -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]                                   && \
                     {
                         DEVICE_INSTALL_PREFIX='/'
                     }
@@ -89,7 +90,7 @@ function qimsdk-local-sync() {
                     {
                         qimsdk-local-device-command "rm /tmp/${PACKAGE}";
                         print-red "Install package to device failed !!!";
-                        return -4;
+                        return -5;
                     }
             }
 
@@ -98,16 +99,16 @@ function qimsdk-local-sync() {
                 adb push "${FILE}" /tmp/                                                        || \
                     {
                         echo "Push package to device failed !!!";
-                        return -3;
+                        return -6;
                     }
 
-                [ -z ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} ]                                     && \
+                [ -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]                                   && \
                     {
                         qimsdk-local-device-command "opkg install --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE}" || \
                             {
                                 qimsdk-local-device-command "rm /tmp/${PACKAGE}";
                                 print-red "Install package to device failed !!!";
-                                return -5;
+                                return -7;
                             }
                     }                                                                           || \
                     {
@@ -115,7 +116,7 @@ function qimsdk-local-sync() {
                             {
                                 qimsdk-local-device-command "rm /tmp/${PACKAGE}";
                                 print-red "Install package to device failed !!!";
-                                return -6;
+                                return -8;
                             }
                     }
             }

@@ -172,8 +172,6 @@ function qimsdk-target-sync() {
                             done
                     }
 
-                [ "${PKG_NAME}" == "logrotate" ] && continue
-
                 qimsdk-${TARGET}-pkg-sync${DEV} ${PKG} ${FORMAT}                                && \
                 {
                     sed -i "/ ${PKG_NAME}\"/d" ${REMOVE_PKG_FILE} 2>/dev/null
