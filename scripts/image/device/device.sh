@@ -114,24 +114,44 @@ function qimsdk-device-pkg-sync() {
 
     [ "${PKG_FORMAT}" == "deb" ]                                                                && \
         {
-        qimsdk-device-command "dpkg --install --force-all /tmp/${PACKAGE_NAME}"                 || \
-            {
-                qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
-                print-red "Install package to device failed !!!";
-                return -5;
-            }
-        }                                                                                       || \
-    qimsdk-device-command "opkg install --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE_NAME}" || \
+            local DEVICE_INSTALL_PREFIX=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}
+            [ -z ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} ]                                         && \
+                {
+                    DEVICE_INSTALL_PREFIX='/'
+                }
+            qimsdk-device-command "dpkg --instdir=${DEVICE_INSTALL_PREFIX} --install --force-all /tmp/${PACKAGE_NAME}" || \
+                {
+                    qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
+                    print-red "Install package to device failed !!!";
+                    return -5;
+                }
+        }
+
+    [ "${PKG_FORMAT}" == "ipk" ]                                                                && \
         {
-            qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
-            print-red "Install package to device failed !!!";
-            return -6;
+            [ -z ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} ]                                         && \
+                {
+                    qimsdk-device-command "opkg install --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE_NAME}" || \
+                        {
+                            qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
+                            print-red "Install package to device failed !!!";
+                            return -6;
+                        }
+                }                                                                               || \
+                {
+                    qimsdk-device-command "opkg install -d qimsdk_install_path --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE_NAME}" || \
+                        {
+                            qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
+                            print-red "Install package to device failed !!!";
+                            return -7;
+                        }
+                }
         }
 
     qimsdk-device-command "rm /tmp/${PACKAGE_NAME}"                                             || \
         {
             print-red "Remove package from device /tmp directory failed !!!";
-            return -7;
+            return -8;
         }
 
     return 0
@@ -157,6 +177,40 @@ function qimsdk-device-packages-remove() {
     qimsdk-target-packages-remove device
 }
 
+# Choose which device to use when more than one device is available in adb devices
+function qimsdk-device-select() {
+    local QIMSDK_INPUT_DEVICE
+    local QIMSDK_DEVICES=(`adb devices -l | grep 'device ' | rev | cut -f2 -d\: | rev | cut -f1 -d\-`)
+    local i=0
+
+    echo "adb connected devices:"
+    for DEVICE in ${QIMSDK_DEVICES[@]}; do
+        i=$((i+1))
+        echo "    $i. ${DEVICE}"
+    done
+
+    while true; do
+        echo -e "\n"
+        read -p 'Please choose device: ' QIMSDK_INPUT_DEVICE
+
+        [ $QIMSDK_INPUT_DEVICE -lt 1 ] || [ $QIMSDK_INPUT_DEVICE -gt $i ]                                     && \
+            {
+                echo "Please enter a number between 1 and $i!!!"
+                continue
+            }
+
+        break
+    done
+
+    local QIMSDK_SELECTED_DEVICE=${QIMSDK_DEVICES[$((QIMSDK_INPUT_DEVICE-1))]}
+    local QIMSDK_SELECTED_DEVICE_ID=`adb devices -l | grep ${QIMSDK_SELECTED_DEVICE} | cut -d ' ' -f1`
+
+    export ANDROID_SERIAL=${QIMSDK_SELECTED_DEVICE_ID}
+
+    echo "Device ${QIMSDK_SELECTED_DEVICE} set successfully!"
+    return 0
+}
+
 # Print help
 print-red "qimsdk-device-prepare"
 echo "    must be invoked to prepare device for pkg installation"
@@ -166,3 +220,5 @@ print-red "qimsdk-device-sync-dbg"
 echo "    must be invoked to sync debug packages with the device"
 print-red "qimsdk-device-packages-remove"
 echo "    must be invoked to remove installed packages from the device"
+print-red "qimsdk-device-select"
+echo "    must be invoked to select device when multiple devices are connected"

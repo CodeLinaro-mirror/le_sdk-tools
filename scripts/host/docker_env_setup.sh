@@ -129,7 +129,16 @@ function qimsdk-docker-build-image() {
             QIMSDK_ARG_DEPLOY_ARTIFACTS=`echo ${QIMSDK_ARG_DEPLOY_ARTIFACTS}/ | sed 's/\/\//\//g'`
         }
 
+    QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_QIMSDK_Artifacts_tag' | tr -d '"'`
+    [ -z "${QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG}" ]                                                 || \
+        {
+            QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG="_${QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG}"
+        }
+
     local QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES=`cat ${PATH_TO_CONFIG_JSON} | jq '.Gst_plugins_qti_oss_dependencies[]' | tr -d '"'`
+
+    local QIMSDK_ARG_DEVICE_INSTALL_PREFIX=`cat ${PATH_TO_CONFIG_JSON} | jq '.Device_install_prefix' | tr -d '"'`
+    QIMSDK_ARG_DEVICE_INSTALL_PREFIX="${QIMSDK_ARG_DEVICE_INSTALL_PREFIX%/}"
 
     DOCKER_BUILDKIT=1 docker build                                                                 \
             --build-arg QIMSDK_ARG_HOST_USER_ID=$(id -u ${USER})                                   \
@@ -143,7 +152,9 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_ACCELERATION_ENGINE_NAMES="${QIMSDK_ARG_ACCELERATION_ENGINE_NAMES}" \
             --build-arg QIMSDK_ARG_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}                             \
             --build-arg QIMSDK_ARG_DEPLOY_URL_DEV=${QIMSDK_ARG_DEPLOY_URL_DEV}                     \
+            --build-arg QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG=${QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG}         \
             --build-arg QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES="${QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES}" \
+            --build-arg QIMSDK_ARG_DEVICE_INSTALL_PREFIX=${QIMSDK_ARG_DEVICE_INSTALL_PREFIX}       \
             -f ${QIMSDK_DOCKER_DIR}/Dockerfile                                                     \
             --progress=plain --target qimsdk ${QIMSDK_REPO_BASE_DIR} -t qimsdk:${TAG}
 
@@ -325,7 +336,7 @@ function qimsdk-docker-build-and-sync-artifacts-all() {
             local ID=$(docker create --name tempcontainer qimsdk:${TAG});
             [ ! -z "${ID}" ]                                                                    && \
                 {
-                    docker cp ${ID}:/mnt/qimsdk/work/artifacts/packages.zip ${QIMSDK_ARG_DEPLOY_ARTIFACTS};
+                    docker cp ${ID}:/mnt/qimsdk/work/artifacts/packages${QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG}.zip ${QIMSDK_ARG_DEPLOY_ARTIFACTS};
                     docker rm tempcontainer;
                 }                                                                               || \
                 {
@@ -359,7 +370,7 @@ function qimsdk-docker-build-and-sync-artifacts-rel() {
             local ID=$(docker create --name tempcontainer qimsdk:${TAG});
             [ ! -z "${ID}" ]                                                                    && \
                 {
-                    docker cp ${ID}:/mnt/qimsdk/work/artifacts/packages_rel.zip ${QIMSDK_ARG_DEPLOY_ARTIFACTS};
+                    docker cp ${ID}:/mnt/qimsdk/work/artifacts/packages_rel${QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG}.zip ${QIMSDK_ARG_DEPLOY_ARTIFACTS};
                     docker rm tempcontainer;
                 }                                                                               || \
                 {
@@ -393,7 +404,7 @@ function qimsdk-docker-build-and-sync-artifacts-dev() {
             local ID=$(docker create --name tempcontainer qimsdk:${TAG});
             [ ! -z "${ID}" ]                                                                    && \
                 {
-                    docker cp ${ID}:/mnt/qimsdk/work/artifacts/packages_dev.zip ${QIMSDK_ARG_DEPLOY_ARTIFACTS};
+                    docker cp ${ID}:/mnt/qimsdk/work/artifacts/packages_dev${QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG}.zip ${QIMSDK_ARG_DEPLOY_ARTIFACTS};
                     docker rm tempcontainer;
                 }                                                                               || \
                 {

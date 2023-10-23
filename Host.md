@@ -75,7 +75,9 @@ The json file must contain certain data :
 * 5. ***OPTIONAL*** - **Deploy_URL** - This enables sending ipk packages built on the host to remote target or local filesystem (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
 * 6. ***OPTIONAL*** - **Deploy_dev_URL** - This enables sending dev packages built on the host to remote target or local filesystem (if sending them to a remote target is not necessary, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
 * 7. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_URL** - This enables sending ipk packages built in qimsdk environment to local filesystem folder. QIMSDK artifacts will be sent to the directory specified in this json field. (if QIMSDK artifacts are not needed on host machine, just leave the value for this field empty) ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
-* 8. ***OPTIONAL*** - **Gst_plugins_qti_oss_dependencies** - List of the dependency packages that will be compiled and installed to the target device.
+* 8. ***OPTIONAL*** - **Deploy_QIMSDK_Artifacts_tag** - Appends value in this field to artifacts archive name, e.g. if value is "1.0.0" result would be packages_1.0.0.zip (if QIMSDK artifacts do not needed suffix, just leave the value for this field empty)
+* 9. ***OPTIONAL*** - **Gst_plugins_qti_oss_dependencies** - List of the dependency packages that will be compiled and installed to the target device.
+* 10. ***OPTIONAL*** - **Device_install_prefix** - Prefix to be prepended to the package installation path on target device - Leaving this field empty will install packages in the conventional / directory (e.g. choosing /data/sdk would install gst libs in /data/sdk/usr/lib/gstreamer-1.0)
 
 The json files must be created in the ```<snapdragon-iot-qimsdk>/sdk-tools/targets/``` directory. ```<snapdragon-iot-qimsdk>/sdk-tools/targets/LE.PRODUCTS.2.1.json``` can be used as an example.
 
@@ -103,6 +105,7 @@ source ${QIMSDK_BASE_DIR}/sdk-tools/scripts/image/env_setup.sh
 
 - ```qimsdk-layers-build``` - Must be invoked to compile modified layers in the container
 - ```qimsdk-layers-package``` - Must be invoked after invoking qimsdk-layers-build to package compiled recipes in the container
+- ```qimsdk-device-select```  - Must be invoked to select device when multiple devices are connected
 - ```qimsdk-device-prepare``` - Must be invoked to prepare device for package sync
 - ```qimsdk-device-sync-rel``` -Must be invoked to sync release packages with the device
 - ```qimsdk-device-sync-dbg``` - Must be invoked to sync debug packages with the device
