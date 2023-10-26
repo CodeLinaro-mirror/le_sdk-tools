@@ -95,7 +95,7 @@ function qimsdk-gst-plugins-qti-prepare() {
     # apt-get install gst_plugins_qti_oss_dependencies
     [ "${PKG_WRITE_TASK}" == "do_package_write_deb" ]                                           && \
         {
-            echo 'do_compile[depends] = "ubuntu-base:do_ubuntu_install"' > ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bbappend
+            echo 'do_compile[depends] = "ubuntu-base:do_ubuntu_install"' > ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
             sed -i "s/\${UBUN_FULLSTACK_PERF_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;s/\${UBUN_FULLSTACK_DEBUG_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;" \
                 ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
             sed -i "s/rm \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/rm -f \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/g;s/rm \${TMP_WKDIR}\/lib\/udev\/v4l_id/rm -f \${TMP_WKDIR}\/lib\/udev\/v4l_id/g;s/60-persistent-storage.rules/60-persistent-storage-dm.rules/g" \
