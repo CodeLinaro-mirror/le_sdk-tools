@@ -66,9 +66,10 @@ function qimsdk-local-sync() {
                 }
         }
 
-    local FILE
-    for FILE in ${PACKAGES_PATH}*; do
-        local PACKAGE=$(basename "${FILE}")
+    local PKGS=(`ls ${PACKAGES_PATH}`)
+
+    for PACKAGE in ${PKGS[@]}; do
+        local FILE="${PACKAGES_PATH}${PACKAGE}"
         local PACKAGE_FORMAT=$(basename -- "${FILE}")
 
         PACKAGE_FORMAT="${PACKAGE_FORMAT##*.}"
@@ -140,6 +141,7 @@ function qimsdk-local-sync() {
 
         qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
         rm -f ${FILE}
+
     done
 
     echo "Device synced successfully !!!"

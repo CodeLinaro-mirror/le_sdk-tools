@@ -6,7 +6,7 @@ $global:QIMSDK_ESDK_DEVICE_INSTALL_PREFIX = ""
 # Propagate the correct install path to opkg config
 function global:qimsdk-local-set-opkg-prefix {
     Invoke-Expression "adb shell `"cat /etc/opkg/opkg.conf | grep \"dest qimsdk_install_path ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\"`""
-    if($LastExitCode -ne 0) {
+    if ($LastExitCode -ne 0) {
         Invoke-Expression "adb shell `"sed -i '/qimsdk_install_path/d' /etc/opkg/opkg.conf`""
         Invoke-Expression "adb shell `"echo \"dest qimsdk_install_path ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\" >> /etc/opkg/opkg.conf`""
     }
@@ -26,23 +26,26 @@ function global:qimsdk-local-sync {
 
     $FORMAT_IPK="ipk"
     $FORMAT_DEB="deb"
+    $QIMSDK_ESDK_DEVICE_INSTALL_PREFIX=""
 
+    pushd ${FOLDER}
     if (Test-Path -Path "${FOLDER}\*" -Include qim-sdk-install-prefix.txt) {
         # Set global var
-        $QIMSDK_ESDK_DEVICE_INSTALL_PREFIX = ( gc ${FOLDER}\qim-sdk-install-prefix.txt )
+        $QIMSDK_ESDK_DEVICE_INSTALL_PREFIX = ( gc qim-sdk-install-prefix.txt )
 
         #Push sdk script to device
-        Invoke-Expression "adb push ${FOLDER}\qim-sdk.sh /etc/profile.d/"
+        Invoke-Expression "adb push qim-sdk.sh /etc/profile.d/"
+        Invoke-Expression "adb shell `"source /etc/profile.d/qim-sdk.sh`""
 
         if (Test-Path -Path "${FOLDER}\*" -Include *.ipk) {
             qimsdk-local-set-opkg-prefix
         }
     }
 
-    pushd ${FOLDER}
     foreach($PACKAGE_NAME in Get-ChildItem ${FOLDER}) {
         $PACKAGE_FORMAT= (Get-ChildItem ${PACKAGE_NAME}).Extension
         $PACKAGE_FORMAT="$PACKAGE_FORMAT".split(".")[1]
+        $PACKAGE_NAME = (Get-Item ${PACKAGE_NAME} ).Name
 
         if ($PACKAGE_FORMAT -eq $FORMAT_DEB) {
             Invoke-Expression "adb push ${PACKAGE_NAME} /tmp/"
