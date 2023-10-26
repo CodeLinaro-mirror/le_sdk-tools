@@ -96,11 +96,23 @@ function qimsdk-gst-plugins-qti-prepare() {
     [ "${PKG_WRITE_TASK}" == "do_package_write_deb" ]                                           && \
         {
             echo 'do_compile[depends] = "ubuntu-base:do_ubuntu_install"' > ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
-            sed -i "s/\${UBUN_FULLSTACK_PERF_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;s/\${UBUN_FULLSTACK_DEBUG_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
-            sed -i "s/rm \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/rm -f \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/g;s/rm \${TMP_WKDIR}\/lib\/udev\/v4l_id/rm -f \${TMP_WKDIR}\/lib\/udev\/v4l_id/g;s/60-persistent-storage.rules/60-persistent-storage-dm.rules/g" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
-            grep -wq RM_WORK_EXCLUDE ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb || echo 'RM_WORK_EXCLUDE += "${PN}"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+            sed -i "s/\${UBUN_FULLSTACK_PERF_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;s/\${UBUN_FULLSTACK_DEBUG_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;" \
+                ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+            sed -i "s/rm \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/rm -f \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/g;s/rm \${TMP_WKDIR}\/lib\/udev\/v4l_id/rm -f \${TMP_WKDIR}\/lib\/udev\/v4l_id/g;s/60-persistent-storage.rules/60-persistent-storage-dm.rules/g" \
+                ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+            grep -wq RM_WORK_EXCLUDE ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb || \
+                echo 'RM_WORK_EXCLUDE += "${PN}"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
             sed -i '/ssh_import_id/d;/\thumanity_theme_install/d;/ do_tzdata_install/d' ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
             sed -i 's/do_package_write_ipk/do_package_write_deb/g' ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+            grep -q "PV" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/glibc-ubuntu.bb || \
+                {
+                    echo -e '\nPV = "2.31"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/glibc-ubuntu.bb
+                    echo -e '\nPV = "1.16.2"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/gstreamer1.0-libav-ubuntu.bb
+                    echo -e '\nPV = "1.16.2"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/gstreamer1.0-plugins-ugly-ubuntu.bb
+                    echo -e '\nPV = "1.16.4"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/gstreamer1.0-ubuntu.bb
+                    echo -e '\nPV = "1.16.2"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/gstreamer1.0-rtsp-server-ubuntu.bb
+                    echo -e '\nPV = "1.0"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/libgudev-ubuntu.bb
+                }
         }
 
     # Remove tensorflow-lite from DISTRO_FEATURES
