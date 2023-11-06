@@ -106,12 +106,25 @@ function qimsdk-gst-plugins-qti-prepare() {
             sed -i 's/do_package_write_ipk/do_package_write_deb/g' ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
             grep -q "PV" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/glibc-ubuntu.bb || \
                 {
-                    echo -e '\nPV = "2.31"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/glibc-ubuntu.bb
-                    echo -e '\nPV = "1.16.2"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/gstreamer1.0-libav-ubuntu.bb
-                    echo -e '\nPV = "1.16.2"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/gstreamer1.0-plugins-ugly-ubuntu.bb
-                    echo -e '\nPV = "1.16.4"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/gstreamer1.0-ubuntu.bb
-                    echo -e '\nPV = "1.16.2"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/gstreamer1.0-rtsp-server-ubuntu.bb
-                    echo -e '\nPV = "1.0"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/libgudev-ubuntu.bb
+                    for RECIPE in $(ls ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/); do
+
+                        # Do not add PV to ubuntu-toolchain recipe
+                        [ "${RECIPE}" == "ubuntu-toolchain.bb" ] && continue
+
+                        PV=$(sed -n "s/^.*_\([.0-9]\+\).*$/\1/p" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/${RECIPE} | head -1)
+
+                        # Increment libgstreamer1.0-0 minor version to have it installed last
+                        [ "${RECIPE}" == "gstreamer1.0-ubuntu.bb" ] && {
+
+                            FIRST_DIGIT=$(echo ${PV} | sed 's/\./ /g' | awk '{print $1}')
+                            SECOND_DIGIT=$(echo ${PV} | sed 's/\./ /g' | awk '{print $2}')
+                            THIRD_DIGIT=$(($(echo ${PV} | sed 's/\./ /g' | awk '{print $3}') + 2 | bc))
+
+                            PV=${FIRST_DIGIT}.${SECOND_DIGIT}.${THIRD_DIGIT}
+                        }
+
+                        echo -e '\n'PV = '"'${PV}'"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/${RECIPE}
+                    done
                 }
         }
 
