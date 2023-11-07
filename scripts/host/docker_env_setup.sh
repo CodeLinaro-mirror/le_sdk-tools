@@ -49,6 +49,17 @@ function qimsdk-docker-build-image() {
     [ -z "${QIMSDK_ARG_ESDK_SH}" ] && print-red "ESDK shell file must be provided as an argument of config json !!!" && return -4
     [ ! -f "${QIMSDK_ARG_ESDK_SH}" ] && print-red "Could not find ESDK_SH !!!" && return -5
 
+    local QIMSDK_ARG_DEVICE_INSTALL_PREFIX=`cat ${PATH_TO_CONFIG_JSON} | jq '.Device_install_prefix' | tr -d '"'`
+    QIMSDK_ARG_DEVICE_INSTALL_PREFIX=`echo ${QIMSDK_ARG_DEVICE_INSTALL_PREFIX}/ | tr -s '/'`
+    [ "${QIMSDK_ARG_DEVICE_INSTALL_PREFIX}" == "/" ]                                            && \
+        {
+            print-red "Prefix to install qimsdk packages in must be provided as an argument of config json !!!"
+            return -6
+        }
+
+    # Remove last '/' after checking that prefix variable is not set to '/'
+    QIMSDK_ARG_DEVICE_INSTALL_PREFIX=${QIMSDK_ARG_DEVICE_INSTALL_PREFIX%/}
+
     local TAG="${QIMSDK_ARG_IMAGE_OS}"
     local QIMSDK_ARG_BASE_DIR=/mnt/qimsdk
     local GROUP=$(getent group $(id -g ${USER}) | cut -d ':' -f 1)
@@ -63,7 +74,7 @@ function qimsdk-docker-build-image() {
             {
                 print-red "Cannot add sdk sh file to tmp dir !!!"
                 rm -rf ${QIMSDK_TMP_DIR}
-                return -6
+                return -7
             }
 
     QIMSDK_ARG_ESDK_SH=`basename ${QIMSDK_ARG_ESDK_SH}`
@@ -78,7 +89,7 @@ function qimsdk-docker-build-image() {
                     {
                         print-red "Cannot add tflite dev archive to tmp directory !!!"
                         rm -rf ${QIMSDK_TMP_DIR}
-                        return -7
+                        return -8
                     }
                 QIMSDK_ARG_TFLITE_FILENAME=`basename ${TFLITE_FILE}`
             }                                                                                   || \
@@ -104,7 +115,7 @@ function qimsdk-docker-build-image() {
                     {
                         print-red "Cannot add ${ACCELERATION_ENGINE} dir to tmp folder !!!"
                         rm -rf ${QIMSDK_ACCELERATION_ENGINE_TMP_DIR}
-                        return -8
+                        return -9
                     }
                     rm -f ${QIMSDK_ACCELERATION_ENGINE_TMP_DIR}/${ACCELERATION_ENGINE_TMP_PATH}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
                 }                                                                               || \
@@ -136,9 +147,6 @@ function qimsdk-docker-build-image() {
         }
 
     local QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES=`cat ${PATH_TO_CONFIG_JSON} | jq '.Gst_plugins_qti_oss_dependencies[]' | tr -d '"'`
-
-    local QIMSDK_ARG_DEVICE_INSTALL_PREFIX=`cat ${PATH_TO_CONFIG_JSON} | jq '.Device_install_prefix' | tr -d '"'`
-    QIMSDK_ARG_DEVICE_INSTALL_PREFIX="${QIMSDK_ARG_DEVICE_INSTALL_PREFIX%/}"
 
     DOCKER_BUILDKIT=1 docker build                                                                 \
             --build-arg QIMSDK_ARG_HOST_USER_ID=$(id -u ${USER})                                   \

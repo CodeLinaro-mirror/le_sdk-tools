@@ -51,9 +51,15 @@ function qimsdk-host-parse-json() {
     QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES=`echo ${BUFFER} | jq '.Gst_plugins_qti_oss_dependencies[]' | tr -d '"'`
 
     QIMSDK_ESDK_DEVICE_INSTALL_PREFIX=`echo ${BUFFER} | jq '.Device_install_prefix' | tr -d '"'`
+    QIMSDK_ESDK_DEVICE_INSTALL_PREFIX=`echo ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/ | tr -s '/'`
+    [ "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" == "/" ]                                            && \
+        {
+            print-red "Prefix to install qimsdk packages in must be provided as an argument of config json !!!"
+            return -2
+        }
 
-    [ -z "${eSDK_SHELL_FILE}" ] && print-red "ESDK shell file must be provided as an argument of config json !!!" && return -2
-    [ ! -f "${eSDK_SHELL_FILE}" ] && print-red "Could not find ESDK_SH !!!" && return -3
+    [ -z "${eSDK_SHELL_FILE}" ] && print-red "ESDK shell file must be provided as an argument of config json !!!" && return -3
+    [ ! -f "${eSDK_SHELL_FILE}" ] && print-red "Could not find ESDK_SH !!!" && return -4
     [ ! -d "${BASE_DIR_LOCATION}" ] && print-red "Path to the directory where the project is initialized must be provided as an argument of config json !!!" && return -5
 
     return 0
