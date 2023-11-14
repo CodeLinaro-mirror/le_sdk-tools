@@ -67,7 +67,7 @@ function qimsdk-gst-plugins-qti-prepare() {
         {
             sed -i "s|ExecStart=/usr/bin/gstd|ExecStart=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gstd|g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd/gstd.service
             sed -i "s|GST_ML_MODULES_DIR=\"\${GST_PLUGINS_QTI_OSS_INSTALL_LIBDIR}/gstreamer-1.0/ml/modules\"|GST_ML_MODULES_DIR=\"${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\${GST_PLUGINS_QTI_OSS_INSTALL_LIBDIR}/gstreamer-1.0/ml/modules\"|g" ${QIMSDK_BASE_DIR}/repo/src/vendor/qcom/opensource/gst-plugins-qti-oss/gst-plugin-base/gst/ml/CMakeLists.txt
-            sed -i "s|/usr/bin/gst-client-1.0|/data/sdk/usr/bin/gst-client-1.0|g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd_%.bbappend
+            sed -i "s|/usr/bin/gst-client-1.0|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gst-client-1.0|g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd_%.bbappend
 
             echo "export PATH=\$PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin" > ${QIMSDK_BASE_DIR}/qim-sdk.sh
             echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
