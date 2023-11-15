@@ -56,60 +56,98 @@ function qimsdk-local-sync() {
     QIMSDK_ESDK_DEVICE_INSTALL_PREFIX="$(cat ${PACKAGES_PATH}qim-sdk-install-prefix.txt 2> /dev/null)"
 
     adb push ${PACKAGES_PATH}qim-sdk.sh /etc/profile.d/ || return -2
-    qimsdk-local-device-command "source /etc/profile.d/qim-sdk.sh" || return -3
+    qimsdk-local-device-command "mkdir -p ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc" || return -3
+    qimsdk-local-device-command "source /etc/profile.d/qim-sdk.sh" || return -4
 
-    [ -n "$(find ${PACKAGES_PATH} -maxdepth 1 -name '*.ipk' -type f -print -quit)" ]    && \
+    [ -n "$(find ${PACKAGES_PATH} -maxdepth 1 -name '*.ipk' -type f -print -quit)" ]            && \
         {
             qimsdk-local-set-opkg-prefix
         }
 
     local PKGS=(`ls ${PACKAGES_PATH}`)
+    local LOCAL_LOG_FILE="${PACKAGES_PATH}local_md5.log"
+    local REMOTE_LOG_FILE="${PACKAGES_PATH}remote_sync.log"
+    local DEVICE_LOG_FILE="${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/device_sync.log"
+    local DEVICE_PULLED_LOG_FILE="${PACKAGES_PATH}device_sync.log"
+
+    # Pull device sync log file
+    qimsdk-local-device-command "[ -f ${DEVICE_LOG_FILE} ]" 2>&1>/dev/null                      || \
+        {
+            qimsdk-local-device-command "touch ${DEVICE_LOG_FILE}"
+        }
+
+    adb pull ${DEVICE_LOG_FILE} ${PACKAGES_PATH}                                                || \
+        {
+            print-red "Failed to pull device log !!!"
+            return -5
+        }
 
     for PACKAGE in ${PKGS[@]}; do
         local FILE="${PACKAGES_PATH}${PACKAGE}"
         local PACKAGE_FORMAT=$(basename -- "${FILE}")
 
-        # Skip QIMSDK_ESDK_DEVICE_INSTALL_PREFIX, as it is needed for uninstall
+        # Skip Non-package files
         [ "${PACKAGE}" == "qim-sdk-install-prefix.txt" ] && continue;
+        [ "${PACKAGE}" == "device_sync.log" ] && continue;
+        [ "${PACKAGE}" == "local_md5.log" ] && continue;
+        [ "${PACKAGE}" == "remote_sync.log" ] && continue;
 
+        local CHECKSUM=`grep "/${PACKAGE}" ${LOCAL_LOG_FILE} | cut -d ' ' -f1`
         PACKAGE_FORMAT="${PACKAGE_FORMAT##*.}"
-
-        [ "${PACKAGE_FORMAT}" == "deb" ]                                                        && \
+        grep -q "${CHECKSUM}" ${DEVICE_PULLED_LOG_FILE} 2>&1>/dev/null                          || \
             {
-                adb push "${FILE}" /tmp/                                                        || \
+                [ "${PACKAGE_FORMAT}" == "deb" ]                                                && \
                     {
-                        echo "Push package to device failed !!!";
-                        return -4;
+                        adb push "${FILE}" /tmp/                                                || \
+                            {
+                                echo "Push package to device failed !!!";
+                                return -6;
+                            }
+
+                        qimsdk-local-device-command "dpkg --instdir=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} --install --force-all /tmp/${PACKAGE}" || \
+                            {
+                                qimsdk-local-device-command "rm /tmp/${PACKAGE}";
+                                print-red "Install package to device failed !!!";
+                                return -7;
+                            }
                     }
 
-                qimsdk-local-device-command "dpkg --instdir=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} --install --force-all /tmp/${PACKAGE}" || \
+                [ "${PACKAGE_FORMAT}" == "ipk" ]                                                && \
                     {
-                        qimsdk-local-device-command "rm /tmp/${PACKAGE}";
-                        print-red "Install package to device failed !!!";
-                        return -5;
+                        adb push "${FILE}" /tmp/                                                || \
+                            {
+                                echo "Push package to device failed !!!";
+                                return -8;
+                            }
+
+                        qimsdk-local-device-command "opkg install -d qimsdk_install_path --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE}" || \
+                            {
+                                qimsdk-local-device-command "rm /tmp/${PACKAGE}";
+                                adb push ${PACKAGES_PATH}device_sync.log ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/ || \
+                                    {
+                                        print-red "Failed to push updated log to device !!!"
+                                        return -9
+                                    }
+                                print-red "Install package to device failed !!!";
+                                return -10;
+                            }
                     }
+                sed -i "/\/${PACKAGE}/d" ${DEVICE_PULLED_LOG_FILE} 2>&1>/dev/null
+                echo "${CHECKSUM} /${PACKAGE}" >> ${DEVICE_PULLED_LOG_FILE}
+                qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
+                rm -f ${FILE}
             }
-
-        [ "${PACKAGE_FORMAT}" == "ipk" ]                                                        && \
-            {
-                adb push "${FILE}" /tmp/                                                        || \
-                    {
-                        echo "Push package to device failed !!!";
-                        return -6;
-                    }
-
-                qimsdk-local-device-command "opkg install -d qimsdk_install_path --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE}" || \
-                    {
-                        qimsdk-local-device-command "rm /tmp/${PACKAGE}";
-                        print-red "Install package to device failed !!!";
-                        return -8;
-                    }
-            }
-
-        qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
-        rm -f ${FILE}
-
     done
+
+    adb push ${PACKAGES_PATH}device_sync.log ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/          || \
+        {
+            print-red "Failed to push updated log to device !!!"
+            return -11
+        }
+
+    rm -f "${DEVICE_PULLED_LOG_FILE}"
+    rm -f "${LOCAL_LOG_FILE}"
+    rm -f "${REMOTE_LOG_FILE}"
 
     echo "Device synced successfully !!!"
 }
