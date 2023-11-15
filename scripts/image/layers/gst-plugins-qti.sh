@@ -102,7 +102,7 @@ function qimsdk-gst-plugins-qti-prepare() {
             echo "mkdir -p ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/ && \\" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
             echo "ln -s /etc/systemd/system ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
 
-            echo "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" >> ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt
+            echo "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" > ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt
         }
 
     # apt-get install gst_plugins_qti_oss_dependencies
@@ -323,7 +323,37 @@ function qimsdk-gst-plugins-qti-build() {
 # Package gst-plugins-qti
 function qimsdk-gst-plugins-qti-package() {
     # Build task of that recipe generates all ipk or deb files for dependent packages
-    devtool package packagegroup-qti-gst
+    devtool package packagegroup-qti-gst                                                        && \
+        qimsdk-gst-plugins-qti-update-local-hash
+}
+
+# Update md5 hash for every changed package after every qimsdk-gst-plugins-qti-package
+qimsdk-gst-plugins-qti-update-local-hash() {
+    local PKG_FORMAT=$(qimsdk-get-pkg-format)
+    local SYNC_FILE="${QIMSDK_WORK_DIR}/local_md5.log"
+
+    [ -f "${SYNC_FILE}" ] || touch ${SYNC_FILE}
+
+    local PKG_LIST
+    qimsdk-target-get-updated-packages-all PKG_LIST ${PKG_FORMAT}                               || \
+        {
+            print-red "Failed to get updated packages";
+            return -1
+        }
+
+    echo "Updating package md5 logs"
+
+    for PATH_TO_PACKAGE in "${PKG_LIST[@]}"; do
+        local PKG_FILENAME=`echo $(basename ${PATH_TO_PACKAGE})`
+        local LOG=$(md5sum ${PATH_TO_PACKAGE})
+        grep -q "${LOG}" ${SYNC_FILE} 1>/dev/null                                               || \
+            {
+                sed -i "/\/${PKG_FILENAME}/d" ${SYNC_FILE} 2>/dev/null
+                echo ${LOG} >> ${SYNC_FILE}
+            }
+    done
+
+    return 0
 }
 
 # Inspect plugins

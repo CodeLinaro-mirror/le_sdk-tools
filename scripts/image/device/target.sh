@@ -113,6 +113,7 @@ function qimsdk-target-sync() {
         {
             adb push ${QIMSDK_BASE_DIR}/qim-sdk.sh /etc/profile.d/ || return -4
             qimsdk-device-command "source /etc/profile.d/qim-sdk.sh" || return -5
+            qimsdk-device-command "mkdir -p ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc"
 
             [ "${FORMAT}" == "ipk" ]                                                            && \
                 {
@@ -126,57 +127,70 @@ function qimsdk-target-sync() {
 
     [ ${TARGET} == "remote" ]                                                                   && \
         {
-            qimsdk-${TARGET}-pkg-sync${DEV} ${QIMSDK_BASE_DIR}/qim-sdk.sh ${FORMAT}
-            qimsdk-${TARGET}-pkg-sync${DEV} ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt ${FORMAT}
+            rsync -a --progress ${QIMSDK_BASE_DIR}/qim-sdk.sh ${QIMSDK_ESDK_DEPLOY_URL}
+            rsync -a --progress ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt ${QIMSDK_ESDK_DEPLOY_URL}
+            rsync -a --progress ${QIMSDK_WORK_DIR}/local_md5.log ${QIMSDK_ESDK_DEPLOY_URL}
         }
 
     # Check whether code was already prepared
     [ ! -f "${QIMSDK_WORK_DIR}/prepared" ] && print-red "Layers are not prepared" && return -6
+
+    local TARGET_PULLED_LOG_FILE="${QIMSDK_WORK_DIR}/${TARGET}_sync.log"
+    qimsdk-${TARGET}-pull-log ${VARIANT} || return -7
 
     # Get updated packages
     local PKGS
     qimsdk-target-get-updated-packages-${VARIANT} PKGS ${FORMAT}                                || \
         {
             print-red "Failed to get updated packages";
-            return -7;
+            return -8
         }
 
     # Sync only new packages
     local PKG
-    local SYNC_FILE="${QIMSDK_WORK_DIR}/${TARGET}_sync.log"
-
     for PKG in "${PKGS[@]}"; do
-        local DATE=`date -r ${PKG}`
-        local LOG="Pushing ${PKG} ${DATE}"
-        local PKG_NAME=`echo $(basename ${PKG}) | cut -d '_' -f 1`
+        local PKG_FILENAME=`echo $(basename ${PKG})`
+        local PKG_NAME=`echo ${PKG_FILENAME} | cut -d '_' -f 1`
         local DEV=""
+
         [ "${VARIANT}" == "dev" ] || [ "${VARIANT}" == "staticdev" ]                            && \
             {
                 DEV="-dev"
             }
 
-        cat ${SYNC_FILE} 2>/dev/null | grep "${LOG}" 1>/dev/null                                || \
+        [ "${PKG_NAME}" == "librsvg-2-gtk" -o "${PKG_NAME}" == "gstd" -o "${PKG_NAME}" == "qti-gstreamer1.0-plugins-good-v4l2" ] && \
             {
-                [ "${PKG_NAME}" == "librsvg-2-gtk" -o "${PKG_NAME}" == "gstd" -o "${PKG_NAME}" == "qti-gstreamer1.0-plugins-good-v4l2" ] && \
+                # Check for prerequisite packages
+                local PPKGS
+                qimsdk-target-check-for-prerequisites PPKGS ${FORMAT}                           || \
                     {
-                        # Check for prerequisite packages
-                        local PPKGS
-                        qimsdk-target-check-for-prerequisites PPKGS ${FORMAT}                   || \
-                            {
-                                print-red "Failed to check for prerequisite packages";
-                            }
-                        [ -n "${PPKGS}" ]                                                       && \
-                            for PPKG in "${PPKGS[@]}"; do
-                                qimsdk-${TARGET}-pkg-sync${DEV} ${PPKG} ${FORMAT}
-                            done
+                        print-red "Failed to check for prerequisite packages";
                     }
 
+<<<<<<< HEAD   (e582b1 sdk-tools: Fix compilation issue)
                 qimsdk-${TARGET}-pkg-sync${DEV} ${PKG} ${FORMAT} || return -8
            }
         PKG=$(basename ${PKG})
         sed -i "/${PKG}/d" ${SYNC_FILE} 2>/dev/null
         echo "${LOG}" >> ${SYNC_FILE}
+=======
+                [ -n "${PPKGS}" ]                                                               && \
+                    for PPKG in "${PPKGS[@]}"; do
+                        qimsdk-${TARGET}-pkg-sync${DEV} ${PPKG} ${FORMAT}
+                    done
+            }
+
+        qimsdk-${TARGET}-pkg-sync${DEV} ${PKG} ${FORMAT}                                        || \
+            {
+                qimsdk-${TARGET}-update-log ${VARIANT}
+                rm -f ${TARGET_PULLED_LOG_FILE} 2>&1>/dev/null
+                return -9
+            }
+>>>>>>> CHANGE (bc6b66 sdk-tools: Update package sync method using md5sum)
     done
+
+    qimsdk-${TARGET}-update-log ${VARIANT}
+    rm -f ${TARGET_PULLED_LOG_FILE} 2>&1>/dev/null
 
     print-green "Packages synced successfully !!!"
 }
@@ -238,6 +252,7 @@ function qimsdk-target-sync-artifacts() {
     # Copy Files needed in install scripts to packages dir to be added to artifacts zip
     cp ${QIMSDK_BASE_DIR}/qim-sdk.sh ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}
     cp ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}
+    cp ${QIMSDK_WORK_DIR}/local_md5.log ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}
 
     # Remove old artifacts archive
     rm -f ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}.zip

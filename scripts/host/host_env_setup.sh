@@ -30,10 +30,16 @@ function qimsdk-host-parse-json() {
     QIMSDK_ACCELERATION_ENGINE_COUNT=`echo ${BUFFER} | jq '.Acceleration_engines[] | .Acceleration_engine' | wc -l`
 
     QIMSDK_ESDK_DEPLOY_URL=`echo ${BUFFER} | jq '.Deploy_URL' | tr -d '"'`
-    QIMSDK_ESDK_DEPLOY_URL=`echo ${QIMSDK_ESDK_DEPLOY_URL}/ | sed 's/\/\//\//g'`
+    [ -z "${QIMSDK_ESDK_DEPLOY_URL}" ]                                                          || \
+        {
+            QIMSDK_ESDK_DEPLOY_URL=`echo ${QIMSDK_ESDK_DEPLOY_URL}/ | sed 's/\/\//\//g'`
+        }
 
     QIMSDK_ESDK_DEPLOY_URL_DEV=`echo ${BUFFER} | jq '.Deploy_dev_URL' | tr -d '"'`
-    QIMSDK_ESDK_DEPLOY_URL_DEV=`echo ${QIMSDK_ESDK_DEPLOY_URL_DEV}/ | sed 's/\/\//\//g'`
+    [ -z "${QIMSDK_ESDK_DEPLOY_URL_DEV}" ]                                                      || \
+        {
+            QIMSDK_ESDK_DEPLOY_URL_DEV=`echo ${QIMSDK_ESDK_DEPLOY_URL_DEV}/ | sed 's/\/\//\//g'`
+        }
 
     QIMSDK_ESDK_DEPLOY_ARTIFACTS=`echo ${BUFFER} |  jq '.Deploy_QIMSDK_Artifacts_URL' | tr -d '"'`
     [ ! -d "${QIMSDK_ESDK_DEPLOY_ARTIFACTS}" ]                                                  && \

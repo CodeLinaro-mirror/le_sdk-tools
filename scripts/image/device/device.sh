@@ -105,37 +105,46 @@ function qimsdk-device-pkg-sync() {
 
     [ ! -f "${PATH_TO_PACKAGE}" ] && print-red "File "${PATH_TO_PACKAGE}" does not exist !!!" && return -3
 
+    local LOCAL_LOG_FILE="${QIMSDK_WORK_DIR}/local_md5.log"
+    local DEVICE_PULLED_LOG_FILE="${QIMSDK_WORK_DIR}/device_sync.log"
+    local CHECKSUM=`grep "${PATH_TO_PACKAGE}" ${LOCAL_LOG_FILE} | cut -d ' ' -f1`
     local PACKAGE_NAME=$(basename "${PATH_TO_PACKAGE}")
-    adb push "${PATH_TO_PACKAGE}" /tmp/                                                         || \
-        {
-            print-red "Push package to device /tmp directory failed !!!";
-            return -4;
-        }
 
-    [ "${PKG_FORMAT}" == "deb" ]                                                                && \
+    grep -q "${CHECKSUM}" ${DEVICE_PULLED_LOG_FILE}                                             || \
         {
-            qimsdk-device-command "dpkg --instdir=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} --install --force-all /tmp/${PACKAGE_NAME}" || \
+            adb push "${PATH_TO_PACKAGE}" /tmp/                                                 || \
                 {
-                    qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
-                    print-red "Install package to device failed !!!";
-                    return -5;
+                    print-red "Push package to device /tmp directory failed !!!";
+                    return -4;
                 }
-        }
 
-    [ "${PKG_FORMAT}" == "ipk" ]                                                                && \
-        {
-            qimsdk-device-command "opkg install -d qimsdk_install_path --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE_NAME}" || \
+            [ "${PKG_FORMAT}" == "deb" ]                                                        && \
                 {
-                    qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
-                    print-red "Install package to device failed !!!";
-                    return -7;
+                    qimsdk-device-command "dpkg --instdir=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} --install --force-all /tmp/${PACKAGE_NAME}" || \
+                        {
+                            qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
+                            print-red "Install package to device failed !!!";
+                            return -5;
+                        }
                 }
-        }
 
-    qimsdk-device-command "rm /tmp/${PACKAGE_NAME}"                                             || \
-        {
-            print-red "Remove package from device /tmp directory failed !!!";
-            return -8;
+            [ "${PKG_FORMAT}" == "ipk" ]                                                        && \
+                {
+                    qimsdk-device-command "opkg install -d qimsdk_install_path --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE_NAME}" || \
+                        {
+                            qimsdk-device-command "rm /tmp/${PACKAGE_NAME}";
+                            print-red "Install package to device failed !!!";
+                            return -7;
+                        }
+                }
+
+            qimsdk-device-command "rm /tmp/${PACKAGE_NAME}"                                     || \
+                {
+                    print-red "Remove package from device /tmp directory failed !!!";
+                    return -8;
+                }
+            sed -i "/\/${PACKAGE_NAME}/d" ${DEVICE_PULLED_LOG_FILE} 2>&1>/dev/null
+            echo "${CHECKSUM} ${PATH_TO_PACKAGE}" >> ${DEVICE_PULLED_LOG_FILE}
         }
 
     return 0
@@ -143,6 +152,10 @@ function qimsdk-device-pkg-sync() {
 
 # Clear device sync log to update all packets on next device sync
 function qimsdk-device-sync-log-clear() {
+    touch ${QIMSDK_WORK_DIR}/device_sync.log
+
+    adb push ${QIMSDK_WORK_DIR}/device_sync.log ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/device_sync.log 2>&1>/dev/null
+
     rm -f ${QIMSDK_WORK_DIR}/device_sync.log
 }
 
@@ -196,6 +209,36 @@ function qimsdk-device-select() {
     export ANDROID_SERIAL=${QIMSDK_SELECTED_DEVICE_ID}
 
     echo "Device ${QIMSDK_SELECTED_DEVICE} set successfully!"
+    return 0
+}
+
+# Pull log from remote in order to compare with local log and update if needed
+function qimsdk-device-pull-log() {
+    local DEVICE_LOG_FILE="${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/device_sync.log"
+
+    qimsdk-device-command "[ -f ${DEVICE_LOG_FILE} ]" 2>&1>/dev/null                            || \
+        {
+            qimsdk-device-command "touch ${DEVICE_LOG_FILE}"
+        }
+
+    adb pull ${DEVICE_LOG_FILE} ${QIMSDK_WORK_DIR}/                                             || \
+        {
+            print-red "Failed to pull device log !!!"
+            return -1
+        }
+
+    return 0
+}
+
+# Push updated log to device after putting in the hashes for newly pushed packages
+function qimsdk-device-update-log() {
+
+    adb push ${QIMSDK_WORK_DIR}/device_sync.log ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/       || \
+        {
+            print-red "Failed to push updated log to device !!!"
+            return -1
+        }
+
     return 0
 }
 

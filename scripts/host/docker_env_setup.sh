@@ -128,10 +128,16 @@ function qimsdk-docker-build-image() {
     QIMSDK_ARG_ACCELERATION_ENGINE_NAMES=`cat ${PATH_TO_CONFIG_JSON} | jq '.Acceleration_engines[] | .Acceleration_engine' | tr -d '"'`
 
     local QIMSDK_ARG_DEPLOY_URL=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_URL' | tr -d '"'`
-    QIMSDK_ARG_DEPLOY_URL=`echo ${QIMSDK_ARG_DEPLOY_URL}/ | sed 's/\/\//\//g'`
+    [ -z "${QIMSDK_ARG_DEPLOY_URL}" ]                                                              || \
+        {
+            QIMSDK_ARG_DEPLOY_URL=`echo ${QIMSDK_ARG_DEPLOY_URL}/ | sed 's/\/\//\//g'`
+        }
 
     local QIMSDK_ARG_DEPLOY_URL_DEV=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_dev_URL' | tr -d '"'`
-    QIMSDK_ARG_DEPLOY_URL_DEV=`echo ${QIMSDK_ARG_DEPLOY_URL_DEV}/ | sed 's/\/\//\//g'`
+    [ -z "${QIMSDK_ARG_DEPLOY_URL_DEV}" ]                                                          || \
+        {
+            QIMSDK_ARG_DEPLOY_URL_DEV=`echo ${QIMSDK_ARG_DEPLOY_URL_DEV}/ | sed 's/\/\//\//g'`
+        }
 
     QIMSDK_ARG_DEPLOY_ARTIFACTS=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_QIMSDK_Artifacts_URL' | tr -d '"'`
     [ ! -d "${QIMSDK_ARG_DEPLOY_ARTIFACTS}" ]                                                   && \
