@@ -71,11 +71,11 @@ function qimsdk-gst-plugins-qti-prepare() {
 
             echo "export PATH=\$PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin" > ${QIMSDK_BASE_DIR}/qim-sdk.sh
             echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "export GST_PLUGIN_PATH=\$GST_PLUGIN_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/gstreamer-1.0" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
 
             [ "${PKG_WRITE_TASK}" == "do_package_write_ipk" ]                                   && \
                 {
                     echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
-                    echo "export GST_PLUGIN_PATH=\$GST_PLUGIN_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/gstreamer-1.0" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                     echo "export GST_PLUGIN_SCANNER=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/libexec/gstreamer-1.0/gst-plugin-scanner" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                 }                                                                               || \
                     {
@@ -169,6 +169,12 @@ function qimsdk-gst-plugins-qti-prepare() {
             {
                 echo -e "\nDISTRO_FEATURES += \"qti-"${QIMSDK_ESDK_ACCELERATION_ENGINE}"\"" >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
                 mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk
+                # Add do_configure dependency on Acceleration engine sdk, needed inside qimsdk environment, if not added already
+                grep -q "${QIMSDK_ESDK_ACCELERATION_ENGINE}:${PKG_WRITE_TASK}" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb || \
+                    {
+                        sed -i "/${QIMSDK_ESDK_ACCELERATION_ENGINE}:do_package_write_/d" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb
+                        sed -i "s/DEPENDS += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}\"/DEPENDS += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}\"\\ndo_configure[depends] += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}:${PKG_WRITE_TASK}\"/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb
+                    }
             }
     done
 
