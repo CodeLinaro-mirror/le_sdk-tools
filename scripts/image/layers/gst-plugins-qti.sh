@@ -29,28 +29,38 @@ function qimsdk-gst-plugins-qti-prepare() {
     [ -d "${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb" ] && PKG_WRITE_TASK="do_package_write_deb" || PKG_WRITE_TASK="do_package_write_ipk"
 
     # Remove gstreamer and meta-qti-gst from BBMASK
-    sed -i "s/meta\/recipes-multimedia\/gstreamer\///g;s/meta-qti-gst\///g;s/meta-qti-ubuntu\/recipes-toolchain\/ubuntu\/gstreamer1.0\*//g" ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
+    sed -i "s/meta\/recipes-multimedia\/gstreamer\///g;s/meta-qti-gst\///g;s/meta-qti-ubuntu\/recipes-toolchain\/ubuntu\/gstreamer1.0\*//g" \
+        ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
 
     # Set WORKSPACE variable or add it to bblayers.conf if not exist
-    grep -wq WORKSPACE ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf && sed -i "s+WORKSPACE\s*=\s*\"..TOPDIR./.*\"+WORKSPACE = \"\$\{TOPDIR\}/src\"+g" ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf || echo 'WORKSPACE = "${TOPDIR}/src"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
+    grep -wq WORKSPACE ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf && \
+        sed -i "s+WORKSPACE\s*=\s*\"..TOPDIR./.*\"+WORKSPACE = \"\$\{TOPDIR\}/src\"+g" \
+            ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf || echo 'WORKSPACE = "${TOPDIR}/src"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
 
     # Remove meta-qti-gst and meta-qti-gst-prop from bblayers.conf
-    sed -i "s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst-prop//g;s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst//g" ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
+    sed -i "s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst-prop//g;s/\${SDKBASEMETAPATH}\/layers\/poky\/meta-qti-gst//g" \
+        ${QIMSDK_ESDK_BASE_DIR}/conf/bblayers.conf
 
     # Use kernel headers dir from local sysroot
-    sed -i "s/\${STAGING_KERNEL_BUILDDIR}/\${STAGING_INCDIR}\/linux-msm/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+    sed -i "s/\${STAGING_KERNEL_BUILDDIR}/\${STAGING_INCDIR}\/linux-msm/g" \
+        ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
 
     # Remove not needed dependency to kernel workdir
-    sed -i "s/do_configure\[depends\] += \"virtual\/kernel:do_shared_workdir\"//g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+    sed -i "s/do_configure\[depends\] += \"virtual\/kernel:do_shared_workdir\"//g" \
+        ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
 
     # Remove packagegroup class
-    sed -i "s/inherit packagegroup//g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    sed -i "s/inherit packagegroup//g" \
+        ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Transpose packagegroup specific RDEPENDS packages as do_package task dependencies
-    sed -i "s/RDEPENDS.packagegroup-qti-gst /do_package[depends]/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    sed -i "s/RDEPENDS.packagegroup-qti-gst /do_package[depends]/g" \
+        ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Append do_package_write_ipk or do_package_write_deb task to packages
-    grep -q ${PKG_WRITE_TASK} ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb || sed -i "s/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:${PKG_WRITE_TASK}/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+    grep -q ${PKG_WRITE_TASK} ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb || \
+        sed -i "s/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:${PKG_WRITE_TASK}/g" \
+            {QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Remove packagegroup-qti-gst.bbappend
     rm -rf ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
@@ -65,9 +75,12 @@ function qimsdk-gst-plugins-qti-prepare() {
 
     [ -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]                                               || \
         {
-            sed -i "s|ExecStart=/usr/bin/gstd|ExecStart=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gstd|g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd/gstd.service
-            sed -i "s|GST_ML_MODULES_DIR=\"\${GST_PLUGINS_QTI_OSS_INSTALL_LIBDIR}/gstreamer-1.0/ml/modules\"|GST_ML_MODULES_DIR=\"${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\${GST_PLUGINS_QTI_OSS_INSTALL_LIBDIR}/gstreamer-1.0/ml/modules\"|g" ${QIMSDK_BASE_DIR}/repo/src/vendor/qcom/opensource/gst-plugins-qti-oss/gst-plugin-base/gst/ml/CMakeLists.txt
-            sed -i "s|/usr/bin/gst-client-1.0|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gst-client-1.0|g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd_%.bbappend
+            sed -i "s|ExecStart=/usr/bin/gstd|ExecStart=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gstd|g" \
+                ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd/gstd.service
+            sed -i "s|GST_ML_MODULES_DIR=\"\${GST_PLUGINS_QTI_OSS_INSTALL_LIBDIR}/gstreamer-1.0/ml/modules\"|GST_ML_MODULES_DIR=\"${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\${GST_PLUGINS_QTI_OSS_INSTALL_LIBDIR}/gstreamer-1.0/ml/modules\"|g" \
+                ${QIMSDK_BASE_DIR}/repo/src/vendor/qcom/opensource/gst-plugins-qti-oss/gst-plugin-base/gst/ml/CMakeLists.txt
+            sed -i "s|/usr/bin/gst-client-1.0|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gst-client-1.0|g" \
+                ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd_%.bbappend
 
             echo "export PATH=\$PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin" > ${QIMSDK_BASE_DIR}/qim-sdk.sh
             echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
@@ -96,14 +109,16 @@ function qimsdk-gst-plugins-qti-prepare() {
     [ "${PKG_WRITE_TASK}" == "do_package_write_deb" ]                                           && \
         {
             echo 'do_compile[depends] = "ubuntu-base:do_ubuntu_install"' > ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
-            sed -i "s/\${UBUN_FULLSTACK_PERF_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;s/\${UBUN_FULLSTACK_DEBUG_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;" \
+            sed -i "s/\${UBUN_FULLSTACK_PERF_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g;s/\${UBUN_FULLSTACK_DEBUG_PACKAGES}/${QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES}/g" \
                 ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
             sed -i "s/rm \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/rm -f \${TMP_WKDIR}\/lib\/udev\/rules.d\/60-persistent-v4l.rules/g;s/rm \${TMP_WKDIR}\/lib\/udev\/v4l_id/rm -f \${TMP_WKDIR}\/lib\/udev\/v4l_id/g;s/60-persistent-storage.rules/60-persistent-storage-dm.rules/g" \
                 ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
             grep -wq RM_WORK_EXCLUDE ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb || \
                 echo 'RM_WORK_EXCLUDE += "${PN}"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
-            sed -i '/ssh_import_id/d;/\thumanity_theme_install/d;/ do_tzdata_install/d' ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
-            sed -i 's/do_package_write_ipk/do_package_write_deb/g' ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+            sed -i '/ssh_import_id/d;/\thumanity_theme_install/d;/ do_tzdata_install/d' \
+                ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-core/ubuntu-base/ubuntu-base_20.04.bb
+            sed -i 's/do_package_write_ipk/do_package_write_deb/g' \
+                ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
             grep -q "PV" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/glibc-ubuntu.bb || \
                 {
                    for RECIPE in $(ls ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/); do
@@ -129,7 +144,8 @@ function qimsdk-gst-plugins-qti-prepare() {
         }
 
     # Remove tensorflow-lite from DISTRO_FEATURES
-    sed -i "s/tensorflow-lite//g" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-distro/conf/distro/include/qti-distro-fullstack.inc
+    sed -i "s/tensorflow-lite//g" \
+        ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-distro/conf/distro/include/qti-distro-fullstack.inc
 
     # Check if tf lite prebuilt is available
     [ "${QIMSDK_ESDK_TFLITE_FILENAME}" != "no-tflite-dev-archive-available" ]                   && \
@@ -138,7 +154,8 @@ function qimsdk-gst-plugins-qti-prepare() {
             echo -e '\nDISTRO_FEATURES += "tensorflow-lite"' >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
             # Setup tf lite prebuilt, if available
             mv -f ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_TFLITE_FILENAME} ${QIMSDK_ESDK_BASE_DIR}/downloads/tflite-dev.tar.gz;
-            sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:${PKG_WRITE_TASK}\"/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
+            sed -i "s/DEPENDS += \"tensorflow-lite\"/DEPENDS += \"tensorflow-lite-prebuilt\"\\ndo_configure[depends] += \"tensorflow-lite-prebuilt:${PKG_WRITE_TASK}\"/g" \
+                ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
         }                                                                                       || \
         {
             sed -i '/tensorflow-lite/d' ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
@@ -161,8 +178,10 @@ function qimsdk-gst-plugins-qti-prepare() {
                 # Add do_configure dependency on Acceleration engine sdk, needed inside qimsdk environment, if not added already
                 grep -q "${QIMSDK_ESDK_ACCELERATION_ENGINE}:${PKG_WRITE_TASK}" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb || \
                     {
-                        sed -i "/${QIMSDK_ESDK_ACCELERATION_ENGINE}:do_package_write_/d" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb
-                        sed -i "s/DEPENDS += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}\"/DEPENDS += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}\"\\ndo_configure[depends] += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}:${PKG_WRITE_TASK}\"/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb
+                        sed -i "/${QIMSDK_ESDK_ACCELERATION_ENGINE}:do_package_write_/d" \
+                            ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb
+                        sed -i "s/DEPENDS += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}\"/DEPENDS += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}\"\\ndo_configure[depends] += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}:${PKG_WRITE_TASK}\"/g" \
+                            ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb
                     }
             }
         [ "${i}" -eq 1 ] && [ ! -f "${QIMSDK_ESDK_BASE_DIR}/downloads/no-acceleration-engine-2-dir-available" ] && \
@@ -196,8 +215,9 @@ function qimsdk-gst-plugins-qti-device-install-prefix() {
                 dpkg-deb -R ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/${PPKG_NAME} \
                     ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp
                 grep -q "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp/DEBIAN/postinst || \
-                sed -i "s|/usr/lib|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib|g;s|/usr/share|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/share|g;s|#!bin/sh|#!/bin/sh|g" \
-                    ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp/DEBIAN/postinst ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp/DEBIAN/preinst
+                    sed -i "s|/usr/lib|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib|g;s|/usr/share|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/share|g;s|#!bin/sh|#!/bin/sh|g" \
+                        ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp/DEBIAN/postinst \
+                        ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp/DEBIAN/preinst
                 dpkg-deb -b ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp \
                     ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/${PPKG_NAME}
                 rm -rf ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp
@@ -215,8 +235,9 @@ function qimsdk-gst-plugins-qti-device-install-prefix() {
                 dpkg-deb -R ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/${GPKG_NAME} \
                     ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp
                 grep -q "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp/DEBIAN/postinst || \
-                sed -i "s| /usr/lib| ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib|g;s|//opt|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/opt|g;" ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp/DEBIAN/postinst \
-                    ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp/DEBIAN/prerm
+                    sed -i "s| /usr/lib| ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib|g;s|//opt|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/opt|g" \
+                        ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp/DEBIAN/postinst \
+                        ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp/DEBIAN/prerm
                 [ "${GPKG}" == "qti-gstreamer1.0-plugins-good-v4l2" ]                                   && \
                     {
                         cd ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/aarch64/tmp/usr/lib/gstreamer-1.0/
@@ -246,8 +267,9 @@ function qimsdk-gst-plugins-qti-device-install-prefix() {
                 dpkg-deb -R ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/${QPKG_NAME} \
                     ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp
                 grep -q "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp/DEBIAN/postinst || \
-                sed -i "s| /usr/lib| ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib|g;s|//opt|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/opt|g;" ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp/DEBIAN/postinst \
-                    ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp/DEBIAN/prerm
+                    sed -i "s| /usr/lib| ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib|g;s|//opt|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/opt|g;s|--install|--force --install|g" \
+                        ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp/DEBIAN/postinst \
+                        ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp/DEBIAN/prerm
                 cd ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb/qcs6490_odk/tmp/usr/lib/gstreamer-1.0/
                 ln -sf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/opt/qti/usr/lib/gstreamer-1.0/libgstwaylandsink.so.gstreamer1.0-plugins-bad libgstwaylandsink.so
                 cd -
@@ -272,7 +294,8 @@ function qimsdk-gst-plugins-qti-modify-systemd-services() {
                 dpkg-deb -R ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/${SPKG_NAME} \
                     ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp
                 grep -q "OnUnitActiveSec" ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp/lib/systemd/system/*.timer || \
-                sed -i "s|OnCalendar=daily|OnUnitActiveSec=1d|g" ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp/lib/systemd/system/*.timer
+                    sed -i "s|OnCalendar=daily|OnUnitActiveSec=1d|g" \
+                        ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp/lib/systemd/system/*.timer
                 dpkg-deb -b ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp \
                     ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/${SPKG_NAME}
                 rm -rf ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives/tmp
