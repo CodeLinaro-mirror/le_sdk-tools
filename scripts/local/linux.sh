@@ -55,21 +55,22 @@ function qimsdk-local-sync() {
 
     QIMSDK_ESDK_DEVICE_INSTALL_PREFIX="$(cat ${PACKAGES_PATH}qim-sdk-install-prefix.txt 2> /dev/null)"
 
-    [ ! -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]                                             && \
-        {
-            adb push ${PACKAGES_PATH}qim-sdk.sh /etc/profile.d/ || return -2
-            qimsdk-local-device-command "source /etc/profile.d/qim-sdk.sh" || return -3
+    adb push ${PACKAGES_PATH}qim-sdk.sh /etc/profile.d/ || return -2
+    qimsdk-local-device-command "source /etc/profile.d/qim-sdk.sh" || return -3
 
-            [ -n "$(find ${PACKAGES_PATH} -maxdepth 1 -name '*.ipk' -type f -print -quit)" ]    && \
-                {
-                    qimsdk-local-set-opkg-prefix
-                }
+    [ -n "$(find ${PACKAGES_PATH} -maxdepth 1 -name '*.ipk' -type f -print -quit)" ]    && \
+        {
+            qimsdk-local-set-opkg-prefix
         }
 
-    local FILE
-    for FILE in ${PACKAGES_PATH}*; do
-        local PACKAGE=$(basename "${FILE}")
+    local PKGS=(`ls ${PACKAGES_PATH}`)
+
+    for PACKAGE in ${PKGS[@]}; do
+        local FILE="${PACKAGES_PATH}${PACKAGE}"
         local PACKAGE_FORMAT=$(basename -- "${FILE}")
+
+        # Skip QIMSDK_ESDK_DEVICE_INSTALL_PREFIX, as it is needed for uninstall
+        [ "${PACKAGE}" == "qim-sdk-install-prefix.txt" ] && continue;
 
         PACKAGE_FORMAT="${PACKAGE_FORMAT##*.}"
 
@@ -81,12 +82,7 @@ function qimsdk-local-sync() {
                         return -4;
                     }
 
-                local DEVICE_INSTALL_PREFIX=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}
-                [ -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]                                   && \
-                    {
-                        DEVICE_INSTALL_PREFIX='/'
-                    }
-                qimsdk-local-device-command "dpkg --instdir=${DEVICE_INSTALL_PREFIX} --install --force-all /tmp/${PACKAGE}" || \
+                qimsdk-local-device-command "dpkg --instdir=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} --install --force-all /tmp/${PACKAGE}" || \
                     {
                         qimsdk-local-device-command "rm /tmp/${PACKAGE}";
                         print-red "Install package to device failed !!!";
@@ -102,44 +98,17 @@ function qimsdk-local-sync() {
                         return -6;
                     }
 
-                [ -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]                                   && \
+                qimsdk-local-device-command "opkg install -d qimsdk_install_path --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE}" || \
                     {
-                        qimsdk-local-device-command "opkg install --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE}" || \
-                            {
-                                qimsdk-local-device-command "rm /tmp/${PACKAGE}";
-                                print-red "Install package to device failed !!!";
-                                return -7;
-                            }
-                    }                                                                           || \
-                    {
-                        qimsdk-local-device-command "opkg install -d qimsdk_install_path --force-reinstall --force-depends --force-overwrite /tmp/${PACKAGE}" || \
-                            {
-                                qimsdk-local-device-command "rm /tmp/${PACKAGE}";
-                                print-red "Install package to device failed !!!";
-                                return -8;
-                            }
-                    }
-            }
-
-        [ "${PACKAGE_NAME}" == "uninstall.sh" ] && continue;
-
-        # Get package name and add it to uninstall script
-        local PACKAGE_NAME=`echo ${PACKAGE} | cut -d '_' -f 1`
-        grep "${PACKAGE_NAME}" ${PACKAGES_PATH}uninstall.sh 2>&1 > /dev/null                    || \
-            {
-                [ "${PACKAGE_FORMAT}" == "deb" ]                                                && \
-                    {
-                        echo "dpkg --remove --force-all ${PACKAGE_NAME}" >> ${PACKAGES_PATH}uninstall.sh
-                    }
-
-                [ "${PACKAGE_FORMAT}" == "ipk" ]                                                && \
-                    {
-                        echo "opkg remove --force-depends ${PACKAGE_NAME}" >> ${PACKAGES_PATH}uninstall.sh
+                        qimsdk-local-device-command "rm /tmp/${PACKAGE}";
+                        print-red "Install package to device failed !!!";
+                        return -8;
                     }
             }
 
         qimsdk-local-device-command "rm -f /tmp/${PACKAGE}"
         rm -f ${FILE}
+
     done
 
     echo "Device synced successfully !!!"
@@ -155,19 +124,12 @@ function qimsdk-local-packages-remove() {
             return -1
         }
 
-    PACKAGES_PATH=`echo ${PACKAGES_PATH}/ | sed 's/\/\//\//g'`
+    QIMSDK_ESDK_DEVICE_INSTALL_PREFIX="$(cat ${PACKAGES_PATH}qim-sdk-install-prefix.txt 2> /dev/null)"
 
-    # Call uninstall script for according Packages Path
-    adb push ${PACKAGES_PATH}uninstall.sh /tmp                                                  || \
+    qimsdk-local-device-command "rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}"                   || \
         {
-            echo "Pushing uninstall command to device failed !!!"
-            return -2
-        }
-
-    qimsdk-local-device-command "source /tmp/uninstall.sh"                                      || \
-        {
-            echo "Uninstall command execution failed !!!"
-            return -3
+            print-red "Device uninstall failed !!!";
+            return -2;
         }
 
     echo "Packages uninstalled successfully !!!"

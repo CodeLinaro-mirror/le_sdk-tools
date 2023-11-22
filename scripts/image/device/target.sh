@@ -109,7 +109,7 @@ function qimsdk-target-sync() {
     [ ! "${FORMAT}" == "deb" ] && [ ! "${FORMAT}" == "ipk" ]                                    && \
         print-red "Package format argument deb or ipk is required" && return -3
 
-    [ "${TARGET}" == "device" ] && [ ! -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]              && \
+    [ "${TARGET}" == "device" ]                                                                 && \
         {
             adb push ${QIMSDK_BASE_DIR}/qim-sdk.sh /etc/profile.d/ || return -4
             qimsdk-device-command "source /etc/profile.d/qim-sdk.sh" || return -5
@@ -122,6 +122,12 @@ function qimsdk-target-sync() {
                             qimsdk-device-command "echo \"dest qimsdk_install_path ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\" >> /etc/opkg/opkg.conf"
                         }
                 }
+        }
+
+    [ ${TARGET} == "remote" ]                                                                   && \
+        {
+            qimsdk-${TARGET}-pkg-sync${DEV} ${QIMSDK_BASE_DIR}/qim-sdk.sh ${FORMAT}
+            qimsdk-${TARGET}-pkg-sync${DEV} ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt ${FORMAT}
         }
 
     # Check whether code was already prepared
@@ -138,7 +144,6 @@ function qimsdk-target-sync() {
     # Sync only new packages
     local PKG
     local SYNC_FILE="${QIMSDK_WORK_DIR}/${TARGET}_sync.log"
-    local REMOVE_PKG_FILE="${QIMSDK_WORK_DIR}/${TARGET}_packages_remove.sh"
 
     for PKG in "${PKGS[@]}"; do
         local DATE=`date -r ${PKG}`
@@ -162,25 +167,12 @@ function qimsdk-target-sync() {
                             }
                         [ -n "${PPKGS}" ]                                                       && \
                             for PPKG in "${PPKGS[@]}"; do
-                                qimsdk-${TARGET}-pkg-sync${DEV} ${PPKG} ${FORMAT}               && \
-                                {
-                                    sed -i "/ ${PKG_NAME}\"/d" ${REMOVE_PKG_FILE} 2>/dev/null
-                                    [ "${FORMAT}" == "deb" ]                                    && \
-                                        echo "adb shell \"dpkg --remove --force-all ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE} || \
-                                    echo "adb shell \"opkg remove --force-depends ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE}
-                                }
+                                qimsdk-${TARGET}-pkg-sync${DEV} ${PPKG} ${FORMAT}
                             done
                     }
 
-                qimsdk-${TARGET}-pkg-sync${DEV} ${PKG} ${FORMAT}                                && \
-                {
-                    sed -i "/ ${PKG_NAME}\"/d" ${REMOVE_PKG_FILE} 2>/dev/null
-                    [ "${FORMAT}" == "deb" ]                                                    && \
-                        echo "adb shell \"dpkg --remove --force-all ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE} || \
-                    echo "adb shell \"opkg remove --force-depends ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE}
-                }                                                                               || \
-                return -8
-            }
+                qimsdk-${TARGET}-pkg-sync${DEV} ${PKG} ${FORMAT} || return -8
+           }
         PKG=$(basename ${PKG})
         sed -i "/${PKG}/d" ${SYNC_FILE} 2>/dev/null
         echo "${LOG}" >> ${SYNC_FILE}
@@ -270,21 +262,4 @@ function qimsdk-target-sync-artifacts-all() {
     qimsdk-target-sync-artifacts rel
     qimsdk-target-sync-artifacts dev
     qimsdk-target-sync-artifacts all
-}
-
-# Remove installed packages from the target
-#   $1 - (mandatory) target: device or remote
-function qimsdk-target-packages-remove() {
-    local TARGET=$1
-
-    [ ! "${TARGET}" == "device" ] && [ ! "${TARGET}" == "remote" ]                              && \
-        print-red "Target input argument device or remote is required" && return -1
-
-    local REMOVE_PKG_FILE="${QIMSDK_WORK_DIR}/${TARGET}_packages_remove.sh"
-
-    # Remove packages and clear sync log
-    qimsdk-${TARGET}-script-invoke ${REMOVE_PKG_FILE}                                           && \
-        qimsdk-${TARGET}-sync-log-clear
-
-    print-green "Packages removed successfully !!!"
 }

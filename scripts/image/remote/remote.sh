@@ -85,11 +85,6 @@ function qimsdk-remote-sync-staticdev() {
     qimsdk-target-sync staticdev remote $(qimsdk-get-pkg-format)
 }
 
-# Send remove installed packages script the remote target
-function qimsdk-remote-packages-remove() {
-    qimsdk-target-packages-remove remote
-}
-
 [ ! -z "${QIMSDK_ESDK_DEPLOY_URL}" ]                                                            && \
     {
         print-blue "qimsdk-remote-sync-rel";
@@ -100,6 +95,4 @@ function qimsdk-remote-packages-remove() {
         echo "    must be invoked to sync dev packages with the remote target";
         print-blue "qimsdk-remote-sync-staticdev";
         echo "    must be invoked to sync staticdev packages with the remote target";
-        print-blue "qimsdk-remote-packages-remove";
-        echo "    must be invoked to remove packages, installed by the remote target script";
     }

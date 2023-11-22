@@ -67,15 +67,15 @@ function qimsdk-gst-plugins-qti-prepare() {
         {
             sed -i "s|ExecStart=/usr/bin/gstd|ExecStart=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gstd|g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd/gstd.service
             sed -i "s|GST_ML_MODULES_DIR=\"\${GST_PLUGINS_QTI_OSS_INSTALL_LIBDIR}/gstreamer-1.0/ml/modules\"|GST_ML_MODULES_DIR=\"${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\${GST_PLUGINS_QTI_OSS_INSTALL_LIBDIR}/gstreamer-1.0/ml/modules\"|g" ${QIMSDK_BASE_DIR}/repo/src/vendor/qcom/opensource/gst-plugins-qti-oss/gst-plugin-base/gst/ml/CMakeLists.txt
-            sed -i "s|/usr/bin/gst-client-1.0|/data/sdk/usr/bin/gst-client-1.0|g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd_%.bbappend
+            sed -i "s|/usr/bin/gst-client-1.0|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gst-client-1.0|g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd_%.bbappend
 
             echo "export PATH=\$PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin" > ${QIMSDK_BASE_DIR}/qim-sdk.sh
             echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "export GST_PLUGIN_PATH=\$GST_PLUGIN_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/gstreamer-1.0" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
 
             [ "${PKG_WRITE_TASK}" == "do_package_write_ipk" ]                                   && \
                 {
                     echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
-                    echo "export GST_PLUGIN_PATH=\$GST_PLUGIN_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/gstreamer-1.0" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                     echo "export GST_PLUGIN_SCANNER=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/libexec/gstreamer-1.0/gst-plugin-scanner" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                 }                                                                               || \
                     {
@@ -106,12 +106,25 @@ function qimsdk-gst-plugins-qti-prepare() {
             sed -i 's/do_package_write_ipk/do_package_write_deb/g' ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/*.bb*
             grep -q "PV" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/glibc-ubuntu.bb || \
                 {
-                    echo -e '\nPV = "2.31"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/glibc-ubuntu.bb
-                    echo -e '\nPV = "1.16.2"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/gstreamer1.0-libav-ubuntu.bb
-                    echo -e '\nPV = "1.16.2"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/gstreamer1.0-plugins-ugly-ubuntu.bb
-                    echo -e '\nPV = "1.16.4"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/gstreamer1.0-ubuntu.bb
-                    echo -e '\nPV = "1.16.2"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/gstreamer1.0-rtsp-server-ubuntu.bb
-                    echo -e '\nPV = "1.0"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/libgudev-ubuntu.bb
+                   for RECIPE in $(ls ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/); do
+
+                        # Do not add PV to ubuntu-toolchain recipe
+                        [ "${RECIPE}" == "ubuntu-toolchain.bb" ] && continue
+
+                        PV=$(sed -n "s/^.*_\([.0-9]\+\).*$/\1/p" ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/${RECIPE} | head -1)
+
+                        # Increment libgstreamer1.0-0 minor version to have it installed last
+                        [ "${RECIPE}" == "gstreamer1.0-ubuntu.bb" ] && {
+
+                            FIRST_DIGIT=$(echo ${PV} | sed 's/\./ /g' | awk '{print $1}')
+                            SECOND_DIGIT=$(echo ${PV} | sed 's/\./ /g' | awk '{print $2}')
+                            THIRD_DIGIT=$(($(echo ${PV} | sed 's/\./ /g' | awk '{print $3}') + 2 | bc))
+
+                            PV=${FIRST_DIGIT}.${SECOND_DIGIT}.${THIRD_DIGIT}
+                        }
+
+                        echo -e '\n'PV = '"'${PV}'"' >> ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ubuntu/recipes-toolchain/ubuntu/${RECIPE}
+                    done
                 }
         }
 
@@ -156,6 +169,12 @@ function qimsdk-gst-plugins-qti-prepare() {
             {
                 echo -e "\nDISTRO_FEATURES += \"qti-"${QIMSDK_ESDK_ACCELERATION_ENGINE}"\"" >> ${QIMSDK_ESDK_BASE_DIR}/conf/local.conf
                 mkdir -p ${QIMSDK_ESDK_BASE_DIR}/layers/poky/meta-qti-ml-prop/recipes/${QIMSDK_ESDK_ACCELERATION_ENGINE}-sdk
+                # Add do_configure dependency on Acceleration engine sdk, needed inside qimsdk environment, if not added already
+                grep -q "${QIMSDK_ESDK_ACCELERATION_ENGINE}:${PKG_WRITE_TASK}" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb || \
+                    {
+                        sed -i "/${QIMSDK_ESDK_ACCELERATION_ENGINE}:do_package_write_/d" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb
+                        sed -i "s/DEPENDS += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}\"/DEPENDS += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}\"\\ndo_configure[depends] += \"${QIMSDK_ESDK_ACCELERATION_ENGINE}:${PKG_WRITE_TASK}\"/g" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-ml${QIMSDK_ESDK_ACCELERATION_ENGINE}.bb
+                    }
             }
     done
 
