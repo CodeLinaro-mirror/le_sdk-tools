@@ -60,7 +60,7 @@ function qimsdk-gst-plugins-qti-prepare() {
     # Append do_package_write_ipk or do_package_write_deb task to packages
     grep -q ${PKG_WRITE_TASK} ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb || \
         sed -i "s/\([^-]\)\(gst[.a-zA-Z0-9-]*\)/\1\2:${PKG_WRITE_TASK}/g" \
-            {QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
+            ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bb
 
     # Remove packagegroup-qti-gst.bbappend
     rm -rf ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/packagegroup-qti-gst.bbappend
