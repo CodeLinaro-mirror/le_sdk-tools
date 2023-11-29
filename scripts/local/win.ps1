@@ -97,8 +97,7 @@ function global:qimsdk-local-sync {
         if ($PACKAGE_NAME -eq "remote_sync.log") {continue;}
 
         # Get Checksum for current package
-        $CHECKSUM= (Select-String -SimpleMatch -Pattern "/${PACKAGE_NAME}" -Path "${LOCAL_LOG_FILE}")
-        $CHECKSUM= "$CHECKSUM".split(":")[2]
+        $CHECKSUM= (Select-String -SimpleMatch -Pattern "/${PACKAGE_NAME}" -Path "${LOCAL_LOG_FILE}" | Select-Object -ExpandProperty Line)
         $CHECKSUM= "$CHECKSUM".split(" ")[0]
 
         # Check pulled device log to see if package already present
@@ -147,7 +146,10 @@ function global:qimsdk-local-sync {
     Invoke-Expression "adb push $DEVICE_PULLED_LOG_FILE ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/"
     Remove-Item "${DEVICE_PULLED_LOG_FILE}"
     Remove-Item "${LOCAL_LOG_FILE}"
-    Remove-Item "${REMOTE_LOG_FILE}"
+    if (Test-Path -Path "${FOLDER}\*" -Include "${REMOTE_LOG_FILE}") {
+        Remove-Item "${REMOTE_LOG_FILE}"
+    }
+
     popd # ${FOLDER}
 
     Write-Host "Device sync ready !!!"
