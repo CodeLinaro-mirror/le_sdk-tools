@@ -127,9 +127,21 @@ function qimsdk-target-sync() {
 
     [ ${TARGET} == "remote" ]                                                                   && \
         {
-            rsync -a --progress ${QIMSDK_BASE_DIR}/qim-sdk.sh ${QIMSDK_ESDK_DEPLOY_URL}
-            rsync -a --progress ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt ${QIMSDK_ESDK_DEPLOY_URL}
-            rsync -a --progress ${QIMSDK_WORK_DIR}/local_md5.log ${QIMSDK_ESDK_DEPLOY_URL}
+            [ -z "${QIMSDK_ESDK_DEPLOY_URL}" ]                                                  || \
+                {
+                    rsync -a --progress ${QIMSDK_BASE_DIR}/qim-sdk.sh ${QIMSDK_ESDK_DEPLOY_URL}
+                    rsync -a --progress ${QIMSDK_BASE_DIR}/sdk-tools-git-logs.txt ${QIMSDK_ESDK_DEPLOY_URL}
+                    rsync -a --progress ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt ${QIMSDK_ESDK_DEPLOY_URL}
+                    rsync -a --progress ${QIMSDK_WORK_DIR}/local_md5.log ${QIMSDK_ESDK_DEPLOY_URL}
+                }
+
+            [ -z "${QIMSDK_ESDK_DEPLOY_URL_DEV}" ]                                              || \
+                {
+                    rsync -a --progress ${QIMSDK_BASE_DIR}/qim-sdk.sh ${QIMSDK_ESDK_DEPLOY_URL_DEV}
+                    rsync -a --progress ${QIMSDK_BASE_DIR}/sdk-tools-git-logs.txt ${QIMSDK_ESDK_DEPLOY_URL_DEV}
+                    rsync -a --progress ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt ${QIMSDK_ESDK_DEPLOY_URL_DEV}
+                    rsync -a --progress ${QIMSDK_WORK_DIR}/local_md5.log ${QIMSDK_ESDK_DEPLOY_URL_DEV}
+                }
         }
 
     # Check whether code was already prepared
@@ -243,6 +255,7 @@ function qimsdk-target-sync-artifacts() {
 
     # Copy Files needed in install scripts to packages dir to be added to artifacts zip
     cp ${QIMSDK_BASE_DIR}/qim-sdk.sh ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}
+    cp ${QIMSDK_BASE_DIR}/sdk-tools-git-logs.txt ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}
     cp ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}
     cp ${QIMSDK_WORK_DIR}/local_md5.log ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}
 

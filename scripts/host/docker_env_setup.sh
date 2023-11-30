@@ -91,6 +91,12 @@ function qimsdk-docker-build-image() {
 
     QIMSDK_ARG_ESDK_SH=`basename ${QIMSDK_ARG_ESDK_SH}`
 
+    git -C ${QIMSDK_DOCKER_DIR} log --oneline |& tee ${QIMSDK_TMP_DIR}/sdk-tools-git-logs.txt 1>/dev/null || \
+        {
+            print-red "FAILED: command: git log --oneline for ${QIMSDK_DOCKER_DIR}"
+            return -9
+        }
+
     local TFLITE_FILE=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Tflite_prebuilt_file' | tr -d '"'`
     local QIMSDK_ARG_TFLITE_FILENAME=no-tflite-dev-archive-available
 
@@ -101,7 +107,7 @@ function qimsdk-docker-build-image() {
                     {
                         print-red "Cannot add tflite dev archive to tmp directory !!!"
                         rm -rf ${QIMSDK_TMP_DIR}
-                        return -9
+                        return -10
                     }
                 QIMSDK_ARG_TFLITE_FILENAME=`basename ${TFLITE_FILE}`
             }                                                                                   || \
@@ -127,7 +133,7 @@ function qimsdk-docker-build-image() {
                     {
                         print-red "Cannot add ${ACCELERATION_ENGINE} dir to tmp folder !!!"
                         rm -rf ${QIMSDK_ACCELERATION_ENGINE_TMP_DIR}
-                        return -10
+                        return -11
                     }
                     rm -f ${QIMSDK_ACCELERATION_ENGINE_TMP_DIR}/${ACCELERATION_ENGINE_TMP_PATH}/lib/aarch64-oe-linux-gcc8.2/libatomic.so.1
                 }                                                                               || \
@@ -168,7 +174,7 @@ function qimsdk-docker-build-image() {
     [ "${QIMSDK_ARG_GST_PACKAGE_GROUP}" != "packagegroup-qti-gst" ]                             && \
         [ "${QIMSDK_ARG_GST_PACKAGE_GROUP}" != "packagegroup-qti-gst-basic" ]                   && \
         print-red "Gst package group is not packagegroup-qti-gst or packagegroup-qti-gst-basic !!!" && \
-        return -11
+        return -12
 
     local QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES=`cat ${PATH_TO_CONFIG_JSON} | jq '.Gst_plugins_qti_oss_dependencies[]' | tr -d '"'`
 
@@ -194,7 +200,7 @@ function qimsdk-docker-build-image() {
 
     local rc=$?
     rm -rf ${QIMSDK_TMP_DIR}
-    [ "${rc}" -ne 0 ] && print-red "Build image failed !!!" && return -12
+    [ "${rc}" -ne 0 ] && print-red "Build image failed !!!" && return -13
 
     print-green "Build image completed successfully !!!"
     return 0;

@@ -142,6 +142,10 @@ RUN [ -d ${QIMSDK_ESDK_BASE_DIR}/src ] || mkdir ${QIMSDK_ESDK_BASE_DIR}/src
 RUN ln -sf ${QIMSDK_ARG_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/
 RUN ln -sf ${QIMSDK_ARG_BASE_DIR}/repo/poky ${QIMSDK_ARG_BASE_DIR}/poky
 
+# Add sdk-tools git log
+COPY --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                      \
+        tmp/sdk-tools-git-logs.txt ${QIMSDK_BASE_DIR}/
+
 # Set tflite filename
 ARG QIMSDK_ARG_TFLITE_FILENAME
 ENV QIMSDK_ESDK_TFLITE_FILENAME=${QIMSDK_ARG_TFLITE_FILENAME}

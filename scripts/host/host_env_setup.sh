@@ -301,6 +301,13 @@ function qimsdk-host-env-setup() {
     QIMSDK_WORK_DIR=${QIMSDK_BASE_DIR}/work
     QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts
 
+    # Add sdk-tools git log
+    git -C ${QIMSDK_TOOLS_DIR} log --oneline |& tee ${QIMSDK_BASE_DIR}/sdk-tools-git-logs.txt 1>/dev/null || \
+        {
+            print-red "FAILED: command: git log --oneline for ${QIMSDK_TOOLS_DIR}"
+            return -1
+        }
+
     # shift removes one input argument to avoid using it by env_setup.sh
     shift
     source ${QIMSDK_SCRIPTS}/env_setup.sh

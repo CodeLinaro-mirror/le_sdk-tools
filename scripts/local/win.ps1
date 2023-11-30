@@ -95,6 +95,7 @@ function global:qimsdk-local-sync {
         if ($PACKAGE_NAME -eq "local_md5.log") {continue;}
         if ($PACKAGE_NAME -eq "device_sync.log") {continue;}
         if ($PACKAGE_NAME -eq "remote_sync.log") {continue;}
+        if ($PACKAGE_NAME -eq "sdk-tools-git-logs.txt") {continue;}
 
         # Get Checksum for current package
         $CHECKSUM= (Select-String -SimpleMatch -Pattern "/${PACKAGE_NAME}" -Path "${LOCAL_LOG_FILE}" | Select-Object -ExpandProperty Line)
