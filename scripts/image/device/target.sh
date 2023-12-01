@@ -167,13 +167,6 @@ function qimsdk-target-sync() {
                         print-red "Failed to check for prerequisite packages";
                     }
 
-<<<<<<< HEAD   (e582b1 sdk-tools: Fix compilation issue)
-                qimsdk-${TARGET}-pkg-sync${DEV} ${PKG} ${FORMAT} || return -8
-           }
-        PKG=$(basename ${PKG})
-        sed -i "/${PKG}/d" ${SYNC_FILE} 2>/dev/null
-        echo "${LOG}" >> ${SYNC_FILE}
-=======
                 [ -n "${PPKGS}" ]                                                               && \
                     for PPKG in "${PPKGS[@]}"; do
                         qimsdk-${TARGET}-pkg-sync${DEV} ${PPKG} ${FORMAT}
@@ -186,7 +179,6 @@ function qimsdk-target-sync() {
                 rm -f ${TARGET_PULLED_LOG_FILE} 2>&1>/dev/null
                 return -9
             }
->>>>>>> CHANGE (bc6b66 sdk-tools: Update package sync method using md5sum)
     done
 
     qimsdk-${TARGET}-update-log ${VARIANT}
