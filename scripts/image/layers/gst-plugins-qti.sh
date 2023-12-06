@@ -75,8 +75,6 @@ function qimsdk-gst-plugins-qti-prepare() {
 
     [ -z "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" ]                                               || \
         {
-            sed -i "s|ExecStart=/usr/bin/gstd|ExecStart=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gstd|g" \
-                ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd/gstd.service
             sed -i "s|GST_ML_MODULES_DIR=\"\${GST_PLUGINS_QTI_OSS_INSTALL_LIBDIR}/gstreamer-1.0/ml/modules\"|GST_ML_MODULES_DIR=\"${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}\${GST_PLUGINS_QTI_OSS_INSTALL_LIBDIR}/gstreamer-1.0/ml/modules\"|g" \
                 ${QIMSDK_BASE_DIR}/repo/src/vendor/qcom/opensource/gst-plugins-qti-oss/gst-plugin-base/gst/ml/CMakeLists.txt
             sed -i "s|/usr/bin/gst-client-1.0|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gst-client-1.0|g" \
@@ -88,10 +86,14 @@ function qimsdk-gst-plugins-qti-prepare() {
 
             [ "${PKG_WRITE_TASK}" == "do_package_write_ipk" ]                                   && \
                 {
+                    sed -i "s|ExecStart=/usr/bin/gstd|ExecStart=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gstd|g;s|EnvironmentFile=-/etc/default/gstd|EnvironmentFile=-${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/default/gstd\nEnvironment=LD_LIBRARY_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib\nEnvironment=GST_PLUGIN_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/gstreamer-1.0\nEnvironment=GST_PLUGIN_SCANNER=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/libexec/gstreamer-1.0/gst-plugin-scanner|g" \
+                        ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd/gstd.service
                     echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                     echo "export GST_PLUGIN_SCANNER=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/libexec/gstreamer-1.0/gst-plugin-scanner" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                 }                                                                               || \
                     {
+                        sed -i "s|ExecStart=/usr/bin/gstd|ExecStart=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gstd|g;s|EnvironmentFile=-/etc/default/gstd|EnvironmentFile=-${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/default/gstd\nEnvironment=LD_LIBRARY_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib\nEnvironment=GST_PLUGIN_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu/gstreamer-1.0\nEnvironment=GST_PLUGIN_SCANNER=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner|g" \
+                            ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd/gstd.service
                         echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                         echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                         echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/aarch64-linux-gnu" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
