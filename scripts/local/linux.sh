@@ -10,24 +10,18 @@ function qimsdk-local-device-command ()
     local CMD=$1
     local rc
 
-    adb shell "${CMD} && echo 0 > /data/rc.txt"
+    adb shell "${CMD} && echo 0 > /tmp/rc.txt"
     rc=$?
     [ "${rc}" -ne 0 ] && echo "Executing Command ${CMD} failed !!!" && return ${rc}
 
     local TMP_DIR=`mktemp -d`
 
-    adb pull /data/rc.txt ${TMP_DIR}/rc.txt 2>&1 > /dev/null
+    adb pull /tmp/rc.txt ${TMP_DIR}/rc.txt 2>&1 > /dev/null
     rc=$?
-    adb shell "rm -f /data/rc.txt"
-    [ "${rc}" -ne 0 ] && (rm -f ${TMP_DIR}/rc.txt; echo "Command ${CMD} failed !!!") && return ${rc}
+    adb shell "rm -f /tmp/rc.txt"
+    [ "${rc}" -ne 0 ] && (rm -f ${TMP_DIR}/rc.txt; echo "Command ${CMD} failed on device!!!") && return ${rc}
 
-    rc=`cat ${TMP_DIR}/rc.txt`
     rm -f ${TMP_DIR}/rc.txt
-    [ "${rc}" == "0" ]                                                                          || \
-        {
-            echo "Command ${CMD} return code is not 0 !!!";
-            return ${rc};
-        }
 
     return ${rc}
 }

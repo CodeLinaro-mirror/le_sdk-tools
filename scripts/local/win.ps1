@@ -9,36 +9,32 @@ function global:qimsdk-local-device-command {
     param (
         [Parameter (Mandatory = $true)] [string]${CMD}
     )
-    adb shell "${CMD} && echo 0 > /data/rc.txt"
-    $rc = $LastExitCode
 
-    if ($rc -ne 0) {
+    adb shell "${CMD} && echo 0 > /tmp/rc.txt"
+    if ($LastExitCode -ne 0) {
         echo "Executing Command ${CMD} failed !!!";
         return 1;
     }
 
     ${TMP_DIR} = [System.IO.Path]::GetTempPath()
 
-    adb pull /data/rc.txt ${TMP_DIR} 2>&1 | Out-null
-    $rc = $LastExitCode
-
-    adb shell "rm -f /data/rc.txt"
-    if ($rc -ne 0) {
-        echo "Command ${CMD} failed !!!";
+    adb pull /tmp/rc.txt ${TMP_DIR} 2>&1 | Out-null
+    if ($LastExitCode -ne 0) {
+        echo "${CMD} failed on device !!!";
         return 2;
     }
 
-    $rc = cat ${TMP_DIR}/rc.txt
-    if ("$rc" -ne "0") {
-        echo "Command ${CMD} return code is not 0 !!!";
+    adb shell "rm -f /tmp/rc.txt"
+    if ($LastExitCode -ne 0) {
+        echo "Command adb shell rm -f /tmp/rc.txt failed !!!";
         return 3;
     }
-
 }
 
 # Propagate the correct install path to opkg config
 function global:qimsdk-local-set-opkg-prefix {
-    qimsdk-local-device-command "cat /etc/opkg/opkg.conf | grep `"dest qimsdk_install_path ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}`"" 2>&1 | Out-null
+    $CMD = "dest qimsdk_install_path ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}"
+    qimsdk-local-device-command "grep '$CMD' /etc/opkg/opkg.conf" 2>&1 | Out-null
     if ($LastExitCode -ne 0) {
         qimsdk-local-device-command "sed -i '/qimsdk_install_path/d' /etc/opkg/opkg.conf"
         qimsdk-local-device-command "echo `"dest qimsdk_install_path ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}`" >> /etc/opkg/opkg.conf"
