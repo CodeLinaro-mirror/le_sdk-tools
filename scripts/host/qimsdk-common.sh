@@ -135,6 +135,7 @@ function qimsdk-fetch-scripts-src-poky() {
     mkdir -p ${QIMSDK_ESDK_BASE_DIR}/src
 
     rsync -a ${QIMSDK_TOOLS_DIR}/scripts/image/* ${QIMSDK_SCRIPTS}/                             && \
+    rsync -a ${QIMSDK_TOOLS_DIR}/scripts/local ${QIMSDK_SCRIPTS}/                               && \
     rsync -a ${QIMSDK_TOOLS_DIR}/../src/* ${QIMSDK_BASE_DIR}/repo/src/                          && \
     rsync -a ${QIMSDK_TOOLS_DIR}/../poky/* ${QIMSDK_BASE_DIR}/repo/poky/                        && \
     rsync -a ${QIMSDK_TOOLS_DIR}/../.repo/projects/* ${QIMSDK_BASE_DIR}/repo/.repo/projects/    && \

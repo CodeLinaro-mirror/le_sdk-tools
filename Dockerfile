@@ -122,6 +122,10 @@ ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts
 ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
         sdk-tools/scripts/image ${QIMSDK_SCRIPTS}
 
+# Add local scripts to be exported in artifacts zip
+ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
+        sdk-tools/scripts/local ${QIMSDK_SCRIPTS}/local
+
 # Set work dir
 ENV QIMSDK_WORK_DIR=${QIMSDK_BASE_DIR}/work
 
