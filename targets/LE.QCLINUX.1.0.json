@@ -1,7 +1,7 @@
 {
-    "Image_OS": "ubuntu18",
-    "Additional_tag": "sdk-18",
-    "eSDK_shell_file": "<path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk/fullstack-debug-x86_64-qti-robotics-image-aarch64-qrb5165-rb5-toolchain-ext-<AU-ID>.sh",
+    "Image_OS": "ubuntu20",
+    "Additional_tag": "sdk-20",
+    "eSDK_shell_file": "<path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk/qcom-wayland-x86_64-qcom-console-image-armv8-2a-qcm6490-toolchain-ext-0.0.sh",
     "Base_Dir_Location": "<path-to-the-directory-where-the-project-is-initialized-applies-only-for-host-build-variant>",
     "Tflite_prebuilt_file": "<path-to-the-tf-lite-prebuilt-file>",
     "Acceleration_engines":
@@ -20,7 +20,7 @@
     "Deploy_dev_URL": "",
     "Deploy_QIMSDK_Artifacts_URL":"",
     "Deploy_QIMSDK_Artifacts_tag":"",
-    "Gst_package_group": "packagegroup-qti-gst",
-    "Gst_plugins_qti_oss_dependencies": ["linux-msm-headers", "ffmpeg", "cairo", "gdk-pixbuf", "jansson", "json-glib", "liba52", "libdaemon", "libgudev", "lame", "librsvg", "libsoup-2.4", "libtheora", "libusb1", "libwebp", "mpg123", "orc", "readline", "sbc", "speex", "taglib"],
+    "Gst_package_group": "packagegroup-qti-gst-basic",
+    "Gst_plugins_qti_oss_dependencies":["liba52", "libdaemon", "libgudev", "lame", "libpsl", "librsvg", "libsoup-2.4", "libtheora", "libwebp", "mpg123", "orc"],
     "Device_install_prefix":"/opt/qti/qimsdk"
 }

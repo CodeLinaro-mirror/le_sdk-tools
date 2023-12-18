@@ -10,24 +10,18 @@ function qimsdk-local-device-command ()
     local CMD=$1
     local rc
 
-    adb shell "${CMD} && echo 0 > /data/rc.txt"
+    adb shell "${CMD} && echo 0 > /tmp/rc.txt"
     rc=$?
-    [ "${rc}" -ne 0 ] && print-red "Executing Command ${CMD} failed !!!" && return ${rc}
+    [ "${rc}" -ne 0 ] && echo "Executing Command ${CMD} failed !!!" && return ${rc}
 
     local TMP_DIR=`mktemp -d`
 
-    adb pull /data/rc.txt ${TMP_DIR}/rc.txt 2>&1 > /dev/null
+    adb pull /tmp/rc.txt ${TMP_DIR}/rc.txt 2>&1 > /dev/null
     rc=$?
-    adb shell "rm -f /data/rc.txt"
-    [ "${rc}" -ne 0 ] && (rm -f ${TMP_DIR}/rc.txt; print-red "Command ${CMD} failed !!!") && return ${rc}
+    adb shell "rm -f /tmp/rc.txt"
+    [ "${rc}" -ne 0 ] && (rm -f ${TMP_DIR}/rc.txt; echo "Command ${CMD} failed on device!!!") && return ${rc}
 
-    rc=`cat ${TMP_DIR}/rc.txt`
     rm -f ${TMP_DIR}/rc.txt
-    [ "${rc}" == "0" ]                                                                          || \
-        {
-            print-red "Command ${CMD} return code is not 0 !!!";
-            return ${rc};
-        }
 
     return ${rc}
 }
@@ -78,7 +72,7 @@ function qimsdk-local-sync() {
 
     adb pull ${DEVICE_LOG_FILE} ${PACKAGES_PATH}                                                || \
         {
-            print-red "Failed to pull device log !!!"
+            echo "Failed to pull device log !!!"
             return -5
         }
 
@@ -88,9 +82,11 @@ function qimsdk-local-sync() {
 
         # Skip Non-package files
         [ "${PACKAGE}" == "qim-sdk-install-prefix.txt" ] && continue;
-        [ "${PACKAGE}" == "device_sync.log" ] && continue;
+        [ "${PACKAGE}" == "qim-sdk.sh" ] && continue;
         [ "${PACKAGE}" == "local_md5.log" ] && continue;
+        [ "${PACKAGE}" == "device_sync.log" ] && continue;
         [ "${PACKAGE}" == "remote_sync.log" ] && continue;
+        [ "${PACKAGE}" == "sdk-tools-git-logs.txt" ] && continue;
 
         local CHECKSUM=`grep "/${PACKAGE}" ${LOCAL_LOG_FILE} | cut -d ' ' -f1`
         PACKAGE_FORMAT="${PACKAGE_FORMAT##*.}"
@@ -107,7 +103,7 @@ function qimsdk-local-sync() {
                         qimsdk-local-device-command "dpkg --instdir=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} --install --force-all /tmp/${PACKAGE}" || \
                             {
                                 qimsdk-local-device-command "rm /tmp/${PACKAGE}";
-                                print-red "Install package to device failed !!!";
+                                echo "Install package to device failed !!!";
                                 return -7;
                             }
                     }
@@ -125,10 +121,10 @@ function qimsdk-local-sync() {
                                 qimsdk-local-device-command "rm /tmp/${PACKAGE}";
                                 adb push ${PACKAGES_PATH}device_sync.log ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/ || \
                                     {
-                                        print-red "Failed to push updated log to device !!!"
+                                        echo "Failed to push updated log to device !!!"
                                         return -9
                                     }
-                                print-red "Install package to device failed !!!";
+                                echo "Install package to device failed !!!";
                                 return -10;
                             }
                     }
@@ -141,7 +137,7 @@ function qimsdk-local-sync() {
 
     adb push ${PACKAGES_PATH}device_sync.log ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/          || \
         {
-            print-red "Failed to push updated log to device !!!"
+            echo "Failed to push updated log to device !!!"
             return -11
         }
 
@@ -166,7 +162,7 @@ function qimsdk-local-packages-remove() {
 
     qimsdk-local-device-command "rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}"                   || \
         {
-            print-red "Device uninstall failed !!!";
+            echo "Device uninstall failed !!!";
             return -2;
         }
 
