@@ -71,7 +71,7 @@ function qimsdk-device-prepare() {
 
 # Identify the package management configuration
 function qimsdk-get-pkg-format() {
-    [ -d ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb ] && echo "deb" || echo "ipk"
+    [ -d "${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb" ] && echo "deb" || echo "ipk"
 }
 
 # Check whether compiled package is already present on the device
@@ -171,7 +171,7 @@ function qimsdk-device-sync-dbg() {
 
 # Remove installed packages from the device
 function qimsdk-device-packages-remove() {
-    qimsdk-device-command "rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}"                         || \
+    qimsdk-target-packages-remove device                                                        || \
         {
             print-red "Device uninstall failed !!!";
             return -1;
@@ -194,7 +194,7 @@ function qimsdk-device-select() {
         echo -e "\n"
         read -p 'Please choose device: ' QIMSDK_INPUT_DEVICE
 
-        [ $QIMSDK_INPUT_DEVICE -lt 1 ] || [ $QIMSDK_INPUT_DEVICE -gt $i ]                                     && \
+        [ "$QIMSDK_INPUT_DEVICE" -lt 1 ] || [ "$QIMSDK_INPUT_DEVICE" -gt $i ]                       && \
             {
                 echo "Please enter a number between 1 and $i!!!"
                 continue

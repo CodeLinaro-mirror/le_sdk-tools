@@ -91,6 +91,46 @@ function qimsdk-target-check-for-prerequisites() {
     done < <(find ${QIMSDK_ESDK_BASE_DIR}/tmp/work/aarch64-oe-linux/ubuntu-base/20.04-r0/ubuntu_base_tmp/var/cache/apt/archives ${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/${PKG_FORMAT}/ -type f \( -name "libgstreamer1.0-0*" -o -name "libgdk-pixbuf-2.0-0*.${PKG_FORMAT}" -o -name "libjansson*.${PKG_FORMAT}" ! -iname "*-dev_*" ! -iname "*-staticdev_*" ! -iname "*-doc_*" ! -iname "*-dbg_*" \) -print0)
 }
 
+# Check the installed packages on the target
+#   $1 - (mandatory) variant: rel or dbg
+#   $2 - (mandatory) format: deb or ipk
+function qimsdk-check-installed-packages() {
+    local VARIANT=$1
+    local FORMAT=$2
+    adb shell ls "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/device_sync.log" > /dev/null 2>&1    || \
+        {
+            # Get updated packages
+            local PKGS
+            qimsdk-target-get-updated-packages-${VARIANT} PKGS ${FORMAT}                        || \
+                {
+                    print-red "Failed to get updated packages";
+                    return -1
+                }
+
+            local INITIALLY_INSTALLED_PKGS
+
+            [ "${FORMAT}" == "deb" ]                                                            && \
+                INITIALLY_INSTALLED_PKGS=$(adb shell dpkg --get-selections | awk '{print $1}')  || \
+                    INITIALLY_INSTALLED_PKGS=$(adb shell opkg list-installed | cut -d ' ' -f 1)
+
+            [ -z "${INITIALLY_INSTALLED_PKGS}" ]                                                && \
+                {
+                    print-red "Failed to get list of initially installed packages";
+                    print-red "Please, check adb connection with the device.";
+                    return -2
+                }
+
+            for PKG in "${PKGS[@]}"; do
+                PKG_NAME=$(basename -- ${PKG} | cut -d '_' -f 1 )
+                echo ${INITIALLY_INSTALLED_PKGS} | grep -wq "${PKG_NAME}"
+                rc=$?
+                [ "${rc}" -eq 0 ] && print-red ${PKG_NAME} \(${PKG}\) is already installed on the target. Exiting... && return -3
+            done
+
+            return 0
+        }
+}
+
 # Sync compiled packages with the target
 #   $1 - (mandatory) variant: rel or dbg
 #   $2 - (mandatory) target: device or remote
@@ -109,10 +149,14 @@ function qimsdk-target-sync() {
     [ ! "${FORMAT}" == "deb" ] && [ ! "${FORMAT}" == "ipk" ]                                    && \
         print-red "Package format argument deb or ipk is required" && return -3
 
+    qimsdk-check-installed-packages ${VARIANT} ${FORMAT}
+    rc=$?
+    [ "${rc}" -eq 0 ] || return -4
+
     [ "${TARGET}" == "device" ]                                                                 && \
         {
-            adb push ${QIMSDK_BASE_DIR}/qim-sdk.sh /etc/profile.d/ || return -4
-            qimsdk-device-command "source /etc/profile.d/qim-sdk.sh" || return -5
+            adb push ${QIMSDK_BASE_DIR}/qim-sdk.sh /etc/profile.d/ || return -5
+            qimsdk-device-command "source /etc/profile.d/qim-sdk.sh" || return -6
             qimsdk-device-command "mkdir -p ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc"
 
             [ "${FORMAT}" == "ipk" ]                                                            && \
@@ -145,17 +189,18 @@ function qimsdk-target-sync() {
         }
 
     # Check whether code was already prepared
-    [ ! -f "${QIMSDK_WORK_DIR}/prepared" ] && print-red "Layers are not prepared" && return -6
+    [ ! -f "${QIMSDK_WORK_DIR}/prepared" ] && print-red "Layers are not prepared" && return -7
 
     local TARGET_PULLED_LOG_FILE="${QIMSDK_WORK_DIR}/${TARGET}_sync.log"
-    qimsdk-${TARGET}-pull-log ${VARIANT} || return -7
+    local REMOVE_PKG_FILE="${QIMSDK_WORK_DIR}/${TARGET}_packages_remove.sh"
+    qimsdk-${TARGET}-pull-log ${VARIANT} || return -8
 
     # Get updated packages
     local PKGS
     qimsdk-target-get-updated-packages-${VARIANT} PKGS ${FORMAT}                                || \
         {
             print-red "Failed to get updated packages";
-            return -8
+            return -9
         }
 
     # Sync only new packages
@@ -181,16 +226,28 @@ function qimsdk-target-sync() {
 
                 [ -n "${PPKGS}" ]                                                               && \
                     for PPKG in "${PPKGS[@]}"; do
-                        qimsdk-${TARGET}-pkg-sync${DEV} ${PPKG} ${FORMAT}
+                        qimsdk-${TARGET}-pkg-sync${DEV} ${PPKG} ${FORMAT}                       && \
+                        {
+                            sed -i "/ ${PKG_NAME}\"/d" ${REMOVE_PKG_FILE} 2>/dev/null
+                            [ "${FORMAT}" == "deb" ]                                            && \
+                                echo "adb shell \"dpkg --remove --force-all ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE} || \
+                                    echo "adb shell \"opkg remove --force-depends ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE}
+                        }
                     done
             }
 
-        qimsdk-${TARGET}-pkg-sync${DEV} ${PKG} ${FORMAT}                                        || \
+        qimsdk-${TARGET}-pkg-sync${DEV} ${PKG} ${FORMAT}                                        && \
             {
-                qimsdk-${TARGET}-update-log ${VARIANT}
-                rm -f ${TARGET_PULLED_LOG_FILE} 2>&1>/dev/null
-                return -9
-            }
+                sed -i "/ ${PKG_NAME}\"/d" ${REMOVE_PKG_FILE} 2>/dev/null
+                    [ "${FORMAT}" == "deb" ]                                                    && \
+                        echo "adb shell \"dpkg --remove --force-all ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE} || \
+                            echo "adb shell \"opkg remove --force-depends ${PKG_NAME}\"" >> ${REMOVE_PKG_FILE}
+            }                                                                                   || \
+                {
+                    qimsdk-${TARGET}-update-log ${VARIANT}
+                    rm -f ${TARGET_PULLED_LOG_FILE} 2>&1>/dev/null
+                    return -10
+                }
     done
 
     qimsdk-${TARGET}-update-log ${VARIANT}
@@ -287,4 +344,21 @@ function qimsdk-target-sync-artifacts-all() {
     qimsdk-target-sync-artifacts rel
     qimsdk-target-sync-artifacts dev
     qimsdk-target-sync-artifacts all
+}
+
+# Remove installed packages from the target
+#   $1 - (mandatory) target: device or remote
+function qimsdk-target-packages-remove() {
+    local TARGET=$1
+
+    [ ! "${TARGET}" == "device" ] && [ ! "${TARGET}" == "remote" ]                              && \
+        print-red "Target input argument device or remote is required" && return -1
+
+    local REMOVE_PKG_FILE="${QIMSDK_WORK_DIR}/${TARGET}_packages_remove.sh"
+
+    # Remove packages and clear sync log
+    qimsdk-${TARGET}-script-invoke ${REMOVE_PKG_FILE}                                           && \
+        qimsdk-${TARGET}-sync-log-clear
+
+    print-green "Packages removed successfully !!!"
 }
