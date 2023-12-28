@@ -1,7 +1,7 @@
 {
     "Image_OS": "ubuntu20",
     "Additional_tag": "sdk-20",
-    "eSDK_shell_file": "<path-to-workspace>/build-qti-distro-fullstack-debug/tmp-glibc/deploy/sdk/qcom-wayland-x86_64-qcom-console-image-armv8-2a-qcm6490-toolchain-ext-0.0.sh",
+    "eSDK_shell_file": "<path-to-workspace>/build-qcom-wayland/tmp-glibc/deploy/sdk/qcom-wayland-x86_64-qcom-multimedia-image-armv8-2a-qcm6490-toolchain-ext-0.0.sh",
     "Base_Dir_Location": "<path-to-the-directory-where-the-project-is-initialized-applies-only-for-host-build-variant>",
     "Tflite_prebuilt_file": "<path-to-the-tf-lite-prebuilt-file>",
     "Acceleration_engines":
