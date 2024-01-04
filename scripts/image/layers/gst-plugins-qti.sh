@@ -54,8 +54,9 @@ function qimsdk-gst-plugins-qti-prepare() {
         ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bb
 
     # Transpose packagegroup specific RDEPENDS packages as do_package task dependencies
-    sed -i "s/RDEPENDS.${QIMSDK_ESDK_GST_PACKAGE_GROUP} /do_package[depends]/g" \
+    sed -i "s/RDEPENDS.${QIMSDK_ESDK_GST_PACKAGE_GROUP}/DOPKG/g" \
         ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bb
+    echo 'do_package[depends] = "${DOPKG}"' >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bb
 
     # Append do_package_write_ipk or do_package_write_deb task to packages
     grep -q ${PKG_WRITE_TASK} ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bb || \
