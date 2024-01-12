@@ -116,6 +116,10 @@ function qimsdk-gst-plugins-qti-prepare() {
     [ "${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}" == "no-rvsdk-prebuilt-available" ]                    || \
         qimsdk-gst-plugins-qti-dfs-enable-rvsdk-prebuilt
 
+    # Check if in LE environment and configure Gst python bindings if so (python bindings disabled in ubuntu toolchain)
+    [ "${PKG_WRITE_TASK}" == "do_package_write_ipk" ]                                           && \
+        qimsdk-gst-plugins-qti-enable-python-bindings
+
     # apt-get install gst_plugins_qti_oss_dependencies
     [ "${PKG_WRITE_TASK}" == "do_package_write_deb" ]                                           && \
         {
@@ -355,6 +359,31 @@ function qimsdk-gst-plugins-qti-dfs-enable-rvsdk-prebuilt() {
             sed -i "s|FILES:\${PN} += \"\${INSTALL_LIBDIR}\"|FILES:\${PN} += \"\${INSTALL_LIBDIR}\"\n\ndo_install:append() {\n    install -d \${D}\${INSTALL_LIBDIR}\n    cp \${STAGING_LIBDIR}/librv.so \${D}\${INSTALL_LIBDIR}\n    cp \${STAGING_LIBDIR}/libmv3.so \${D}\${INSTALL_LIBDIR}\n}|g" \
                 ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-dfs.bb
         }
+}
+
+# Enable python bindings for gstreamer
+function qimsdk-gst-plugins-qti-enable-python-bindings() {
+
+    # Identify the package management configuration
+    [ -d "${QIMSDK_ESDK_BASE_DIR}/tmp/deploy/deb" ] && PKG_WRITE_TASK="do_package_write_deb" || PKG_WRITE_TASK="do_package_write_ipk"
+
+    # Add do_configure dependencies for gst python bindings, needed inside qimsdk environment, if not added already
+    grep -q "gstreamer1.0-python:${PKG_WRITE_TASK}" ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-examples.bb || \
+        {
+            sed -i "/gstreamer1.0-python:do_package_write_/d" \
+                ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-examples.bb
+            sed -i "/python3-pygobject:do_package_write_/d" \
+                ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-examples.bb
+            sed -i "/gobject-introspection:do_package_write_/d" \
+                ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-examples.bb
+            sed -i "s/DEPENDS += \"media-headers\"/DEPENDS += \"media-headers\"\n\ndo_configure[depends] += \"gstreamer1.0-python:${PKG_WRITE_TASK}\"\ndo_configure[depends] += \"python3-pygobject:${PKG_WRITE_TASK}\"\ndo_configure[depends] += \"gobject-introspection:${PKG_WRITE_TASK}\"/g" \
+                ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstreamer1.0-plugins-qti-oss-examples.bb
+        }
+
+    echo "export PYTHONPATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/python3.10/site-packages/gi/overrides:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/python3.10/site-packages:\$PYTHONPATH" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+    echo "export GI_TYPELIB_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/girepository-1.0" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+    echo "[ -f /usr/lib/libpython3.10.so ] || ln -s /usr/lib/libpython3.10.so.1.0 /usr/lib/libpython3.10.so" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+
 }
 
 # Update md5 hash for every changed package after every qimsdk-gst-plugins-qti-package
