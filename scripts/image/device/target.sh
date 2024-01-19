@@ -264,8 +264,13 @@ function qimsdk-target-sync-artifacts() {
 
     # Create new artifacts archive
     pushd ${QIMSDK_WORK_DIR}/artifacts 1>/dev/null
-        zip -j packages${VARIANT}${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}.zip ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}/*
-    popd 1>/dev/null
+        zip -r packages${VARIANT}${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}.zip packages${VARIANT}/
+    popd 1>/dev/null # ${QIMSDK_WORK_DIR}/artifacts
+
+    # Add local scripts to artifacts archive
+    pushd ${QIMSDK_BASE_DIR}/scripts 1>/dev/null
+        zip -ur ${QIMSDK_WORK_DIR}/artifacts/packages${VARIANT}${QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG}.zip local/
+    popd 1>/dev/null # ${QIMSDK_BASE_DIR}/scripts
 
     print-green "Artifacts synced successfully !!!"
 }
