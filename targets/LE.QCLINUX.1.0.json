@@ -20,7 +20,7 @@
     "Deploy_dev_URL": "",
     "Deploy_QIMSDK_Artifacts_URL":"",
     "Deploy_QIMSDK_Artifacts_tag":"",
-    "Gst_package_group": "packagegroup-qti-gst-basic",
+    "Gst_package_group": "packagegroup-qti-gst",
     "Gst_plugins_qti_oss_dependencies":["cairo", "gdk-pixbuf", "liba52", "libdaemon", "libgudev", "lame", "libpsl", "librsvg", "libsoup-2.4", "libtheora", "libwebp", "mpg123", "orc", "sbc", "speex", "taglib"],
     "Device_install_prefix":"/opt/qti/qimsdk"
 }
