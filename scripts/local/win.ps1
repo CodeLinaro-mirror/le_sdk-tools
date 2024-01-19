@@ -18,7 +18,7 @@ function global:qimsdk-local-device-command {
 
     ${TMP_DIR} = [System.IO.Path]::GetTempPath()
 
-    adb pull /tmp/rc.txt ${TMP_DIR} 2>&1 | Out-null
+    adb pull /tmp/rc.txt ${TMP_DIR}\rc.txt 2>&1 | Out-null
     if ($LastExitCode -ne 0) {
         echo "${CMD} failed on device !!!";
         return 2;
@@ -127,7 +127,7 @@ function global:qimsdk-local-sync {
 
     # Pull device sync log file
     qimsdk-local-device-command "[ -f ${DEVICE_LOG_FILE} ] || touch ${DEVICE_LOG_FILE}"
-    Invoke-Expression "adb pull ${DEVICE_LOG_FILE} ${FOLDER}"
+    Invoke-Expression "adb pull ${DEVICE_LOG_FILE} ${FOLDER}\${DEVICE_PULLED_LOG_FILE}"
 
     foreach($PACKAGE_NAME in Get-ChildItem ${FOLDER}) {
         $PACKAGE_FORMAT= (Get-ChildItem ${PACKAGE_NAME}).Extension
