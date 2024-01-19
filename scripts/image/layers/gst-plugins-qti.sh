@@ -103,9 +103,11 @@ function qimsdk-gst-plugins-qti-prepare() {
                         echo "export GST_PLUGIN_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu/gstreamer-1.0:\$GST_PLUGIN_PATH" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                         echo "export GST_PLUGIN_SCANNER=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                     }
-            echo "rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/ && \\" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
-            echo "mkdir -p ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/ && \\" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
-            echo "ln -s /etc/systemd/system ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "if [ ! -L "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/system" ]; then" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+	    echo "    rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/ && \\" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "    mkdir -p ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/ && \\" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "    ln -sf /etc/systemd/system ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+	    echo "fi" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
 
             echo "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" > ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt
         }
