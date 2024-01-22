@@ -57,6 +57,9 @@ function qimsdk-layers-build() {
 
 # Package all layers
 function qimsdk-layers-package() {
+    # Generate python package (.whl)
+    ( cd ${QIMSDK_WORK_DIR}/../scripts/local/; python3 setup_qimsdk_sync.py bdist_wheel )
+
     local LAYER
 
     # Package all layers
