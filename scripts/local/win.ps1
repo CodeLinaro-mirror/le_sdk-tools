@@ -18,7 +18,7 @@ function global:qimsdk-local-device-command {
 
     ${TMP_DIR} = [System.IO.Path]::GetTempPath()
 
-    adb pull /tmp/rc.txt ${TMP_DIR} 2>&1 | Out-null
+    adb pull /tmp/rc.txt ${TMP_DIR}\rc.txt 2>&1 | Out-null
     if ($LastExitCode -ne 0) {
         echo "${CMD} failed on device !!!";
         return 2;
@@ -41,6 +41,46 @@ function global:qimsdk-local-set-opkg-prefix {
     }
 }
 
+# Check the installed packages on the target
+#   $1 - (mandatory) path to the packages
+function global:qimsdk-local-check-installed-packages {
+    param(
+        [Parameter (Mandatory = $true)] [String]$FOLDER
+    )
+
+    pushd ${FOLDER}
+
+    $INITIALLY_INSTALLED_PKGS="initially_installed_pkgs.log"
+
+    qimsdk-local-device-command "ls ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/device_sync.log" 2>&1 | Out-null
+    if ($LastExitCode -ne 0) {
+        $PKGS= (Get-ChildItem ${FOLDER})
+        qimsdk-local-device-command "opkg list-installed > ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/${INITIALLY_INSTALLED_PKGS} || dpkg --get-selections > ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/${INITIALLY_INSTALLED_PKGS}"
+        Invoke-Expression "adb pull ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/${INITIALLY_INSTALLED_PKGS} $INITIALLY_INSTALLED_PKGS"
+
+        foreach($PACKAGE_NAME in Get-ChildItem ${FOLDER}) {
+            $PACKAGE_NAME = (Get-Item ${PACKAGE_NAME} ).Name
+            $PACKAGE_NAME_NO_VERSION="$PACKAGE_NAME".split("_")[0]
+
+            if ($PACKAGE_NAME -eq "qim-sdk-install-prefix.txt") {continue;}
+            if ($PACKAGE_NAME -eq "qim-sdk.sh") {continue;}
+            if ($PACKAGE_NAME -eq "local_md5.log") {continue;}
+            if ($PACKAGE_NAME -eq "device_sync.log") {continue;}
+            if ($PACKAGE_NAME -eq "remote_sync.log") {continue;}
+            if ($PACKAGE_NAME -eq "sdk-tools-git-logs.txt") {continue;}
+            if ($PACKAGE_NAME -eq "uninstall.sh") {continue;}
+
+            $PKG_ALREADY_ON_DEVICE = (Select-String -Quiet -SimpleMatch -Pattern "$PACKAGE_NAME_NO_VERSION" -Path "$INITIALLY_INSTALLED_PKGS")
+            if ($PKG_ALREADY_ON_DEVICE -eq $true) {
+                echo $PACKAGE_NAME_NO_VERSION ($PACKAGE_NAME)
+                throw " is already installed on the target. Exiting...";
+                return 2;
+            }
+        }
+        return 0;
+    }
+}
+
 # Sync packages with the device from specified folder
 #   $FOLDER - (mandatory) path to the packages to be synced
 function global:qimsdk-local-sync {
@@ -50,6 +90,8 @@ function global:qimsdk-local-sync {
 
     # Resolve relative/wildcard/absolute path
     $FOLDER = Resolve-Path -Path "$FOLDER"
+
+    $null >> ${FOLDER}\uninstall.sh
 
     $FORMAT_IPK="ipk"
     $FORMAT_DEB="deb"
@@ -61,6 +103,11 @@ function global:qimsdk-local-sync {
 
     if ($QIMSDK_ESDK_DEVICE_INSTALL_PREFIX -eq "") {
         throw "Prefix variable not set !!!";
+    }
+
+    qimsdk-local-check-installed-packages "$FOLDER"
+    if ($LastExitCode -ne 0) {
+        return 1;
     }
 
     # Push sdk script to device
@@ -76,15 +123,17 @@ function global:qimsdk-local-sync {
     $REMOTE_LOG_FILE="remote_sync.log"
     $DEVICE_LOG_FILE="${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/device_sync.log"
     $DEVICE_PULLED_LOG_FILE="device_sync.log"
+    $UNINSTALL_FILE="uninstall.sh"
 
     # Pull device sync log file
     qimsdk-local-device-command "[ -f ${DEVICE_LOG_FILE} ] || touch ${DEVICE_LOG_FILE}"
-    Invoke-Expression "adb pull ${DEVICE_LOG_FILE} ${FOLDER}"
+    Invoke-Expression "adb pull ${DEVICE_LOG_FILE} ${FOLDER}\${DEVICE_PULLED_LOG_FILE}"
 
     foreach($PACKAGE_NAME in Get-ChildItem ${FOLDER}) {
         $PACKAGE_FORMAT= (Get-ChildItem ${PACKAGE_NAME}).Extension
         $PACKAGE_FORMAT="$PACKAGE_FORMAT".split(".")[1]
         $PACKAGE_NAME = (Get-Item ${PACKAGE_NAME} ).Name
+        $PACKAGE_NAME_NO_VERSION="$PACKAGE_NAME".split("_")[0]
 
         if ($PACKAGE_NAME -eq "qim-sdk-install-prefix.txt") {continue;}
         if ($PACKAGE_NAME -eq "qim-sdk.sh") {continue;}
@@ -92,6 +141,7 @@ function global:qimsdk-local-sync {
         if ($PACKAGE_NAME -eq "device_sync.log") {continue;}
         if ($PACKAGE_NAME -eq "remote_sync.log") {continue;}
         if ($PACKAGE_NAME -eq "sdk-tools-git-logs.txt") {continue;}
+        if ($PACKAGE_NAME -eq "uninstall.sh") {continue;}
 
         # Get Checksum for current package
         $CHECKSUM= (Select-String -SimpleMatch -Pattern "/${PACKAGE_NAME}" -Path "${LOCAL_LOG_FILE}" | Select-Object -ExpandProperty Line)
@@ -116,6 +166,8 @@ function global:qimsdk-local-sync {
                     }
                     Remove-Item ${PACKAGE_NAME}
                     qimsdk-local-device-command "rm -f /tmp/${PACKAGE_NAME}"
+
+                    echo dpkg --remove --force-all ${PACKAGE_NAME_NO_VERSION} | Out-File $UNINSTALL_FILE -Append
                 }
 
                 if ($PACKAGE_FORMAT -eq $FORMAT_IPK) {
@@ -134,6 +186,8 @@ function global:qimsdk-local-sync {
                     }
                     Remove-Item ${PACKAGE_NAME}
                     qimsdk-local-device-command "rm -f /tmp/${PACKAGE_NAME}"
+
+                    echo opkg remove --force-depends ${PACKAGE_NAME_NO_VERSION} | Out-File $UNINSTALL_FILE -Append
                 }
                 (Get-Content $DEVICE_PULLED_LOG_FILE | Select-String -SimpleMatch -pattern "/${PACKAGE_NAME}" -notmatch) | Set-Content $DEVICE_PULLED_LOG_FILE
                 echo "${CHECKSUM} /${PACKAGE_NAME}" | Out-File $DEVICE_PULLED_LOG_FILE -Append
@@ -163,13 +217,17 @@ function global:qimsdk-local-packages-remove {
     $FOLDER = Resolve-Path -Path "$FOLDER"
 
     pushd ${FOLDER}
-    $QIMSDK_ESDK_DEVICE_INSTALL_PREFIX = ( gc qim-sdk-install-prefix.txt )
-    popd # ${FOLDER}
 
-    qimsdk-local-device-command "rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}"
+    Invoke-Expression "adb push uninstall.sh /tmp/"
+
+    Invoke-Expression "adb shell `"source /tmp/uninstall.sh`""
     if ($LastExitCode -ne 0) {
         throw "Uninstall packages failed !!!";
     }
+
+    Remove-Item uninstall.sh
+
+    popd # ${FOLDER}
 
     Write-Host "Packages uninstalled !!!"
 }

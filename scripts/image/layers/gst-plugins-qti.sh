@@ -54,8 +54,9 @@ function qimsdk-gst-plugins-qti-prepare() {
         ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bb
 
     # Transpose packagegroup specific RDEPENDS packages as do_package task dependencies
-    sed -i "s/RDEPENDS.${QIMSDK_ESDK_GST_PACKAGE_GROUP} /do_package[depends]/g" \
+    sed -i "s/RDEPENDS.${QIMSDK_ESDK_GST_PACKAGE_GROUP}/DOPKG/g" \
         ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bb
+    echo 'do_package[depends] = "${DOPKG}"' >> ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bb
 
     # Append do_package_write_ipk or do_package_write_deb task to packages
     grep -q ${PKG_WRITE_TASK} ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/packagegroups/${QIMSDK_ESDK_GST_PACKAGE_GROUP}.bb || \
@@ -82,29 +83,31 @@ function qimsdk-gst-plugins-qti-prepare() {
             sed -i "s|/usr/bin/gst-client-1.0|${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gst-client-1.0|g" \
                 ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd_%.bbappend
 
-            echo "export PATH=\$PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin" > ${QIMSDK_BASE_DIR}/qim-sdk.sh
-            echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
-            echo "export GST_PLUGIN_PATH=\$GST_PLUGIN_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/gstreamer-1.0" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "export PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin:\$PATH" > ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "export LD_LIBRARY_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib:\$LD_LIBRARY_PATH" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "export GST_PLUGIN_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/gstreamer-1.0:\$GST_PLUGIN_PATH" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
 
             [ "${PKG_WRITE_TASK}" == "do_package_write_ipk" ]                                   && \
                 {
                     sed -i "s|ExecStart=/usr/bin/gstd|ExecStart=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gstd|g;s|EnvironmentFile=-/etc/default/gstd|EnvironmentFile=-${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/default/gstd\nEnvironment=LD_LIBRARY_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib\nEnvironment=GST_PLUGIN_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/gstreamer-1.0\nEnvironment=GST_PLUGIN_SCANNER=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/libexec/gstreamer-1.0/gst-plugin-scanner|g" \
                         ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd/gstd.service
-                    echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                    echo "export LD_LIBRARY_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib:\$LD_LIBRARY_PATH" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                     echo "export GST_PLUGIN_SCANNER=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/libexec/gstreamer-1.0/gst-plugin-scanner" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                 }                                                                               || \
                     {
                         sed -i "s|ExecStart=/usr/bin/gstd|ExecStart=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/bin/gstd|g;s|EnvironmentFile=-/etc/default/gstd|EnvironmentFile=-${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/default/gstd\nEnvironment=LD_LIBRARY_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib\nEnvironment=GST_PLUGIN_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu/gstreamer-1.0\nEnvironment=GST_PLUGIN_SCANNER=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner|g" \
                             ${QIMSDK_BASE_DIR}/poky/meta-qti-gst/recipes/gstreamer/gstd/gstd.service
-                        echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
-                        echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
-                        echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/aarch64-linux-gnu" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
-                        echo "export GST_PLUGIN_PATH=\$GST_PLUGIN_PATH:${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu/gstreamer-1.0" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                        echo "export LD_LIBRARY_PATH=/usr/lib:\$LD_LIBRARY_PATH" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                        echo "export LD_LIBRARY_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu:\$LD_LIBRARY_PATH" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                        echo "export LD_LIBRARY_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/aarch64-linux-gnu:\$LD_LIBRARY_PATH" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+                        echo "export GST_PLUGIN_PATH=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu/gstreamer-1.0:\$GST_PLUGIN_PATH" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                         echo "export GST_PLUGIN_SCANNER=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
                     }
-            echo "rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/ && \\" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
-            echo "mkdir -p ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/ && \\" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
-            echo "ln -s /etc/systemd/system ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "if [ ! -L "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/system" ]; then" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+	    echo "    rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/ && \\" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "    mkdir -p ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/ && \\" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+            echo "    ln -sf /etc/systemd/system ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/lib/systemd/" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
+	    echo "fi" >> ${QIMSDK_BASE_DIR}/qim-sdk.sh
 
             echo "${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}" > ${QIMSDK_BASE_DIR}/qim-sdk-install-prefix.txt
         }
