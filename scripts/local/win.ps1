@@ -105,15 +105,15 @@ function global:qimsdk-local-sync {
         throw "Prefix variable not set !!!";
     }
 
-    qimsdk-local-check-installed-packages "$FOLDER"
-    if ($LastExitCode -ne 0) {
-        return 1;
-    }
-
     # Push sdk script to device
     Invoke-Expression "adb push qim-sdk.sh /etc/profile.d/"
     qimsdk-local-device-command "mkdir -p ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc"
     qimsdk-local-device-command "source /etc/profile.d/qim-sdk.sh"
+
+    qimsdk-local-check-installed-packages "$FOLDER"
+    if ($LastExitCode -ne 0) {
+        return 1;
+    }
 
     if (Test-Path -Path "${FOLDER}\*" -Include *.ipk) {
         qimsdk-local-set-opkg-prefix
@@ -167,7 +167,7 @@ function global:qimsdk-local-sync {
                     Remove-Item ${PACKAGE_NAME}
                     qimsdk-local-device-command "rm -f /tmp/${PACKAGE_NAME}"
 
-                    echo dpkg --remove --force-all ${PACKAGE_NAME_NO_VERSION} | Out-File $UNINSTALL_FILE -Append
+                    qimsdk-local-device-command "echo `"dpkg --remove --force-all ${PACKAGE_NAME_NO_VERSION}`" >> ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/${UNINSTALL_FILE}"
                 }
 
                 if ($PACKAGE_FORMAT -eq $FORMAT_IPK) {
@@ -187,7 +187,7 @@ function global:qimsdk-local-sync {
                     Remove-Item ${PACKAGE_NAME}
                     qimsdk-local-device-command "rm -f /tmp/${PACKAGE_NAME}"
 
-                    echo opkg remove --force-depends ${PACKAGE_NAME_NO_VERSION} | Out-File $UNINSTALL_FILE -Append
+                    qimsdk-local-device-command "echo `"opkg remove --force-depends ${PACKAGE_NAME_NO_VERSION}`" >> ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/${UNINSTALL_FILE}"
                 }
                 (Get-Content $DEVICE_PULLED_LOG_FILE | Select-String -SimpleMatch -pattern "/${PACKAGE_NAME}" -notmatch) | Set-Content $DEVICE_PULLED_LOG_FILE
                 echo "${CHECKSUM} /${PACKAGE_NAME}" | Out-File $DEVICE_PULLED_LOG_FILE -Append
@@ -218,14 +218,12 @@ function global:qimsdk-local-packages-remove {
 
     pushd ${FOLDER}
 
-    Invoke-Expression "adb push uninstall.sh /tmp/"
+    $QIMSDK_ESDK_DEVICE_INSTALL_PREFIX = ( gc qim-sdk-install-prefix.txt )
 
-    Invoke-Expression "adb shell `"source /tmp/uninstall.sh`""
-    if ($LastExitCode -ne 0) {
-        throw "Uninstall packages failed !!!";
-    }
+    qimsdk-local-device-command "source ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/uninstall.sh"
 
-    Remove-Item uninstall.sh
+    qimsdk-local-device-command "rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/uninstall.sh"
+    qimsdk-local-device-command "rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/device_sync.log"
 
     popd # ${FOLDER}
 
