@@ -130,6 +130,32 @@ function qimsdk-remove-acceleration-engines() {
     return 0
 }
 
+# Setup RVsdk prebuilt
+function qimsdk-setup-rvsdk-prebuilt() {
+    mkdir -p ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}
+
+    [ "${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}" != "no-rvsdk-prebuilt-available" ]                    && \
+        {
+            rsync -a ${QIMSDK_RVSDK_PREBUILT_PATH}/* ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}/ || \
+                {
+                    print-red "Cannot add RVsdk dir to downloads folder !!!"
+                    rm -rf ${QIMSDK_TMP_DIR}
+                    return -1
+                }
+        }                                                                                       || \
+        {
+            touch ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}/no-rvsdk-prebuilt-available
+        }
+
+    return 0
+}
+
+# Remove RVsdk prebuilt files from esdk base dir
+function qimsdk-remove-rvsdk-prebuilt() {
+    rm -rf ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}
+    return 0
+}
+
 # Propagate scripts, src code and recipes to work folder
 function qimsdk-fetch-scripts-src-poky() {
     mkdir -p ${QIMSDK_ESDK_BASE_DIR}/src

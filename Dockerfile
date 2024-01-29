@@ -161,12 +161,22 @@ ENV QIMSDK_ESDK_TFLITE_FILENAME=${QIMSDK_ARG_TFLITE_FILENAME}
 ARG QIMSDK_ARG_ACCELERATION_ENGINE_NAMES
 ENV QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES=${QIMSDK_ARG_ACCELERATION_ENGINE_NAMES}
 
+# Set RVsdk prebuilt dir name
+ARG QIMSDK_ARG_RVSDK_PREBUILT_DIR
+ENV QIMSDK_ESDK_RVSDK_PREBUILT_DIR=${QIMSDK_ARG_RVSDK_PREBUILT_DIR}
+
 # Setup eSDK tflite, acceleration engines, and buildtools
 COPY --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                      \
         tmp/${QIMSDK_ESDK_TFLITE_FILENAME} ${QIMSDK_ESDK_BASE_DIR}/downloads/
 ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
         tmp/acceleration_engines/ ${QIMSDK_ESDK_BASE_DIR}/downloads/
 RUN rm -rf tmp/acceleration_engines
+
+# Setup RVsdk prebuilt
+RUN mkdir -p ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}
+ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                      \
+        tmp/${QIMSDK_ESDK_RVSDK_PREBUILT_DIR} ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}/
+RUN rm -rf tmp/${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}
 
 # Set deploy URL
 ARG QIMSDK_ARG_DEPLOY_URL

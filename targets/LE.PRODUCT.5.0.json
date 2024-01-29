@@ -15,6 +15,7 @@
             "Acceleration_engine_path":"-"
         }
     ],
+    "rvSDK_prebuilt_path": "",
     "Host_dir_mounted_in_container": "",
     "Deploy_URL": "",
     "Deploy_dev_URL": "",
