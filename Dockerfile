@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # QIMSDK_ARG_IMAGE_OS argument
@@ -69,6 +69,7 @@ ARG QIMSDK_ARG_HOST_USER_ID
 ARG QIMSDK_ARG_HOST_USER
 ARG QIMSDK_ARG_HOST_GROUP_ID
 ARG QIMSDK_ARG_HOST_GROUP
+ARG QIMSDK_ARG_QIM_PATH
 
 # Create user
 # Group users lists logged users and cannot be manually created
@@ -109,7 +110,7 @@ RUN ln -sf ${QIMSDK_ESDK_BASE_DIR}/buildtools /usr/local/oe-sdk-hardcoded-buildp
 RUN rm -rf ${QIMSDK_ESDK_BASE_DIR}/${QIMSDK_ESDK_SH}
 
 # Add bash aliases
-ADD sdk-tools/.bash_aliases /home/${QIMSDK_ARG_HOST_USER}/.bash_aliases
+ADD ${QIMSDK_ARG_QIM_PATH}/sdk-tools/.bash_aliases /home/${QIMSDK_ARG_HOST_USER}/.bash_aliases
 RUN chown ${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} /home/${QIMSDK_ARG_HOST_USER}/.bash_aliases
 
 # Remove meta layers and src code to be cloned
@@ -120,11 +121,11 @@ RUN rm -rf ${QIMSDK_ESDK_BASE_DIR}/layers/src/vendor/qcom/opensource/gst-plugins
 # Add image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts
 ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
-        sdk-tools/scripts/image ${QIMSDK_SCRIPTS}
+        ${QIMSDK_ARG_QIM_PATH}/sdk-tools/scripts/image ${QIMSDK_SCRIPTS}
 
 # Add local scripts to be exported in artifacts zip
 ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
-        sdk-tools/scripts/local ${QIMSDK_SCRIPTS}/local
+        ${QIMSDK_ARG_QIM_PATH}/sdk-tools/scripts/local ${QIMSDK_SCRIPTS}/local
 
 # Set work dir
 ENV QIMSDK_WORK_DIR=${QIMSDK_BASE_DIR}/work
@@ -140,8 +141,10 @@ ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                    
         .repo/projects ${QIMSDK_ARG_BASE_DIR}/repo/.repo/projects
 ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
         .repo/project-objects ${QIMSDK_ARG_BASE_DIR}/repo/.repo/project-objects
-ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} poky ${QIMSDK_ARG_BASE_DIR}/repo/poky
-ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP} src ${QIMSDK_ARG_BASE_DIR}/repo/src
+ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
+        ${QIMSDK_ARG_QIM_PATH}/poky ${QIMSDK_ARG_BASE_DIR}/repo/poky
+ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
+        ${QIMSDK_ARG_QIM_PATH}/src ${QIMSDK_ARG_BASE_DIR}/repo/src
 RUN [ -d ${QIMSDK_ESDK_BASE_DIR}/src ] || mkdir ${QIMSDK_ESDK_BASE_DIR}/src
 RUN ln -sf ${QIMSDK_ARG_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/
 RUN ln -sf ${QIMSDK_ARG_BASE_DIR}/repo/poky ${QIMSDK_ARG_BASE_DIR}/poky
