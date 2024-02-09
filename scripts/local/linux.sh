@@ -47,45 +47,50 @@ function qimsdk-local-get-list-of-packages() {
 function qimsdk-local-check-installed-packages() {
     local PACKAGES_PATH=$1
     local rc
+    local SKIPPED_PKGS=""
+    # Get list of packages
+    qimsdk-local-get-list-of-packages ${PACKAGES_PATH}
 
-    qimsdk-local-device-command "ls ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/device_sync.log" > /dev/null 2>&1    || \
+    local INITIALLY_INSTALLED_PKGS
+
+    find ${PACKAGES_PATH}/*.deb > /dev/null 2>&1
+    rc=$?
+
+    [ "$rc" -eq 0 ]                                                                     && \
+        INITIALLY_INSTALLED_PKGS=$(adb shell dpkg --get-selections | awk '{print $1}')  || \
+            INITIALLY_INSTALLED_PKGS=$(adb shell opkg list-installed | cut -d ' ' -f 1)
+
+    [ -z "${INITIALLY_INSTALLED_PKGS}" ]                                                && \
         {
-            # Get list of packages
-            qimsdk-local-get-list-of-packages ${PACKAGES_PATH}
-
-            local INITIALLY_INSTALLED_PKGS
-
-            find ${PACKAGES_PATH}/*.deb > /dev/null 2>&1
-            rc=$?
-
-            [ "$rc" -eq 0 ]                                                                     && \
-                INITIALLY_INSTALLED_PKGS=$(adb shell dpkg --get-selections | awk '{print $1}')  || \
-                    INITIALLY_INSTALLED_PKGS=$(adb shell opkg list-installed | cut -d ' ' -f 1)
-
-            [ -z "${INITIALLY_INSTALLED_PKGS}" ]                                                && \
-                {
-                    tput setaf 1 2>/dev/null
-                    echo "Failed to get list of initially installed packages";
-                    echo "Please, check adb connection with the device.";
-                    tput sgr0 2>/dev/null
-                    return -1
-                }
-
-            for PKG in "${PKGS[@]}"; do
-                PKG_NAME=$(basename -- ${PKG} | cut -d '_' -f 1 )
-                echo ${INITIALLY_INSTALLED_PKGS} | grep -wq "${PKG_NAME}"
-                rc=$?
-                [ "${rc}" -eq 0 ]                                                               && \
-                {
-                    tput setaf 1 2>/dev/null
-                    echo ${PKG_NAME} \(${PKG}\) is already installed on the target. Exiting...
-                    tput sgr0 2>/dev/null
-                    return -2
-                }
-            done
-
-        return 0
+            tput setaf 1 2>/dev/null
+            echo "Failed to get list of initially installed packages";
+            echo "Please, check adb connection with the device.";
+            tput sgr0 2>/dev/null
+            return -1
         }
+
+    for PKG in "${PKGS[@]}"; do
+        PKG_NAME=$(basename -- ${PKG} | cut -d '_' -f 1 )
+        echo ${INITIALLY_INSTALLED_PKGS} | grep -wq "${PKG_NAME}"
+        rc=$?
+        [ "${rc}" -eq 0 ]                                                               && \
+        {
+            tput setaf 1 2>/dev/null
+            echo ${PKG_NAME} \(${PKG}\) is already installed on the target. Skipping...
+            tput sgr0 2>/dev/null
+            SKIPPED_PKGS="${SKIPPED_PKGS} ${PKG_NAME} \(${PKG}\)"
+        }
+    done
+
+    if [[ -n "${SKIPPED_PKGS}" ]]; then
+        echo -e "\e[1;31m Overlapping Packages from Apps AU are : ${SKIPPED_PKGS} \e[0m"
+        read -p "Are you sure you want to continue installtion for remaining packages (Y/N)" yn
+        case $yn in
+            [Yy]* ) return 0;;
+            [Nn]* ) return 2;;
+            * ) echo "Please answer (Y)yes or (N)no.";;
+        esac
+    fi
 }
 
 # Sync packages with the device from specified directory
