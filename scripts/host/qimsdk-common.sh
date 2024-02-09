@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # Create essential directories
@@ -133,14 +133,17 @@ function qimsdk-remove-acceleration-engines() {
 # Propagate scripts, src code and recipes to work folder
 function qimsdk-fetch-scripts-src-poky() {
     mkdir -p ${QIMSDK_ESDK_BASE_DIR}/src
-
+    local REPO_FILE_PATH
+    if [ -d "${QIMSDK_TOOLS_DIR}/../.repo" ] ; then REPO_FILE_PATH="${QIMSDK_TOOLS_DIR}/.." ;      \
+    else REPO_FILE_PATH="${QIMSDK_TOOLS_DIR}/../.."; fi
     rsync -a ${QIMSDK_TOOLS_DIR}/scripts/image/* ${QIMSDK_SCRIPTS}/                             && \
     rsync -a ${QIMSDK_TOOLS_DIR}/scripts/local ${QIMSDK_SCRIPTS}/                               && \
     rsync -a ${QIMSDK_TOOLS_DIR}/../src/* ${QIMSDK_BASE_DIR}/repo/src/                          && \
     rsync -a ${QIMSDK_TOOLS_DIR}/../poky/* ${QIMSDK_BASE_DIR}/repo/poky/                        && \
-    rsync -a ${QIMSDK_TOOLS_DIR}/../.repo/projects/* ${QIMSDK_BASE_DIR}/repo/.repo/projects/    && \
-    rsync -a ${QIMSDK_TOOLS_DIR}/../.repo/project-objects/* ${QIMSDK_BASE_DIR}/repo/.repo/project-objects/ && \
-    rsync -a ${QIMSDK_TOOLS_DIR}/../.repo/repo/hooks/* ${QIMSDK_BASE_DIR}/repo/.repo/repo/hooks/ && \
+    rsync -a ${REPO_FILE_PATH}/.repo/projects/* ${QIMSDK_BASE_DIR}/repo/.repo/projects/         && \
+    rsync -a ${REPO_FILE_PATH}/.repo/project-objects/*                                             \
+	     ${QIMSDK_BASE_DIR}/repo/.repo/project-objects/                                     && \
+    rsync -a ${REPO_FILE_PATH}/.repo/repo/hooks/* ${QIMSDK_BASE_DIR}/repo/.repo/repo/hooks/     && \
     ln -sf ${QIMSDK_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/                           && \
     ln -sf ${QIMSDK_BASE_DIR}/repo/poky ${QIMSDK_BASE_DIR}/poky
 }

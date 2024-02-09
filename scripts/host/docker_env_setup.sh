@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 echo "Docker build environment setup"
@@ -65,6 +65,11 @@ function qimsdk-docker-build-image() {
     local GROUP=$(getent group $(id -g ${USER}) | cut -d ':' -f 1)
 
     local QIMSDK_REPO_BASE_DIR=${QIMSDK_DOCKER_DIR}/..
+    local QIM_PATH="."
+    if [ ! -d "${QIMSDK_REPO_BASE_DIR}/.repo" ] ; then
+        QIMSDK_REPO_BASE_DIR="${QIMSDK_REPO_BASE_DIR}/.."
+        QIM_PATH="qim"
+    fi
     local QIMSDK_TMP_DIR=${QIMSDK_REPO_BASE_DIR}/tmp
 
     local ESDK_JSON="${QIMSDK_ARG_ESDK_SH%.*}"
@@ -195,6 +200,7 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES="${QIMSDK_ARG_GST_PLUGINS_QTI_OSS_DEPENDENCIES}" \
             --build-arg QIMSDK_ARG_DEVICE_INSTALL_PREFIX=${QIMSDK_ARG_DEVICE_INSTALL_PREFIX}       \
             --build-arg QIMSDK_ARG_ENV_SETUP_SCRIPT=${ENV_SETUP_SCRIPT}                            \
+            --build-arg QIMSDK_ARG_QIM_PATH=${QIM_PATH}                                            \
             -f ${QIMSDK_DOCKER_DIR}/Dockerfile                                                     \
             --progress=plain --target qimsdk ${QIMSDK_REPO_BASE_DIR} -t qimsdk:${TAG}
 
@@ -226,6 +232,9 @@ function qimsdk-docker-run-container() {
 
     local QIMSDK_ARG_BASE_DIR=/mnt/qimsdk
     local QIMSDK_REPO_BASE_DIR=${QIMSDK_DOCKER_DIR}/..
+    if [ ! -d "${QIMSDK_REPO_BASE_DIR}/.repo" ] ; then
+        QIMSDK_REPO_BASE_DIR="${QIMSDK_REPO_BASE_DIR}/.."
+    fi
 
     docker run ${DIR_TO_BE_MOUNTED}                                                                \
         -v /dev/bus/usb:/dev/bus/usb:ro                                                            \
