@@ -239,7 +239,7 @@ function qimsdk-check-required-packages() {
     local NOT_INSTALLED_PKGS=""
     local REQUIRED_PKGS="sudo python3 python3-pip zip unzip curl wget gnupg flex bison             \
         build-essential zlib1g-dev zstd gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-i386 \
-        libncurses5 cpio lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libxml2-utils  \
+        libncurses5 cpio lib32ncurses-dev x11proto-core-dev libx11-dev lib32z1-dev libxml2-utils  \
         libgl1-mesa-dev xsltproc fontconfig cmake texinfo chrpath diffstat xmlstarlet ssh uuid-dev \
         libarchive-dev libselinux1-dev g++ gawk gcc make libwayland-dev fakeroot libpam0g-dev git  \
         jq binutils-dev openjdk-8-jdk-headless util-linux whiptail libxml-simple-perl openssl gdb  \

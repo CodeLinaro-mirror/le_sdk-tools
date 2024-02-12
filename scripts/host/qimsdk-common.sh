@@ -20,7 +20,7 @@ function qimsdk-install-esdk() {
         echo "Installing ${eSDK_NAME} eSDK..."
 
         chmod a+r ${eSDK_SHELL_FILE}
-        # umask 022
+        umask 022
         ${eSDK_SHELL_FILE} -y -d ${QIMSDK_ESDK_BASE_DIR}/
 
         rc=$?
