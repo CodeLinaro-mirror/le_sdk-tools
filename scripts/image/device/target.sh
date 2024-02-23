@@ -149,9 +149,12 @@ function qimsdk-target-sync() {
     [ ! "${FORMAT}" == "deb" ] && [ ! "${FORMAT}" == "ipk" ]                                    && \
         print-red "Package format argument deb or ipk is required" && return -3
 
-    qimsdk-check-installed-packages ${VARIANT} ${FORMAT}
-    rc=$?
-    [ "${rc}" -eq 0 ] || return -4
+    [ "${TARGET}" != "remote" ]                                                                 && \
+        {
+            qimsdk-check-installed-packages ${VARIANT} ${FORMAT}
+                rc=$?
+                [ "${rc}" -eq 0 ] || return -4
+        }
 
     [ "${TARGET}" == "device" ]                                                                 && \
         {

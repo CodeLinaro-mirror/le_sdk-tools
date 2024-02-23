@@ -41,6 +41,49 @@ function global:qimsdk-local-set-opkg-prefix {
     }
 }
 
+# Check the installed packages on the target
+#   $1 - (mandatory) path to the packages
+function global:qimsdk-local-check-installed-packages {
+    param(
+        [Parameter (Mandatory = $true)] [String]$FOLDER
+    )
+
+    pushd ${FOLDER}
+
+    $INITIALLY_INSTALLED_PKGS="initially_installed_pkgs.log"
+    $SKIPPED_PKGS=""
+    $PKGS= (Get-ChildItem ${FOLDER})
+    qimsdk-local-device-command "opkg list-installed > ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/${INITIALLY_INSTALLED_PKGS} || dpkg --get-selections > ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/${INITIALLY_INSTALLED_PKGS}"
+    Invoke-Expression "adb pull ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/${INITIALLY_INSTALLED_PKGS} $INITIALLY_INSTALLED_PKGS" 2>&1 | Out-null
+    foreach($PACKAGE_NAME in Get-ChildItem ${FOLDER}) {
+        $PACKAGE_NAME = (Get-Item ${PACKAGE_NAME} ).Name
+        $PACKAGE_NAME_NO_VERSION="$PACKAGE_NAME".split("_")[0]
+        if ($PACKAGE_NAME -eq "qim-sdk-install-prefix.txt") {continue;}
+        if ($PACKAGE_NAME -eq "qim-sdk.sh") {continue;}
+        if ($PACKAGE_NAME -eq "local_md5.log") {continue;}
+        if ($PACKAGE_NAME -eq "device_sync.log") {continue;}
+        if ($PACKAGE_NAME -eq "remote_sync.log") {continue;}
+        if ($PACKAGE_NAME -eq "sdk-tools-git-logs.txt") {continue;}
+        if ($PACKAGE_NAME -eq "uninstall.sh") {continue;}
+        if ($PACKAGE_NAME -eq "initially_installed_pkgs.log") {continue;}
+        $PKG_ALREADY_ON_DEVICE = (Select-String -Quiet -SimpleMatch -Pattern "$PACKAGE_NAME_NO_VERSION" -Path "$INITIALLY_INSTALLED_PKGS")
+        if ($PKG_ALREADY_ON_DEVICE -eq $true) {
+            Write-Host "$PACKAGE_NAME_NO_VERSION ($PACKAGE_NAME) is already installed on the target. Skipping..." -InformationAction Continue
+            $SKIPPED_PKGS="$SKIPPED_PKGS $PACKAGE_NAME_NO_VERSION ($PACKAGE_NAME)"
+        }
+    }
+    popd # ${FOLDER}
+    if($SKIPPED_PKGS -ne ""){
+        Write-Host "Overlapping Packages from Apps AU are : $SKIPPED_PKGS" -f red -b black -InformationAction Continue
+        $confirm = Read-Host -Prompt "Are you sure you want to continue installtion for remaining packages (Y/N)"
+        if ($confirm -eq 'y') {
+            return 0;
+        } else {
+            return 1;
+        }
+    }
+}
+
 # Sync packages with the device from specified folder
 #   $FOLDER - (mandatory) path to the packages to be synced
 function global:qimsdk-local-sync {
@@ -68,14 +111,20 @@ function global:qimsdk-local-sync {
     qimsdk-local-device-command "mkdir -p ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc"
     qimsdk-local-device-command "source /etc/profile.d/qim-sdk.sh"
 
+    $check = qimsdk-local-check-installed-packages "$FOLDER"
+    if ($check -ne 0) {
+        return;
+    }
+
     if (Test-Path -Path "${FOLDER}\*" -Include *.ipk) {
         qimsdk-local-set-opkg-prefix
     }
 
-    $LOCAL_LOG_FILE="local_md5.log"
     $REMOTE_LOG_FILE="remote_sync.log"
     $DEVICE_LOG_FILE="${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/device_sync.log"
     $DEVICE_PULLED_LOG_FILE="device_sync.log"
+    $UNINSTALL_FILE="uninstall.sh"
+    $INITIALLY_INSTALLED_PKGS="initially_installed_pkgs.log"
 
     # Pull device sync log file
     qimsdk-local-device-command "[ -f ${DEVICE_LOG_FILE} ] || touch ${DEVICE_LOG_FILE}"
@@ -92,57 +141,57 @@ function global:qimsdk-local-sync {
         if ($PACKAGE_NAME -eq "device_sync.log") {continue;}
         if ($PACKAGE_NAME -eq "remote_sync.log") {continue;}
         if ($PACKAGE_NAME -eq "sdk-tools-git-logs.txt") {continue;}
+        if ($PACKAGE_NAME -eq "uninstall.sh") {continue;}
+        if ($PACKAGE_NAME -eq "initially_installed_pkgs.log") {continue;}
 
-        # Get Checksum for current package
-        $CHECKSUM= (Select-String -SimpleMatch -Pattern "/${PACKAGE_NAME}" -Path "${LOCAL_LOG_FILE}" | Select-Object -ExpandProperty Line)
-        $CHECKSUM= "$CHECKSUM".split(" ")[0]
+        $PKG_ALREADY_ON_DEVICE = (Select-String -Quiet -SimpleMatch -Pattern "$PACKAGE_NAME_NO_VERSION" -Path "$INITIALLY_INSTALLED_PKGS")
+        if ($PKG_ALREADY_ON_DEVICE -eq $true) {continue;}
 
-        # Check pulled device log to see if package already present
-        $PKG_ALREADY_ON_DEVICE = (Select-String -Quiet -SimpleMatch -Pattern "$CHECKSUM" -Path "$DEVICE_PULLED_LOG_FILE")
-            if ($PKG_ALREADY_ON_DEVICE -eq $false) {
-                if ($PACKAGE_FORMAT -eq $FORMAT_DEB) {
-                    Invoke-Expression "adb push ${PACKAGE_NAME} /tmp/"
-                    if ($LastExitCode -ne 0) {
-                        popd # ${FOLDER}
-                        throw "Push package to device failed !!!";
-                    }
-
-                    qimsdk-local-device-command "dpkg --instdir=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} --install --force-all /tmp/${PACKAGE_NAME}"
-                    if ($LastExitCode -ne 0) {
-                        qimsdk-local-device-command "rm -f /tmp/${PACKAGE_NAME}"
-                        Invoke-Expression "adb push $DEVICE_PULLED_LOG_FILE ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/"
-                        popd # ${FOLDER}
-                        throw "Install package to device failed !!!";
-                    }
-                    Remove-Item ${PACKAGE_NAME}
-                    qimsdk-local-device-command "rm -f /tmp/${PACKAGE_NAME}"
-                }
-
-                if ($PACKAGE_FORMAT -eq $FORMAT_IPK) {
-                    Invoke-Expression "adb push ${PACKAGE_NAME} /tmp/"
-                    if ($LastExitCode -ne 0) {
-                        popd # ${FOLDER}
-                        throw "Push package to device failed !!!";
-                    }
-
-                    qimsdk-local-device-command "opkg install -d qimsdk_install_path --force-depends --force-reinstall --force-overwrite /tmp/${PACKAGE_NAME}"
-                    if ($LastExitCode -ne 0) {
-                        qimsdk-local-device-command "rm -f /tmp/${PACKAGE_NAME}"
-                        Invoke-Expression "adb push $DEVICE_PULLED_LOG_FILE ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/"
-                        popd # ${FOLDER}
-                        throw "Install package to device failed !!!";
-                    }
-                    Remove-Item ${PACKAGE_NAME}
-                    qimsdk-local-device-command "rm -f /tmp/${PACKAGE_NAME}"
-                }
-                (Get-Content $DEVICE_PULLED_LOG_FILE | Select-String -SimpleMatch -pattern "/${PACKAGE_NAME}" -notmatch) | Set-Content $DEVICE_PULLED_LOG_FILE
-                echo "${CHECKSUM} /${PACKAGE_NAME}" | Out-File $DEVICE_PULLED_LOG_FILE -Append
+        if ($PACKAGE_FORMAT -eq $FORMAT_DEB) {
+            Invoke-Expression "adb push ${PACKAGE_NAME} /tmp/${PACKAGE_NAME}"
+            if ($LastExitCode -ne 0) {
+                popd # ${FOLDER}
+                throw "Push package to device failed !!!";
             }
+
+            qimsdk-local-device-command "dpkg --instdir=${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX} --install --force-all /tmp/${PACKAGE_NAME}"
+            if ($LastExitCode -ne 0) {
+                qimsdk-local-device-command "rm -f /tmp/${PACKAGE_NAME}"
+                Invoke-Expression "adb push $DEVICE_PULLED_LOG_FILE ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/$DEVICE_PULLED_LOG_FILE"
+                popd # ${FOLDER}
+                throw "Install package to device failed !!!";
+            }
+            Remove-Item ${PACKAGE_NAME}
+            qimsdk-local-device-command "rm -f /tmp/${PACKAGE_NAME}"
+
+            qimsdk-local-device-command "echo `"dpkg --remove --force-all ${PACKAGE_NAME_NO_VERSION}`" >> ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/${UNINSTALL_FILE}"
+        }
+
+        if ($PACKAGE_FORMAT -eq $FORMAT_IPK) {
+            Invoke-Expression "adb push ${PACKAGE_NAME} /tmp/"
+            if ($LastExitCode -ne 0) {
+                popd # ${FOLDER}
+                throw "Push package to device failed !!!";
+            }
+
+            qimsdk-local-device-command "opkg install -d qimsdk_install_path --force-depends --force-reinstall --force-overwrite /tmp/${PACKAGE_NAME}"
+            if ($LastExitCode -ne 0) {
+                qimsdk-local-device-command "rm -f /tmp/${PACKAGE_NAME}"
+                Invoke-Expression "adb push $DEVICE_PULLED_LOG_FILE ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/$DEVICE_PULLED_LOG_FILE"
+                popd # ${FOLDER}
+                throw "Install package to device failed !!!";
+            }
+            Remove-Item ${PACKAGE_NAME}
+            qimsdk-local-device-command "rm -f /tmp/${PACKAGE_NAME}"
+
+            qimsdk-local-device-command "echo `"opkg remove --force-depends ${PACKAGE_NAME_NO_VERSION}`" >> ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/${UNINSTALL_FILE}"
+        }
+        (Get-Content $DEVICE_PULLED_LOG_FILE | Select-String -SimpleMatch -pattern "/${PACKAGE_NAME}" -notmatch) | Set-Content $DEVICE_PULLED_LOG_FILE
+        echo "${CHECKSUM} /${PACKAGE_NAME}" | Out-File $DEVICE_PULLED_LOG_FILE -Append
     }
 
-    Invoke-Expression "adb push $DEVICE_PULLED_LOG_FILE ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/"
+    Invoke-Expression "adb push $DEVICE_PULLED_LOG_FILE ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/$DEVICE_PULLED_LOG_FILE"
     Remove-Item "${DEVICE_PULLED_LOG_FILE}"
-    Remove-Item "${LOCAL_LOG_FILE}"
     if (Test-Path -Path "${FOLDER}\*" -Include "${REMOTE_LOG_FILE}") {
         Remove-Item "${REMOTE_LOG_FILE}"
     }
@@ -166,10 +215,14 @@ function global:qimsdk-local-packages-remove {
     $QIMSDK_ESDK_DEVICE_INSTALL_PREFIX = ( gc qim-sdk-install-prefix.txt )
     popd # ${FOLDER}
 
-    qimsdk-local-device-command "rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}"
-    if ($LastExitCode -ne 0) {
-        throw "Uninstall packages failed !!!";
-    }
+    $QIMSDK_ESDK_DEVICE_INSTALL_PREFIX = ( gc qim-sdk-install-prefix.txt )
+
+    qimsdk-local-device-command "source ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/uninstall.sh"
+
+    qimsdk-local-device-command "rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/uninstall.sh"
+    qimsdk-local-device-command "rm -rf ${QIMSDK_ESDK_DEVICE_INSTALL_PREFIX}/etc/device_sync.log"
+
+    popd # ${FOLDER}
 
     Write-Host "Packages uninstalled !!!"
 }
