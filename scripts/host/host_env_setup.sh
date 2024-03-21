@@ -29,6 +29,12 @@ function qimsdk-host-parse-json() {
     QIMSDK_ACCELERATION_ENGINE_PATHS=(`echo ${BUFFER} | jq '.Acceleration_engines[] | .Acceleration_engine_path' | tr -d '"'`)
     QIMSDK_ACCELERATION_ENGINE_COUNT=`echo ${BUFFER} | jq '.Acceleration_engines[] | .Acceleration_engine' | wc -l`
 
+    QIMSDK_RVSDK_PREBUILT_PATH=`echo ${BUFFER} | jq '.rvSDK_prebuilt_path' | tr -d '"'`
+    QIMSDK_ESDK_RVSDK_PREBUILT_DIR="RVsdk_unzipped"
+
+    [ -d "${QIMSDK_RVSDK_PREBUILT_PATH}" ]                                                      || \
+        QIMSDK_ESDK_RVSDK_PREBUILT_DIR="no-rvsdk-prebuilt-available"
+
     QIMSDK_ESDK_DEPLOY_URL=`echo ${BUFFER} | jq '.Deploy_URL' | tr -d '"'`
     [ -z "${QIMSDK_ESDK_DEPLOY_URL}" ]                                                          || \
         {
@@ -187,6 +193,14 @@ function qimsdk-common() {
         return ${rc}
     }
 
+    qimsdk-setup-rvsdk-prebuilt
+    rc=$?
+    [ "${rc}" -ne 0 ] && {
+        print-red "FAILED: qimsdk-setup-rvsdk-prebuilt"
+        popd 1>/dev/null
+        return ${rc}
+    }
+
     # Add sdk-tools git log
     git -C ${QIMSDK_TOOLS_DIR} log --oneline |& tee ${QIMSDK_BASE_DIR}/sdk-tools-git-logs.txt 1>/dev/null || \
         {
@@ -321,7 +335,8 @@ function qimsdk-host-env-remove() {
             QIMSDK_SCRIPTS eSDK_SHELL_FILE eSDK_NAME BASE_DIR_LOCATION QIMSDK_ESDK_TFLITE_FILE     \
             QIMSDK_ESDK_TFLITE_FILENAME QIMSDK_ESDK_ACCELERATION_ENGINE_NAMES                      \
             QIMSDK_ACCELERATION_ENGINE_PATHS QIMSDK_ACCELERATION_ENGINE_COUNT                      \
-            QIMSDK_ESDK_DEPLOY_URL QIMSDK_ESDK_DEPLOY_URL_DEV QIMSDK_ESDK_DEPLOY_ARTIFACTS         \
+            QIMSDK_RVSDK_PREBUILT_PATH QIMSDK_ESDK_RVSDK_PREBUILT_DIR QIMSDK_ESDK_DEPLOY_URL       \
+            QIMSDK_ESDK_DEPLOY_URL_DEV QIMSDK_ESDK_DEPLOY_ARTIFACTS                                \
             QIMSDK_ESDK_GST_PLUGINS_QTI_OSS_DEPENDENCIES QIMSDK_ESDK_DEVICE_INSTALL_PREFIX         \
             QIMSDK_ESDK_DEPLOY_ARTIFACTS_TAG QIMSDK_TOOLS_DIR                                   && \
         print-green "Environment variables removed !!!"

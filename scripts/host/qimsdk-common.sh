@@ -20,7 +20,7 @@ function qimsdk-install-esdk() {
         echo "Installing ${eSDK_NAME} eSDK..."
 
         chmod a+r ${eSDK_SHELL_FILE}
-        # umask 022
+        umask 022
         ${eSDK_SHELL_FILE} -y -d ${QIMSDK_ESDK_BASE_DIR}/
 
         rc=$?
@@ -127,6 +127,32 @@ function qimsdk-remove-acceleration-engines() {
         rm -rf ${QIMSDK_ESDK_BASE_DIR}/downloads/${ACCELERATION_ENGINE}
     done
 
+    return 0
+}
+
+# Setup RVsdk prebuilt
+function qimsdk-setup-rvsdk-prebuilt() {
+    mkdir -p ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}
+
+    [ "${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}" != "no-rvsdk-prebuilt-available" ]                    && \
+        {
+            rsync -a ${QIMSDK_RVSDK_PREBUILT_PATH}/* ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}/ || \
+                {
+                    print-red "Cannot add RVsdk dir to downloads folder !!!"
+                    rm -rf ${QIMSDK_TMP_DIR}
+                    return -1
+                }
+        }                                                                                       || \
+        {
+            touch ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}/no-rvsdk-prebuilt-available
+        }
+
+    return 0
+}
+
+# Remove RVsdk prebuilt files from esdk base dir
+function qimsdk-remove-rvsdk-prebuilt() {
+    rm -rf ${QIMSDK_ESDK_BASE_DIR}/downloads/${QIMSDK_ESDK_RVSDK_PREBUILT_DIR}
     return 0
 }
 

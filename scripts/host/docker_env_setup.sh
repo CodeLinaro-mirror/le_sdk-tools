@@ -150,6 +150,23 @@ function qimsdk-docker-build-image() {
 
     QIMSDK_ARG_ACCELERATION_ENGINE_NAMES=`cat ${PATH_TO_CONFIG_JSON} | jq '.Acceleration_engines[] | .Acceleration_engine' | tr -d '"'`
 
+    local QIMSDK_ARG_RVSDK_PREBUILT_DIR="RVsdk_unzipped"
+    local QIMSDK_RVSDK_PREBUILT_PATH=`cat ${PATH_TO_CONFIG_JSON} |  jq '.rvSDK_prebuilt_path' | tr -d '"'`
+    [ -d "${QIMSDK_RVSDK_PREBUILT_PATH}" ]                                                      && \
+        {
+            mkdir -p ${QIMSDK_REPO_BASE_DIR}/tmp/${QIMSDK_ARG_RVSDK_PREBUILT_DIR}
+            rsync -a ${QIMSDK_RVSDK_PREBUILT_PATH}/* ${QIMSDK_REPO_BASE_DIR}/tmp/${QIMSDK_ARG_RVSDK_PREBUILT_DIR}/ || \
+                {
+                    print-red "Cannot add RVsdk dir to tmp folder !!!"
+                    rm -rf ${QIMSDK_TMP_DIR}
+                    return -8
+                }
+        }                                                                                       || \
+        {
+            QIMSDK_ARG_RVSDK_PREBUILT_DIR="no-rvsdk-prebuilt-available"
+            touch ${QIMSDK_REPO_BASE_DIR}/tmp/${QIMSDK_ARG_RVSDK_PREBUILT_DIR}
+        }
+
     local QIMSDK_ARG_DEPLOY_URL=`cat ${PATH_TO_CONFIG_JSON} |  jq '.Deploy_URL' | tr -d '"'`
     [ -z "${QIMSDK_ARG_DEPLOY_URL}" ]                                                              || \
         {
@@ -193,6 +210,7 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_ARG_BASE_DIR}                                 \
             --build-arg QIMSDK_ARG_TFLITE_FILENAME=${QIMSDK_ARG_TFLITE_FILENAME}                   \
             --build-arg QIMSDK_ARG_ACCELERATION_ENGINE_NAMES="${QIMSDK_ARG_ACCELERATION_ENGINE_NAMES}" \
+            --build-arg QIMSDK_ARG_RVSDK_PREBUILT_DIR=${QIMSDK_ARG_RVSDK_PREBUILT_DIR}             \
             --build-arg QIMSDK_ARG_DEPLOY_URL=${QIMSDK_ARG_DEPLOY_URL}                             \
             --build-arg QIMSDK_ARG_DEPLOY_URL_DEV=${QIMSDK_ARG_DEPLOY_URL_DEV}                     \
             --build-arg QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG=${QIMSDK_ARG_DEPLOY_ARTIFACTS_TAG}         \

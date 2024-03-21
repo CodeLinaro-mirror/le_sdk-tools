@@ -82,6 +82,7 @@ function global:qimsdk-local-check-installed-packages {
             return 1;
         }
     }
+    popd # ${FOLDER}
 }
 
 # Sync packages with the device from specified folder
