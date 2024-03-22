@@ -67,7 +67,7 @@ function global:qimsdk-local-check-installed-packages {
         if ($PACKAGE_NAME -eq "uninstall.sh") {continue;}
         if ($PACKAGE_NAME -eq "initially_installed_pkgs.log") {continue;}
         $PKG_ALREADY_ON_DEVICE = (Select-String -Quiet -SimpleMatch -Pattern "$PACKAGE_NAME_NO_VERSION" -Path "$INITIALLY_INSTALLED_PKGS")
-        if ($PKG_ALREADY_ON_DEVICE -eq $true) {
+        if ($PKG_ALREADY_ON_DEVICE -eq $true) -or ($PKG_ALREADY_ON_DEVICE -eq "True") {
             Write-Host "$PACKAGE_NAME_NO_VERSION ($PACKAGE_NAME) is already installed on the target. Skipping..." -InformationAction Continue
             $SKIPPED_PKGS="$SKIPPED_PKGS $PACKAGE_NAME_NO_VERSION ($PACKAGE_NAME)"
         }
