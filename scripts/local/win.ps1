@@ -82,7 +82,7 @@ function global:qimsdk-local-check-installed-packages {
             return 1;
         }
     }
-    popd # ${FOLDER}
+    return 0;
 }
 
 # Sync packages with the device from specified folder
@@ -104,6 +104,7 @@ function global:qimsdk-local-sync {
     $QIMSDK_ESDK_DEVICE_INSTALL_PREFIX = ( gc qim-sdk-install-prefix.txt )
 
     if ($QIMSDK_ESDK_DEVICE_INSTALL_PREFIX -eq "") {
+        popd # ${FOLDER}
         throw "Prefix variable not set !!!";
     }
 
@@ -114,6 +115,7 @@ function global:qimsdk-local-sync {
 
     $check = qimsdk-local-check-installed-packages "$FOLDER"
     if ($check -ne 0) {
+        popd # ${FOLDER}
         return;
     }
 
