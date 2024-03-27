@@ -67,7 +67,7 @@ function global:qimsdk-local-check-installed-packages {
         if ($PACKAGE_NAME -eq "uninstall.sh") {continue;}
         if ($PACKAGE_NAME -eq "initially_installed_pkgs.log") {continue;}
         $PKG_ALREADY_ON_DEVICE = (Select-String -Quiet -SimpleMatch -Pattern "$PACKAGE_NAME_NO_VERSION" -Path "$INITIALLY_INSTALLED_PKGS")
-        if ($PKG_ALREADY_ON_DEVICE -eq $true) -or ($PKG_ALREADY_ON_DEVICE -eq "True") {
+        if ($PKG_ALREADY_ON_DEVICE -eq $true) {
             Write-Host "$PACKAGE_NAME_NO_VERSION ($PACKAGE_NAME) is already installed on the target. Skipping..." -InformationAction Continue
             $SKIPPED_PKGS="$SKIPPED_PKGS $PACKAGE_NAME_NO_VERSION ($PACKAGE_NAME)"
         }
@@ -82,7 +82,7 @@ function global:qimsdk-local-check-installed-packages {
             return 1;
         }
     }
-    popd # ${FOLDER}
+    return 0;
 }
 
 # Sync packages with the device from specified folder
@@ -106,6 +106,7 @@ function global:qimsdk-local-sync {
     $QIMSDK_ESDK_DEVICE_INSTALL_PREFIX = ( gc qim-sdk-install-prefix.txt )
 
     if ($QIMSDK_ESDK_DEVICE_INSTALL_PREFIX -eq "") {
+        popd # ${FOLDER}
         throw "Prefix variable not set !!!";
     }
 
@@ -116,6 +117,7 @@ function global:qimsdk-local-sync {
 
     $check = qimsdk-local-check-installed-packages "$FOLDER"
     if ($check -ne 0) {
+        popd # ${FOLDER}
         return;
     }
 
