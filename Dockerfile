@@ -59,6 +59,9 @@ RUN update-alternatives --install /usr/bin/python2 python2 /usr/bin/python2.7 10
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 ${QIMSDK_ALTERNATIVES_PRIPRITY_PYTHON3}
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python2 ${QIMSDK_ALTERNATIVES_PRIPRITY_PYTHON2}
 
+# Install necessary pip3 packages
+RUN pip3 install --upgrade pip setuptools wheel
+
 # Increase max user watches
 RUN echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
 RUN echo fs.inotify.max_user_instances=8192 | sudo tee -a /etc/sysctl.conf

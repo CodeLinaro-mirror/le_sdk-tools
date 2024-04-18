@@ -259,6 +259,21 @@ function qimsdk-check-required-packages() {
         return -1
     }
 
+    # check for necessary python modules
+    local NOT_INSTALLED_MODULES=""
+    local REQUIRED_MODULES="pip setuptools wheel"
+
+    for MODULE in ${REQUIRED_MODULES[@]}; do
+        python -c "import ${MODULE}" > /dev/null 2>&1 || NOT_INSTALLED_MODULES+=${MODULE}" "
+    done
+
+    [ -n "${NOT_INSTALLED_MODULES}" ] && {
+        print-red "THESE MODULES NEED TO BE INSTALLED:"
+        echo ${NOT_INSTALLED_MODULES}
+        print-blue "pip3 install --upgrade ${NOT_INSTALLED_MODULES}"
+        return -1
+    }
+
     return 0
 }
 
