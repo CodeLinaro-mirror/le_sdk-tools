@@ -18,7 +18,7 @@ function global:qimsdk-local-device-command {
 
     ${TMP_DIR} = [System.IO.Path]::GetTempPath()
 
-    adb pull /tmp/rc.txt ${TMP_DIR} 2>&1 | Out-null
+    adb pull /tmp/rc.txt ${TMP_DIR}\rc.txt 2>&1 | Out-null
     if ($LastExitCode -ne 0) {
         echo "${CMD} failed on device !!!";
         return 2;
@@ -95,6 +95,8 @@ function global:qimsdk-local-sync {
     # Resolve relative/wildcard/absolute path
     $FOLDER = Resolve-Path -Path "$FOLDER"
 
+    $null >> ${FOLDER}\uninstall.sh
+
     $FORMAT_IPK="ipk"
     $FORMAT_DEB="deb"
 
@@ -131,12 +133,13 @@ function global:qimsdk-local-sync {
 
     # Pull device sync log file
     qimsdk-local-device-command "[ -f ${DEVICE_LOG_FILE} ] || touch ${DEVICE_LOG_FILE}"
-    Invoke-Expression "adb pull ${DEVICE_LOG_FILE} ${FOLDER}"
+    Invoke-Expression "adb pull ${DEVICE_LOG_FILE} ${FOLDER}\${DEVICE_PULLED_LOG_FILE}"
 
     foreach($PACKAGE_NAME in Get-ChildItem ${FOLDER}) {
         $PACKAGE_FORMAT= (Get-ChildItem ${PACKAGE_NAME}).Extension
         $PACKAGE_FORMAT="$PACKAGE_FORMAT".split(".")[1]
         $PACKAGE_NAME = (Get-Item ${PACKAGE_NAME} ).Name
+        $PACKAGE_NAME_NO_VERSION="$PACKAGE_NAME".split("_")[0]
 
         if ($PACKAGE_NAME -eq "qim-sdk-install-prefix.txt") {continue;}
         if ($PACKAGE_NAME -eq "qim-sdk.sh") {continue;}
@@ -215,8 +218,6 @@ function global:qimsdk-local-packages-remove {
     $FOLDER = Resolve-Path -Path "$FOLDER"
 
     pushd ${FOLDER}
-    $QIMSDK_ESDK_DEVICE_INSTALL_PREFIX = ( gc qim-sdk-install-prefix.txt )
-    popd # ${FOLDER}
 
     $QIMSDK_ESDK_DEVICE_INSTALL_PREFIX = ( gc qim-sdk-install-prefix.txt )
 
