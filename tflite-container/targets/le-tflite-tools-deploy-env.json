@@ -1,0 +1,18 @@
+{
+    "Image": "tflite-tools-image",
+    "Device_OS": "le",
+    "Additional_tag": "k2c",
+    "TFLite_Version": "",
+    "Delegates": {
+        "Hexagon_delegate": "OFF",
+        "Gpu_delegate": "ON",
+        "Xnnpack_delegate": "ON"
+    },
+    "TFLite_rsync_destination": "",
+    "SDK_path": "<WORKSPACE>/build-qcom-wayland/tmp-glibc/deploy/sdk",
+    "SDK_shell_file": "",
+    "Base_Dir_Location": "Where is Dckerfile",
+    "Device_install_prefix": "/opt/qti/tflite-sdk/",
+    "Base_Image": "",
+    "DeviceID": ""
+}
