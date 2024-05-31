@@ -1,0 +1,23 @@
+{
+    "Acceleration_engines": [
+        {
+            "Acceleration_engine": "snpe",
+            "Acceleration_engine_path": "<sdk_path>"
+        },
+        {
+            "Acceleration_engine": "",
+            "Acceleration_engine_path": "-"
+        }
+    ],
+    "Base_Image": "ubuntu:22.04",
+    "Target_platform": "qcm6490",
+    "Additional_tag_container": "",
+    "Additional_tag_image": "",
+    "URL": "",
+    "DeviceID": "<device ID>",
+    "Backend": "--use_dsp",
+    "Model": "qseg_person_quant.dlc",
+    "Buffer": "USERBUFFER_TF16",
+    "TestExamplesDirectory": "<absolute path for input directory>",
+    "TestOutputDirectoryName": "<absolute path for output directory>"
+}
