@@ -46,13 +46,13 @@ function qml-device-command () {
 
         local rc
 
-        adb shell "${CMD} && echo 0 > /data/rc.txt"
+        adb shell "${CMD} && echo 0 > /tmp/rc.txt"
         rc=$?
         [ $rc -ne 0 ] && print-red "Executing Command ${CMD} failed !!!" && return $rc
 
-        adb pull /data/rc.txt /tmp/rc.txt 2>&1 > /dev/null
+        adb pull /tmp/rc.txt /tmp/rc.txt 2>&1 > /dev/null
         rc=$?
-        adb shell "rm -f /data/rc.txt"
+        adb shell "rm -f /tmp/rc.txt"
         [ $rc -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command ${CMD} failed !!!") && return $rc
 
         rc=`cat /tmp/rc.txt`
@@ -131,17 +131,21 @@ function qml-get-container-and-image-name() {
 
     local QML_ADDITIONAL_TAG=$(echo ${JSON_CONTENT} |  jq '.Additional_tag_container' | tr -d '"')
 
-    [ ! -z "${QML_ADDITIONAL_TAG}" ] && {
+    if [ -z "${QML_ADDITIONAL_TAG}" -o "${QML_ADDITIONAL_TAG}"="null" ]; then
+        QML_ADDITIONAL_TAG=""
+    else
         QML_ADDITIONAL_TAG="-${QML_ADDITIONAL_TAG}"
-    }
+    fi
 
     OUT_QML_CONTAINER_NAME="qml${QML_ADDITIONAL_TAG}"
 
     local ADDITIONAL_TAG_IMAGE=$(echo ${JSON_CONTENT} |  jq '.Additional_tag_image' | tr -d '"')
 
-    [ ! -z "${ADDITIONAL_TAG_IMAGE}" ] && {
+    if [ -z "${ADDITIONAL_TAG_IMAGE}" -o "${ADDITIONAL_TAG_IMAGE}"="null" ]; then
+        ADDITIONAL_TAG_IMAGE=""
+    else
         ADDITIONAL_TAG_IMAGE="-${ADDITIONAL_TAG_IMAGE}"
-    }
+    fi
 
     OUT_QML_IMAGE_NAME="qml${ADDITIONAL_TAG_IMAGE}"
 

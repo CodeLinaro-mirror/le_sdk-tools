@@ -16,7 +16,6 @@ The docker build generates device image on host files system. The device image c
 * [Host Side Helper Scripts And Configuration](#Host_Side_Helper_Scripts_And_Configuration)
   * [How to fill out Configuration JSON File](#How_to_fill_out_Configuration_JSON_File)
   * [Docker Host Side Helper Scripts](#Docker_Host_Side_Helper_Scripts)
-  * [Development Host Side Helper Scripts](#Dev_Host_Side_Helper_Scripts)
 * [Development Workflow](#Development_Workflow)
   * [Initial One Time Setup](#Initial_One_Time_Setup)
   * [Continuous Development After Initial Setup](#Continuous_Development_After_Initial_Setup)
@@ -24,7 +23,6 @@ The docker build generates device image on host files system. The device image c
   * [Remote Device With Disabled Verity](#Remote_Device_With_Disabled_Verity)
   * [Local Device With Verity Check](#Local_Device_With_Verity_Check)
   * [Device Docker Clean Up](#Device_Docker_Clean_Up)
-  * [Developing Python Scripts](#Developing_Python_Scripts)
 
 <div id="Prerequisites">
 
@@ -78,7 +76,7 @@ sudo fromdos /etc/docker/daemon.json
 sudo systemctl restart docker
 ```
 
-<div id="Docker_Host_System(one_time)">
+<div id="Docker_Host_System">
 
 ### Docker Must Be Configured On The Host System (one time)
 
@@ -189,34 +187,9 @@ Only one docker image QML is build for device
 
 The json file must contain certain data :
 
- 1. ***OPTIONAL*** - **Acceleration_engines** - An array of Acceleration engines to be used in QML environment. If not needed, leave as is in the example config json. ***Every Acceleration engine from the array must contain:***
-    * 1.1. ***OPTIONAL*** - **Acceleration_engine** - Acceleration engine to be used. If not needed, leave this field and the "Acceleration_engine_path" field with "-" value
-    * 1.2. ***OPTIONAL*** - **Acceleration_engine_path** - path to unzipped acceleration engine archive directory with unzipped files for the AI engine specified in the "Acceleration_engine" field ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
-    * 1.3. Steps to download Acceleration Engines
-        - Download Qualcomm Package Manager
-          - go to link: https://qpm.qualcomm.com/
-          - select "Tools"
-          - on the search bar type: "qpm"
-          - as System OS select: "Linux"
-          - from the results select: "Qualcomm® Package Manager 3"
-          - as System OS select: "Linux"
-          - press "Download" button
-          - As a result it will download a debian package (.deb)
-        - Install Qualcomm Package Manager using `dpkg -i --force-overwrite /path/to/QualcommPackageManager3.3.0.83.1.Linux-x86.deb`
-        - Install Qualcomm® Neural Processing SDK
-          - go to link: https://qpm.qualcomm.com/
-          - select "Tools"
-          - on the search bar type: "ai stack"
-          - and as System OS select "Linux"
-          - The result is a dropdown menu with name: "Qualcomm® AI Stack"
-          - press ">" button to show up: "Qualcomm® Neural Processing SDK"
-          - select "Qualcomm® Neural Processing SDK"
-          - as System OS select: "Linux"
-          - as version select >= 2.14.0
-          - press "Download" button
-          - As a result it will download a package (.qik)
-          - Run `qpm-cli --extract <full path to downloaded .qik file>`
-        - Push Libraries to the device with `adb push`
+ 1. ***MANDATORY*** - **Acceleration_engines** - An array of Acceleration engines to be used in QML environment. If not needed, leave as is in the example config json. ***Every Acceleration engine from the array must contain:***
+    * 1.1. ***MANDATORY*** - **Acceleration_engine** - Acceleration engine to be used. If not needed, leave this field and the "Acceleration_engine_path" field with "-" value
+    * 1.2. ***MANDATORY*** - **Acceleration_engine_version** - SDK Version for Acceleration engine. Example Value `"v2.22.0.240425"`
  2. ***MANDATORY*** - **Base_Image** - Base docker image to be used on the device
  ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
  3. ***MANDATORY*** - **Target_platform** - Target device platform, which can be kalama or qcs6490 or qrb5165 or qcm6490
@@ -224,12 +197,6 @@ The json file must contain certain data :
  5. ***OPTIONAL*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose (to not set an additional tag just leave the value for this field empty)
  6. ***MANDATORY*** - **URL** - Remote destination To be able to sync to this destination folder
  7.  ***MANDATORY*** -  **DeviceID** - adb devices command ID of the device.
-
- 10.  ***MANDATORY for running snpe*** -  **Backend** - Can be `--use_gpu`, `--use_dsp` or ` ` for cpu.
- 11.  ***MANDATORY for running snpe*** -  **Model** - DLC container model to be used.
- 12. ***MANDATORY for running snpe*** -  **Buffer** - User buffer type, must be one of the following USERBUFFER_TF8, USERBUFFER_TF16 ( for DSP runtime ) or USERBUFFER_FLOAT (for GPU runtime).
- 13. ***MANDATORY for running snpe*** -  **TestExamplesDirectory** - Path to the directory where the input raw images and input.txt is located.
- 14. ***MANDATORY for running snpe*** -  **TestOutputDirectoryName** - Name to the directory where the output files will be saved.
 
 The json files must be created in the ```targets/``` directory. Example json files for each supported combination are located in ```targets/``` directory.
 
@@ -252,34 +219,8 @@ source scripts/host/docker_env_setup.sh
 The developer generally needs to build the image, load the image to the device and run the container.
 
 - qml-docker-build-image <path-to-config-json> - Build docker image based on Dockerfile
-- qml-device-prepare - Prepare device after reboot
 - qml-docker-device-update-image - Updates the device images to the device
-- qml-docker-device-save-image - Saves the device images and sends to the remote
-- qml-docker-device-load-image - Takes the .tar file from remote and loads device image on the device
 - qml-docker-device-run-container - Run device container
-- qml-docker-device-rm-container - Remove device container
-- qml-docker-device-start-container - Start device container
-- qml-docker-device-stop-container - Stop device container
-- qml-docker-device-command - Execute CMD in device container
-- qml-docker-device-shell - Start shell in the docker container on the device
-- qml-docker-device-images-cleanup - Docker device images clean up
-
-<div id="Dev_Host_Side_Helper_Scripts">
-
-### Development Host Side Helper Scripts
-
-These functions are used for development of pyhton scripts.
-
-***In order for the functions inside dev_env_setup.sh to work on the host, the script must be sourced***
-
-```bash
-source scripts/host/dev_env_setup.sh
-```
-
-The developer generally needs to sync updated python scripts to the docker container inside the device and run the test app.
-
-- qml-sync-snpe - Sync snpe input files to the container
-- qml-run-snpe - Run snpe-net-run program on the container
 
 <div id="Development_Workflow">
 
@@ -325,18 +266,6 @@ qml-docker-build-image <path-to-config-json>
 qml-docker-device-update-image <path-to-config-json>
 ```
 
-#### Save Compiled Docker Image To Remote URL
-
-```bash
-qml-docker-device-save-image <path-to-config-json>
-```
-
-#### Load Saved Docker Image From Remote URL To Locally Connected Device
-
-```bash
-qml-docker-device-load-image <path-to-config-json>
-```
-
 #### Run Device Container
 
 ```bash
@@ -356,40 +285,6 @@ qml-docker-device-run-container <path-to-config-json>
   - Device with disabled verity
   - Incremental Build
 
-#### Initial Setup
-
-Prepare the environment on remote machine with device connected to it
-
-```bash
-# Remote machine with device connected to it
-############################################
-# Prepare Device For Work
-qml-device-prepare
-```
-
-#### Continuous Development
-
-Build docker image and save the docker image to file on build machine
-
-```bash
-# Build machine
-###############
-# Build docker image
-qml-docker-build-image <path-to-config-json>
-# Save docker image to url
-qml-docker-device-save-image <path-to-config-json>
-```
-
-Load docker image and run the container on remote machine with device connected to it
-
-```bash
-# Remote machine with device connected to it
-############################################
-# Load docker image from url
-qml-docker-device-load-image <path-to-config-json>
-# Run device container
-qml-docker-device-run-container <path-to-config-json>
-```
 
 <div id="Local_Device_With_Verity_Check">
 
@@ -432,55 +327,3 @@ qml-docker-device-run-container <path-to-config-json>
 
 - Scenario is:
   - Device storage is full and docker image clean up is required
-
-#### Initial Setup
-
-Prepare the environment
-
-```bash
-# Prepare Device For Work
-qml-device-prepare
-```
-
-#### Device Docker Clean Up
-
-Clean up old docker images
-
-```bash
-qml-docker-device-images-cleanup
-```
-
-<div id="Developing_Python_Scripts">
-
-### Developing Python Scripts
-
-- Scenario is:
-  - Locally connected device
-  - Device with disabled verity
-  - Need to do python scripts development
-
-#### Initial Setup
-
-Prepare the environment, build image, update it to device and run the container
-
-```bash
-# Prepare Device For Work
-qml-device-prepare
-# Build docker image
-qml-docker-build-image <path-to-config-json>
-# Update docker image on the device
-qml-docker-device-update-image <path-to-config-json>
-# Run device container
-qml-docker-device-run-container <path-to-config-json>
-```
-
-#### Continuous Development
-
-Sync python wrapper script, load script to the container, run the test app
-
-```bash
-# Sync Python wrapper src and test examples to the container
-qml-sync-snpe <path/to/targets/config.json>
-# Run Python wrapper script on the container
-qml-run-snpe <path/to/targets/config.json>
-```
