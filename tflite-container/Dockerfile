@@ -172,6 +172,13 @@ FROM --platform=linux/arm64 ubuntu:22.04 AS tflite-tools-image
 # Enable color prompt
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc
 
+# Installing required apt packages
+RUN apt-get update                                                                              && \
+    apt-get install -y  libglib2.0-dev libpcre3-dev                                             && \
+    apt-get autoremove -y                                                                       && \
+    apt-get clean                                                                               && \
+    rm -rf /var/lib/apt/lists* /tmp/* /var/tmp/*
+
 ARG TFLITE_ARG_BASE_DIR
 ENV TFLITE_BASE_DIR=${TFLITE_ARG_BASE_DIR}
 
