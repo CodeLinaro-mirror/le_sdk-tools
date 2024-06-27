@@ -207,15 +207,14 @@ The json file must contain certain data :
  5. ***MANDATORY*** -  **Device_ID** - adb devices command ID of the device.
  6. ***MANDATORY*** -  **Target_platform** - Target device platform, check the eSDK for this info, default is qcm6490.
  7. ***MANDATORY*** - **Gst_Source_Dir** - PATH to Gstreamer sources directory, which contains all gst plugins, of SP. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
- 8. ***OPTIONAL*** - **Path_to_unzipped_snpe_sdk_dir** - Path to qaisw-v2.XX.X.XXXXXXXXXXXX_XXXXX snpe-sdk directory from which needed snpe headers are automatically picked up by environment scripts. ***Note: If not provided, gst-plugin-mlsnpe will not be built***
- 9. ***OPTIONAL*** - **Path_to_unzipped_qnn_sdk_dir** - Path to qaisw-v2.XX.X.XXXXXXXXXXXX_XXXXX qnn-sdk directory from which needed qnn headers are automatically picked up by environment scripts. ***Note: If not provided, gst-plugin-mlsnpe will not be built***
- 10. ***OPTIONAL*** - **Path_to_tflite_dev_package** - Path to tflite dev package which is automatically installed by environment scripts. ***Note: If not provided, gst-plugin-mltflite will not be built***
- 11. ***OPTIONAL*** - **Path_to_wayland_protocols_dir** - Path to wayland protocols directory (Can get it from https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz via wget). ***Note: Should be version: 1.25 and unzipped, If empty, will be fetched automatically***
- 12. ***OPTIONAL*** - **Path_to_gst_plugins_bad_dir** - Path to gst plugins bad directory (Can get it from https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz via wget). ***Note: Should be version: 1.20.7 and unzipped, If empty, will be fetched automatically***
- 13. ***OPTIONAL*** - **Path_to_gst_plugins_good_dir** - Path to gst plugins good directory (Can get it from https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz via wget). ***Note: Should be version: 1.20.7 and unzipped, If empty, will be fetched automatically***
- 14. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
- 15. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
- 16. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
+ 8. ***OPTIONAL*** - **Qnp_sdk_ver** - Set which qnp-sdk version to download from Internet. Leve it blank if unsure. ***Note: If not provided, gst-plugin-mlsnpe and gst-plugin-mlqnn will not be build***
+ 9. ***OPTIONAL*** - **Path_to_tflite_dev_package** - Path to tflite dev package which is automatically installed by environment scripts. ***Note: If not provided, gst-plugin-mltflite will not be build***
+ 10. ***OPTIONAL*** - **Path_to_wayland_protocols_dir** - Path to wayland protocols directory (Can get it from https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz via wget). ***Note: Should be version: 1.25 and unzipped, If empty, will be fetched automatically***
+ 11. ***OPTIONAL*** - **Path_to_gst_plugins_bad_dir** - Path to gst plugins bad directory (Can get it from https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz via wget). ***Note: Should be version: 1.20.7 and unzipped, If empty, will be fetched automatically***
+ 12. ***OPTIONAL*** - **Path_to_gst_plugins_good_dir** - Path to gst plugins good directory (Can get it from https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz via wget). ***Note: Should be version: 1.20.7 and unzipped, If empty, will be fetched automatically***
+ 13. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
+ 14. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
+ 15. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
 
 <div id="Docker_Host_Side_Helper_Scripts">
 
@@ -276,7 +275,7 @@ These functions are available immediately inside development container:
 
 ### Initial One Time Setup
 
-# Steps for eSDK, SNPE, QNN and TFLite dev-package Installation
+# Steps for eSDK and TFLite dev-package Installation
 
 ## eSDK
 
@@ -302,41 +301,6 @@ umask 022
 {
   ...
   "Path_to_eSDK_dir" : "<some/destination/directory>",
-  ...
-}
-```
-
-## SNPE
-
-### Unzip example:
-```bash
-unzip snpe-sdk-v2.XX.X.XXXXXXXXXXXX_XXXXX.zip
-```
-
-*** Result product will be qaisw-v2.XX.X.XXXXXXXXXXXX_XXXXX directory ***
-
-### JSON should be filled:
-```bash
-{
-  ...
-  "Path_to_unzipped_snpe_sdk_dir" : "<path/to/unzipped/qaisw-v2.XX.X.XXXXXXXXXXXX_XXXXX>",
-  ...
-}
-```
-
-## QNN
-
-### Unzip example:
-```bash
-unzip qnn-sdk-v2.XX.X.XXXXXXXXXXXX_XXXXX.zip
-```
-*** Result product will be qaisw-v2.XX.X.XXXXXXXXXXXX_XXXXX directory ***
-
-### JSON should be filled:
-```bash
-{
-  ...
-  "Path_to_unzipped_qnn_sdk_dir" : "<path/to/unzipped/qaisw-v2.XX.X.XXXXXXXXXXXX_XXXXX>",
   ...
 }
 ```
@@ -602,34 +566,20 @@ qimsdk-docker-device-run-container <path-to-config-json>
       ```
     </ul>
 
-    <div name="qnn"> QNN
+    <div name="qnp"> QNP
       <ul>
-      <div style="color:#90EE90">DIR: QNN directory</div>
+      <div style="color:#90EE90">DIR: QNP directory</div>
 
       ```bash
-      cd <path/to/unzipped/qnn/qaisw-v2.XX.X.XXXXXXXXXXXX_XXXXX/directory>/include/
-      rsync -a QNN <current/docker/dir>/tmp/.
+      wget https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.22.0.240425.zip
+      cd <path/to/unzipped/qnp/qairt/2.22.0.240425/include/>
+      rsync -a QNN <current/docker/dir>/tmp/
+      rsync -a SNPE <current/docker/dir>/tmp/
       ```
       <div style="color:#FF4500">OR</div>
 
       ```bash
-      touch no-qnn-sdk-provided
-      ```
-      </ul>
-    </div>
-
-    <div name="snpe"> SNPE
-      <ul>
-      <div style="color:#90EE90">DIR: SNPE directory</div>
-
-      ```bash
-      cd <path/to/unzipped/snpe/qaisw-v2.XX.X.XXXXXXXXXXXX_XXXXX/directory>/include/
-      rsync -a SNPE <current/docker/dir>/tmp/.
-      ```
-      <div style="color:#FF4500">OR</div>
-
-      ```bash
-      touch no-snpe-sdk-provided
+      touch no-qnp-sdk-provided
       ```
       </ul>
     </div>

@@ -368,7 +368,7 @@ function qimsdk-cmake-build-gst-plugin-mlvsegmentation() {
 
 # CMake Build gst-plugin-mlsnpe
 function qimsdk-cmake-build-gst-plugin-mlsnpe() {
-    [ -f "${QIMSDK_BASE_DIR}/no-snpe-sdk-provided" ]                                            && \
+    [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ]                                             && \
         {
             return 0
         }                                                                                       || \
@@ -402,7 +402,7 @@ function qimsdk-cmake-build-gst-plugin-mltflite() {
 
 # CMake Build gst-plugin-mlqnn
 function qimsdk-cmake-build-gst-plugin-mlqnn() {
-    [ -f "${QIMSDK_BASE_DIR}/no-qnn-sdk-provided" ]                                             && \
+    [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ]                                             && \
         {
             return 0
         }                                                                                       || \

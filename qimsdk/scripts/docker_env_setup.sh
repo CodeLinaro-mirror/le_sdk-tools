@@ -12,26 +12,24 @@ echo "=============================="
 #   $3 - (mandatory) variable to take container name value
 #   $4 - (mandatory) variable to take image name value
 #   $5 - (mandatory) variable to take Gstreamer sources of SP
-#   $6 - (mandatory) variable to take path to snpe sdk
-#   $7 - (mandatory) variable to take path to qnn sdk
-#   $8 - (mandatory) variable to take path to tflite dev package
-#   $9 - (mandatory) variable to take path to wayland protocols
-#   $10 - (mandatory) variable to take path to gst plugins bad
-#   $11 - (mandatory) variable to take path to gst plugins good
-#   $12 - (mandatory) variable to take path to eSDK
+#   $6 - (mandatory) variable to take qnp sdk version
+#   $7 - (mandatory) variable to take path to tflite dev package
+#   $8 - (mandatory) variable to take path to wayland protocols
+#   $9 - (mandatory) variable to take path to gst plugins bad
+#   $10 - (mandatory) variable to take path to gst plugins good
+#   $11 - (mandatory) variable to take path to eSDK
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_BASE_IMAGE=${2}
     local -n OUT_QIMSDK_CONTAINER_NAME=${3}
     local -n OUT_QIMSDK_IMAGE_NAME=${4}
     local -n OUT_QIMSDK_GST_SOURCES=${5}
-    local -n OUT_QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK=${6}
-    local -n OUT_QIMSDK_PATH_TO_UNZIPPED_QNN_SDK=${7}
-    local -n OUT_QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE=${8}
-    local -n OUT_QIMSDK_PATH_TO_WAYLAND_PROTOCOLS_DIR=${9}
-    local -n OUT_QIMSDK_PATH_TO_GST_PLUGINS_BAD_DIR=${10}
-    local -n OUT_QIMSDK_PATH_TO_GST_PLUGINS_GOOD_DIR=${11}
-    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${12}
+    local -n OUT_QIMSDK_QNP_SDK_VERSION=${6}
+    local -n OUT_QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE=${7}
+    local -n OUT_QIMSDK_PATH_TO_WAYLAND_PROTOCOLS_DIR=${8}
+    local -n OUT_QIMSDK_PATH_TO_GST_PLUGINS_BAD_DIR=${9}
+    local -n OUT_QIMSDK_PATH_TO_GST_PLUGINS_GOOD_DIR=${10}
+    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${11}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -76,21 +74,9 @@ function qimsdk-docker-parse-json() {
                 return -3
             }
 
-    OUT_QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK=$(
-        echo ${JSON_CONTENT} | jq '.Path_to_unzipped_snpe_sdk_dir' | tr -d '"'
+    OUT_QIMSDK_QNP_SDK_VERSION=$(
+        echo ${JSON_CONTENT} | jq '.Qnp_sdk_ver' | tr -d '"'
     )
-
-    [ -z "${OUT_QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK}" ] && {
-        OUT_QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK="no-snpe-sdk-provided"
-    }
-
-    OUT_QIMSDK_PATH_TO_UNZIPPED_QNN_SDK=$(
-        echo ${JSON_CONTENT} | jq '.Path_to_unzipped_qnn_sdk_dir' | tr -d '"'
-    )
-
-    [ -z "${OUT_QIMSDK_PATH_TO_UNZIPPED_QNN_SDK}" ] && {
-        OUT_QIMSDK_PATH_TO_UNZIPPED_QNN_SDK="no-qnn-sdk-provided"
-    }
 
     OUT_QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE=$(
         echo ${JSON_CONTENT} | jq '.Path_to_tflite_dev_package' | tr -d '"'
@@ -149,8 +135,7 @@ function qimsdk-dev-docker-build-image() {
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_GST_SOURCES
-    local QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK
-    local QIMSDK_PATH_TO_UNZIPPED_QNN_SDK
+    local QIMSDK_QNP_SDK_VERSION
     local QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE
     local QIMSDK_PATH_TO_WAYLAND_PROTOCOLS_DIR
     local QIMSDK_PATH_TO_GST_PLUGINS_BAD_DIR
@@ -163,8 +148,7 @@ function qimsdk-dev-docker-build-image() {
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_GST_SOURCES                                                                     \
-            QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK                                                       \
-            QIMSDK_PATH_TO_UNZIPPED_QNN_SDK                                                        \
+            QIMSDK_QNP_SDK_VERSION                                                                 \
             QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE                                                      \
             QIMSDK_PATH_TO_WAYLAND_PROTOCOLS_DIR                                                   \
             QIMSDK_PATH_TO_GST_PLUGINS_BAD_DIR                                                     \
@@ -190,24 +174,6 @@ function qimsdk-dev-docker-build-image() {
     mkdir -p ${QIMSDK_TMP_FOLDER}
 
     rsync -a ${QIMSDK_GST_SOURCES} ${QIMSDK_TMP_FOLDER}/gst-plugins-qti-oss
-
-    QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK=${QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK%/}
-    [ "${QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK}" == "no-snpe-sdk-provided" ]                         && \
-        {
-            touch ${QIMSDK_TMP_FOLDER}/${QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK}
-        }                                                                                       || \
-        {
-            rsync -a ${QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK}/include/SNPE ${QIMSDK_TMP_FOLDER}/
-        }
-
-    QIMSDK_PATH_TO_UNZIPPED_QNN_SDK=${QIMSDK_PATH_TO_UNZIPPED_QNN_SDK%/}
-    [ "${QIMSDK_PATH_TO_UNZIPPED_QNN_SDK}" == "no-qnn-sdk-provided" ]                           && \
-        {
-            touch ${QIMSDK_TMP_FOLDER}/${QIMSDK_PATH_TO_UNZIPPED_QNN_SDK}
-        }                                                                                       || \
-        {
-            rsync -a ${QIMSDK_PATH_TO_UNZIPPED_QNN_SDK}/include/QNN ${QIMSDK_TMP_FOLDER}/
-        }
 
     [ "${QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE}" == "no-tflite-provided" ]                          && \
         {
@@ -370,6 +336,7 @@ function qimsdk-dev-docker-build-image() {
             --build-arg QIMSDK_ARG_GST_PLUGINS_BAD_DIR=${QIMSDK_GST_PLUGINS_BAD_BASENAME}          \
             --build-arg QIMSDK_ARG_GST_PLUGINS_GOOD_DIR=${QIMSDK_GST_PLUGINS_GOOD_BASENAME}        \
             --build-arg QIMSDK_ARG_PATCHED_SOURCES=${QIMSDK_GET_PATCHED_SOURCES_FROM}              \
+            --build-arg QIMSDK_ARG_QNP_SDK_VERSION=${QIMSDK_QNP_SDK_VERSION}                       \
             --progress=plain --target QIMSDK_dev_image                                             \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}_dev
 
@@ -396,7 +363,7 @@ function qimsdk-docker-build-image() {
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_GST_SOURCES
-    local QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK
+    local QIMSDK_QNP_SDK_VERSION
     local QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE
     local QIMSDK_PATH_TO_WAYLAND_PROTOCOLS_DIR
     local QIMSDK_PATH_TO_GST_PLUGINS_BAD_DIR
@@ -408,8 +375,7 @@ function qimsdk-docker-build-image() {
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_GST_SOURCES                                                                     \
-            QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK                                                       \
-            QIMSDK_PATH_TO_UNZIPPED_QNN_SDK                                                        \
+            QIMSDK_QNP_SDK_VERSION                                                                 \
             QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE                                                      \
             QIMSDK_PATH_TO_WAYLAND_PROTOCOLS_DIR                                                   \
             QIMSDK_PATH_TO_GST_PLUGINS_BAD_DIR                                                     \
@@ -427,24 +393,6 @@ function qimsdk-docker-build-image() {
     mkdir -p ${QIMSDK_TMP_FOLDER}
 
     rsync -a ${QIMSDK_GST_SOURCES} ${QIMSDK_TMP_FOLDER}/gst-plugins-qti-oss
-
-    QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK=${QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK%/}
-    [ "${QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK}" == "no-snpe-sdk-provided" ]                         && \
-        {
-            touch ${QIMSDK_TMP_FOLDER}/${QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK}
-        }                                                                                       || \
-        {
-            rsync -a ${QIMSDK_PATH_TO_UNZIPPED_SNPE_SDK}/include/SNPE ${QIMSDK_TMP_FOLDER}/
-        }
-
-    QIMSDK_PATH_TO_UNZIPPED_QNN_SDK=${QIMSDK_PATH_TO_UNZIPPED_QNN_SDK%/}
-    [ "${QIMSDK_PATH_TO_UNZIPPED_QNN_SDK}" == "no-qnn-sdk-provided" ]                           && \
-        {
-            touch ${QIMSDK_TMP_FOLDER}/${QIMSDK_PATH_TO_UNZIPPED_QNN_SDK}
-        }                                                                                       || \
-        {
-            rsync -a ${QIMSDK_PATH_TO_UNZIPPED_QNN_SDK}/include/QNN ${QIMSDK_TMP_FOLDER}/
-        }
 
     [ "${QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE}" == "no-tflite-provided" ]                          && \
         {
@@ -606,6 +554,7 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_GST_PLUGINS_BAD_DIR=${QIMSDK_GST_PLUGINS_BAD_BASENAME}          \
             --build-arg QIMSDK_ARG_GST_PLUGINS_GOOD_DIR=${QIMSDK_GST_PLUGINS_GOOD_BASENAME}        \
             --build-arg QIMSDK_ARG_PATCHED_SOURCES=${QIMSDK_GET_PATCHED_SOURCES_FROM}              \
+            --build-arg QIMSDK_ARG_QNP_SDK_VERSION=${QIMSDK_QNP_SDK_VERSION}                       \
             --progress=plain --target QIMSDK_device_image                                          \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}
 

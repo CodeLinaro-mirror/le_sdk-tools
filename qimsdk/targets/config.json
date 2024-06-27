@@ -6,9 +6,8 @@
     "Device_ID" : "<adb-device-id>",
     "Target_platform": "qcm6490",
     "Gst_Source_Dir" : "<path-to-gst-plugins-qti-oss-dir>",
-    "Path_to_unzipped_snpe_sdk_dir" : "<path-to-unzipped-qaisw-v2.XX.X.XXXXXXXXXXXX_XXXXX-dir>",
-    "Path_to_unzipped_qnn_sdk_dir" : "<path-to-unzipped-qaisw-v2.XX.X.XXXXXXXXXXXX_XXXXX-dir>",
     "Path_to_tflite_dev_package" : "<path-to-tflite-dev-package>",
+    "Qnp_sdk_ver" : "2.22.0.240425",
 
     "Path_to_wayland_protocols_dir" : "<path-to-wayland-protocols-1.25>",
     "Path_to_gst_plugins_bad_dir" : "<path-to-gst-plugins-bad-1.20.7>",

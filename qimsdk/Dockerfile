@@ -83,7 +83,7 @@ ENV QIMSDK_BASE_DIR=${QIMSDK_ARG_BASE_DIR}
 # Installing required apt packages
 RUN apt-get update                                                                              && \
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
-        git tar ssh rsync bash-completion jq cmake                                                 \
+        git tar unzip ssh rsync bash-completion jq cmake                                           \
         libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev       \
         gettext                                                                                    \
         libcairo2-dev                                                                              \
@@ -111,17 +111,24 @@ RUN mkdir -p ${QIMSDK_LOGS_DIR}
 # Add private headers needed compiletime from headers dir
 COPY tmp/headers/usr/ /usr/
 
-# Copy snpe-sdk needed headers
-COPY tmp/SNPE* /usr/include/
-COPY tmp/*no-snpe-sdk-provided ${QIMSDK_BASE_DIR}
-
-# Copy qnn-sdk needed headers
-COPY tmp/QNN* /usr/include/
-COPY tmp/*no-qnn-sdk-provided ${QIMSDK_BASE_DIR}
-
 # Set up download directory
 ENV QIMSDK_DOWNLOAD_DIR=${QIMSDK_BASE_DIR}/downloads
 RUN mkdir -p ${QIMSDK_DOWNLOAD_DIR}
+
+ARG QIMSDK_ARG_QNP_SDK_VERSION
+
+# qnp-sdk: fetch and copy the needed headers
+RUN [ -n "${QIMSDK_ARG_QNP_SDK_VERSION}" ] || touch ${QIMSDK_BASE_DIR}/no-qnp-sdk-provided
+RUN [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ] || (                                           \
+    wget -t 2 -T 30 --passive-ftp -P ${QIMSDK_DOWNLOAD_DIR}                                        \
+    "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v${QIMSDK_ARG_QNP_SDK_VERSION}.zip" && \
+    cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
+    unzip v${QIMSDK_ARG_QNP_SDK_VERSION}.zip                                                    && \
+    rm -f v${QIMSDK_ARG_QNP_SDK_VERSION}.zip                                                    && \
+    cp -r ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/SNPE/*                \
+          ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QNN/*                 \
+          /usr/include/                                                                            \
+    )
 
 # Add and install tflite dev package
 COPY tmp/tflite* ${QIMSDK_DOWNLOAD_DIR}
@@ -219,7 +226,7 @@ ENV QIMSDK_BASE_DIR=${QIMSDK_ARG_BASE_DIR}
 RUN apt-get update                                                                              && \
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
         gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools                      \
-        libudev1 libgstrtspserver-1.0-0 bash-completion libsoup2.4                              && \
+        libudev1 libgstrtspserver-1.0-0 bash-completion libsoup2.4 gstreamer1.0-nice            && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
