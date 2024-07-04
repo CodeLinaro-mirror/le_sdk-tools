@@ -344,6 +344,17 @@ function qimsdk-cmake-build-gst-plugin-mlvdetection() {
     qimsdk-cmake-build gst-plugin-mlvdetection ${CONFIG_FLAGS}
 }
 
+# CMake Build gst-plugin-mlvsuperresolution
+function qimsdk-cmake-build-gst-plugin-mlvsuperresolution() {
+    local RECIPE_FLAGS=$(
+        cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mlvsuperresolution'
+    )
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlvsuperresolution"
+
+    qimsdk-cmake-build gst-plugin-mlvsuperresolution ${CONFIG_FLAGS}
+}
+
 # CMake Build gst-plugin-mlvpose
 function qimsdk-cmake-build-gst-plugin-mlvpose() {
     local RECIPE_FLAGS=$(
@@ -554,6 +565,13 @@ function qimsdk-cmake-clean-gst-plugin-mlvdetection() {
     print-green "${FUNCNAME} completed succesfully!"
 }
 
+# Clean CMake gst-plugin-mlvsuperresolution build directory
+function qimsdk-cmake-clean-gst-plugin-mlvsuperresolution() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugin-mlvsuperresolution
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
 # Clean CMake gst-plugin-mlvpose build directory
 function qimsdk-cmake-clean-gst-plugin-mlvpose() {
     rm -rf ${QIMSDK_BUILD_DIR}/gst-plugin-mlvpose
@@ -651,6 +669,7 @@ function qimsdk-incremental-build() {
         qimsdk-cmake-build-gst-plugin-mlvclassification                                         && \
         qimsdk-cmake-build-gst-plugin-mlvconverter                                              && \
         qimsdk-cmake-build-gst-plugin-mlvdetection                                              && \
+        qimsdk-cmake-build-gst-plugin-mlvsuperresolution                                        && \
         qimsdk-cmake-build-gst-plugin-mlvpose                                                   && \
         qimsdk-cmake-build-gst-plugin-mlvsegmentation                                           && \
         qimsdk-cmake-build-gst-plugin-mlsnpe                                                    && \
