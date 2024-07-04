@@ -4,12 +4,14 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # Configure qimsdk meson Target
-#    ${1} - TARGET - meson Target
-#    ${2} - MESON_CONFIG_FLAGS - flags to pass to meson configure
+#    ${1} - SOURCE_PATH - Path to top-level Meson Project Directory
+#    ${2} - TARGET - meson Target
+#    ${3} - MESON_CONFIG_FLAGS - flags to pass to meson configure
 function qimsdk-meson-configure() {
-    local TARGET=${1}
+    local SOURCE_PATH=${1}
+    local TARGET=${2}
 
-    shift
+    shift;shift
 
     local MESON_CONFIG_FLAGS=$@
 
@@ -18,7 +20,7 @@ function qimsdk-meson-configure() {
         cd ${QIMSDK_BUILD_DIR}
         set -o pipefail
 
-        meson setup ${MESON_CONFIG_FLAGS} ${TARGET} ${QIMSDK_BASE_DIR}/downloads/${TARGET}      && \
+        meson setup ${MESON_CONFIG_FLAGS} ${TARGET} ${SOURCE_PATH}                              && \
                 cd ${TARGET}                                                                    && \
                 meson configure ${MESON_CONFIG_FLAGS}                                             |&
                 tee "${QIMSDK_LOGS_DIR}/meson_configure_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
@@ -32,11 +34,14 @@ function qimsdk-meson-configure() {
 }
 
 # Configure qimsdk CMake Target
-#    ${1} - TARGET - CMake Target
-#    ${2} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
+#    ${1} - SOURCE_PATH - Path to top-level CMake Project Directory
+#    ${2} - TARGET - CMake Target
+#    ${3} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
 function qimsdk-cmake-configure() {
-    local TARGET=${1}
-    shift
+    local SOURCE_PATH=${1}
+    local TARGET=${2}
+
+    shift;shift
 
     local CMAKE_CUSTOM_CONFIG_FLAGS=$@
 
@@ -59,7 +64,7 @@ function qimsdk-cmake-configure() {
 
         set -o pipefail
 
-        cmake ${CMAKE_FLAGS} ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/${TARGET}                      |&
+        cmake ${CMAKE_FLAGS} ${SOURCE_PATH}                                                       |&
                 tee "${QIMSDK_LOGS_DIR}/do_configure_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
     ) || {
         print-red "FAILED: qimsdk-cmake-configure-${TARGET}: cmake configure failed !!!"
@@ -157,33 +162,35 @@ function qimsdk-cmake-install() {
 }
 
 # Wrapper function to configure, compile & install qimsdk meson Target
-#    ${1} - T - meson Target
+#    ${1} - SOURCE_PATH - Path to top-level Meson Project Directory
 #    ${2} - DESTINATION_DIR - meson destination directory
 #    ${3} - MESON_CONFIG_FLAGS - meson configure flags
 function qimsdk-meson-build() {
-    local T=${1}
+    local SOURCE_PATH=${1}
+    local T=`basename ${SOURCE_PATH}`
     local DESTINATION_DIR=${2}
 
     shift;shift;
 
     local MESON_CONFIG_FLAGS=$@
 
-    qimsdk-meson-configure ${T} ${MESON_CONFIG_FLAGS}                                           && \
+    qimsdk-meson-configure ${SOURCE_PATH} ${T} ${MESON_CONFIG_FLAGS}                            && \
         qimsdk-meson-compile ${T}                                                               && \
         qimsdk-meson-install ${T} ${DESTINATION_DIR}
 }
 
 # Wrapper function to configure, compile & install qimsdk CMake Target
-#    ${1} - T - CMake Target
+#    ${1} - SOURCE_PATH - Path to top-level CMake Project Directory
 #    ${2} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
 function qimsdk-cmake-build() {
-    local T=${1}
+    local SOURCE_PATH=${1}
+    local T=`basename ${SOURCE_PATH}`
 
     shift
 
     local CMAKE_CUSTOM_CONFIG_FLAGS=$@
 
-    qimsdk-cmake-configure ${T} ${CMAKE_CUSTOM_CONFIG_FLAGS}                                    && \
+    qimsdk-cmake-configure ${SOURCE_PATH} ${T} ${CMAKE_CUSTOM_CONFIG_FLAGS}                     && \
         qimsdk-cmake-compile ${T}                                                               && \
         qimsdk-cmake-install ${T}
 }
@@ -198,7 +205,7 @@ qimsdk-meson-build-wayland-protocols() {
                 --localstatedir /var --sharedstatedir /com --wrap-mode nodownload -Dtests=false"
     local DESTINATION_DIR='/'
 
-    qimsdk-meson-build wayland-protocols-1.25 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
 # Meson build gst-plugins-good-1.20.7
@@ -220,7 +227,7 @@ qimsdk-meson-build-gst-plugins-good() {
                 -Dximagesrc-xfixes=disabled -Dximagesrc-xdamage=disabled -Dbuild_all_plugins=false"
     local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
 
-    qimsdk-meson-build gst-plugins-good-1.20.7 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
 # Meson build gst-plugins-bad-1.20.7
@@ -259,7 +266,7 @@ qimsdk-meson-build-gst-plugins-bad() {
                 -Dx11=disabled -Dx265=disabled -Dzbar=disabled -Dbuild_all_plugins=false"
     local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
 
-    qimsdk-meson-build gst-plugins-bad-1.20.7 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-ml-metadata
@@ -270,12 +277,12 @@ function qimsdk-cmake-build-gst-ml-metadata() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlmeta"
 
-    qimsdk-cmake-build gst-ml-metadata ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-ml-metadata ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-base
 function qimsdk-cmake-build-gst-plugin-base() {
-    qimsdk-cmake-build gst-plugin-base
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-base
 }
 
 # CMake Build gst-plugin-batch
@@ -286,7 +293,7 @@ function qimsdk-cmake-build-gst-plugin-batch() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-batch"
 
-    qimsdk-cmake-build gst-plugin-batch ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-batch ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-metamux
@@ -297,7 +304,7 @@ function qimsdk-cmake-build-gst-plugin-metamux() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-metamux"
 
-    qimsdk-cmake-build gst-plugin-metamux ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-metamux ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-mldemux
@@ -308,7 +315,7 @@ function qimsdk-cmake-build-gst-plugin-mldemux() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mldemux"
 
-    qimsdk-cmake-build gst-plugin-mldemux ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mldemux ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-mlvclassification
@@ -319,7 +326,7 @@ function qimsdk-cmake-build-gst-plugin-mlvclassification() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlvclassification"
 
-    qimsdk-cmake-build gst-plugin-mlvclassification ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlvclassification ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-mlvconverter
@@ -330,7 +337,7 @@ function qimsdk-cmake-build-gst-plugin-mlvconverter() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlvconverter"
 
-    qimsdk-cmake-build gst-plugin-mlvconverter ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlvconverter ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-mlvdetection
@@ -341,7 +348,7 @@ function qimsdk-cmake-build-gst-plugin-mlvdetection() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlvdetection"
 
-    qimsdk-cmake-build gst-plugin-mlvdetection ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlvdetection ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-mlvsuperresolution
@@ -352,7 +359,7 @@ function qimsdk-cmake-build-gst-plugin-mlvsuperresolution() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlvsuperresolution"
 
-    qimsdk-cmake-build gst-plugin-mlvsuperresolution ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlvsuperresolution ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-mlvpose
@@ -363,7 +370,7 @@ function qimsdk-cmake-build-gst-plugin-mlvpose() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlvpose"
 
-    qimsdk-cmake-build gst-plugin-mlvpose ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlvpose ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-mlvsegmentation
@@ -374,7 +381,7 @@ function qimsdk-cmake-build-gst-plugin-mlvsegmentation() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlvsegmentation"
 
-    qimsdk-cmake-build gst-plugin-mlvsegmentation ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlvsegmentation ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-mlsnpe
@@ -390,7 +397,7 @@ function qimsdk-cmake-build-gst-plugin-mlsnpe() {
 
             local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlsnpe"
 
-            qimsdk-cmake-build gst-plugin-mlsnpe ${CONFIG_FLAGS}
+            qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlsnpe ${CONFIG_FLAGS}
         }
 }
 
@@ -407,7 +414,7 @@ function qimsdk-cmake-build-gst-plugin-mltflite() {
 
             local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mltflite"
 
-            qimsdk-cmake-build gst-plugin-mltflite ${CONFIG_FLAGS}
+            qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mltflite ${CONFIG_FLAGS}
         }
 }
 
@@ -424,7 +431,7 @@ function qimsdk-cmake-build-gst-plugin-mlqnn() {
 
             local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlqnn"
 
-            qimsdk-cmake-build gst-plugin-mlqnn ${CONFIG_FLAGS}
+            qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlqnn ${CONFIG_FLAGS}
         }
 }
 
@@ -434,12 +441,12 @@ function qimsdk-cmake-build-gst-plugin-socket() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-socket"
 
-    qimsdk-cmake-build gst-plugin-socket ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-socket ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-tools
 function qimsdk-cmake-build-gst-plugin-tools() {
-    qimsdk-cmake-build gst-plugin-tools
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-tools
 }
 
 # CMake Build gst-plugin-vcomposer
@@ -448,7 +455,7 @@ function qimsdk-cmake-build-gst-plugin-vcomposer() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-vcomposer"
 
-    qimsdk-cmake-build gst-plugin-vcomposer ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-vcomposer ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-vsplit
@@ -457,7 +464,7 @@ function qimsdk-cmake-build-gst-plugin-vsplit() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-vsplit"
 
-    qimsdk-cmake-build gst-plugin-vsplit ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-vsplit ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-vtransform
@@ -466,7 +473,7 @@ function qimsdk-cmake-build-gst-plugin-vtransform() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-vtransform"
 
-    qimsdk-cmake-build gst-plugin-vtransform ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-vtransform ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-sample-apps
@@ -476,7 +483,7 @@ function qimsdk-cmake-build-gst-sample-apps() {
     # QMMF is not yet decoupled, that is why camera is disabled in the sample apps
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DENABLE_CAMERA=FALSE"
 
-    qimsdk-cmake-build gst-sample-apps  ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps  ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-overlay
@@ -485,7 +492,7 @@ function qimsdk-cmake-build-gst-plugin-overlay() {
 
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-overlay"
 
-    qimsdk-cmake-build gst-plugin-overlay ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-overlay ${CONFIG_FLAGS}
 }
 
 # Clean meson wayland-protocols build directory

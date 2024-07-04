@@ -23,6 +23,7 @@
   * [Local Device With Verity Check](#Local_Device_With_Verity_Check)
   * [Device Docker Clean Up](#Device_Docker_Clean_Up)
   * [Development when device is not connected to host build machine](#Development_when_device_is_not_connected_to_host_build_machine)
+  * [Contributing to the GStreamer Project](#Contributing_to_the_GStreamer_Project)
 * [Manual Commands Instead Of Scripts](#Manual_Commands_Instead_Of_Scripts)
 
 <div id="Prerequisites">
@@ -39,10 +40,10 @@ Ubuntu 18.04 or Ubuntu 20.04 or Ubuntu 22.04 is required for host file system
 
 ### Ubuntu Packages
 
-jq and tofrodos must be installed on the host (one time)
+Prerequisite packages must be installed on the host (one time)
 
 ```bash
-sudo apt install -y jq tofrodos
+sudo apt install -y jq tofrodos qemu-user-static qemu-system-arm
 ```
 
 <div id="Max_user_watches">
@@ -54,27 +55,6 @@ sudo apt install -y jq tofrodos
 ```bash
 fs.inotify.max_user_instances=8192
 fs.inotify.max_user_watches=542288
-```
-
-<div id="Add_internal_docker_registry_mirror">
-
-### Add internal docker registry mirror. (optional)
-
-#### Note: Using a tab instead of space and other invisible whitespace characters may break the proper work of json configuration files and later may lead to 'docker.service failed to start' error.
-
-1. Add corresponding *docker-registry-mirror-url* value in the tag "registry-mirrors" in: /etc/docker/daemon.json
-
-```json
-{
-        "registry-mirrors": [<docker-registry-mirror-url>]
-}
-```
-
-2. Restart the docker service to take the new settings.
-
-```bash
-sudo fromdos /etc/docker/daemon.json
-sudo systemctl restart docker
 ```
 
 <div id="Docker_Host_System">
@@ -121,22 +101,44 @@ sudo usermod -aG docker $USER
 newgrp docker
 ```
 
-***Please note that until PC reboot, *newgrp docker* should be invoked on every new console open***
+<div id="Add_internal_docker_registry_mirror">
 
-#### Install arm64 qemu docker driver
+### Add internal docker registry mirror. (optional)
+
+#### Note: Using a tab instead of space and other invisible whitespace characters may break the proper work of json configuration files and later may lead to 'docker.service failed to start' error.
+
+1. Add corresponding *docker-registry-mirror-url* value in the tag "registry-mirrors" in: /etc/docker/daemon.json
+
+```json
+{
+        "registry-mirrors": [<docker-registry-mirror-url>]
+}
+```
+
+2. Restart the docker service to take the new settings.
 
 ```bash
-sudo apt-get install qemu-user-static qemu-system-arm
+sudo fromdos /etc/docker/daemon.json
+sudo systemctl restart docker
+```
+
+***Please note that until PC reboot, *newgrp docker* should be invoked on every new console open***
+
+#### To test if Docker setup was successful
+
+```bash
+docker run arm64v8/hello-world
+```
+
+#### In case run arm64v8/hello-world fails: Steps to install arm64 qemu Docker driver
+
+If above hello world command not successfull, please try these steps:
+
+```bash
 docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 docker buildx rm builder
 docker buildx create --name builder --driver docker-container --use
 docker buildx inspect --bootstrap
-```
-
-#### To Test If Docker Setup Was Successful
-
-```bash
-docker run arm64v8/hello-world
 ```
 
 #### How to change Docker image installation directory?
@@ -207,11 +209,11 @@ The json file must contain certain data :
  5. ***MANDATORY*** -  **Device_ID** - adb devices command ID of the device.
  6. ***MANDATORY*** -  **Target_platform** - Target device platform, check the eSDK for this info, default is qcm6490.
  7. ***MANDATORY*** - **Gst_Source_Dir** - PATH to Gstreamer sources directory, which contains all gst plugins, of SP. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
- 8. ***OPTIONAL*** - **Qnp_sdk_ver** - Set which qnp-sdk version to download from Internet. Leve it blank if unsure. ***Note: If not provided, gst-plugin-mlsnpe and gst-plugin-mlqnn will not be build***
- 9. ***OPTIONAL*** - **Path_to_tflite_dev_package** - Path to tflite dev package which is automatically installed by environment scripts. ***Note: If not provided, gst-plugin-mltflite will not be build***
- 10. ***OPTIONAL*** - **Path_to_wayland_protocols_dir** - Path to wayland protocols directory (Can get it from https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz via wget). ***Note: Should be version: 1.25 and unzipped, If empty, will be fetched automatically***
- 11. ***OPTIONAL*** - **Path_to_gst_plugins_bad_dir** - Path to gst plugins bad directory (Can get it from https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz via wget). ***Note: Should be version: 1.20.7 and unzipped, If empty, will be fetched automatically***
- 12. ***OPTIONAL*** - **Path_to_gst_plugins_good_dir** - Path to gst plugins good directory (Can get it from https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz via wget). ***Note: Should be version: 1.20.7 and unzipped, If empty, will be fetched automatically***
+ 8. ***OPTIONAL*** - **Qnp_sdk_ver** - Set which qnp-sdk version to download from Internet. Leve it blank if unsure. ***Note: If left empty, gst-plugin-mlsnpe and gst-plugin-mlqnn will not be build***
+ 9. ***OPTIONAL*** - **Path_to_tflite_dev_package** - Path to tflite dev package which is automatically installed by environment scripts. ***Note: If left empty, gst-plugin-mltflite will not be build***
+ 10. ***OPTIONAL*** - **Path_to_wayland_protocols_dir** - Path to wayland protocols directory (Can get it from https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz via wget). ***Note: Should be version: 1.25 and unzipped, If one field set as empty, all will be fetched automatically. Either all fields should be provided locally, or none.***
+ 11. ***OPTIONAL*** - **Path_to_gst_plugins_bad_dir** - Path to gst plugins bad directory (Can get it from https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz via wget). ***Note: Should be version: 1.20.7 and unzipped, If one field set as empty, all will be fetched automatically. Either all fields should be provided locally, or none.***
+ 12. ***OPTIONAL*** - **Path_to_gst_plugins_good_dir** - Path to gst plugins good directory (Can get it from https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz via wget). ***Note: Should be version: 1.20.7 and unzipped, If one field set as empty, all will be fetched automatically. Either all fields should be provided locally, or none.***
  13. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
  14. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
  15. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
@@ -307,15 +309,7 @@ umask 022
 
 ## TFLite dev-package
 
-**source the environment, build the docker, run the container and get artifacts**
-
-```bash
-source scripts/host/docker_env_setup.sh
-tflite-tools-host-build-image <targets/.json>
-tflite-tools-host-run-container <targets/.json>
-tflite-tools-host-get-dev-package <targets/.json>
-```
-**Generated artifacts (tflite-dev_2.XX.X.deb or tflite-dev_2.XX.X.ipk) will appear in rsync_destination(take a look at README.md)**
+***Generated artifacts (tflite-dev_2.XX.X.deb or tflite-dev_2.XX.X.ipk) can be recieved via tflite-sdk (please follow instructions provided with tflite-sdk project)***
 
 ### JSON should be filled:
 ```bash
@@ -325,8 +319,6 @@ tflite-tools-host-get-dev-package <targets/.json>
   ...
 }
 ```
-
-## Please Refer to "How to generate dev package" section of tflite-tools README.md file
 
 #### Prepare Device Connected To Local PC After Image Or Metabuild Flash
 
@@ -465,6 +457,104 @@ qimsdk-docker-device-update-image <path-to-config-json>
 qimsdk-docker-device-run-container <path-to-config-json>
 ```
 
+<div id="Contributing_to_the_GStreamer_Project">
+
+### Contributing to the GStreamer Project
+
+Inside the development container, New CMake and Meson projects can be added to extend qimsdk functionalities.
+
+***Please NOTE: ssh config and git config are not propagated to development container environmens. This is because during development container use, root user is needed in order to manipulate and access /usr/lib and /usr/include. This is a very important requirement and prerequisite for development and compilation. Hence why host user cannot be used in development container instead of root user.***
+
+#### A new CMake Project
+
+1. Add source code and top-level CMakeLists.txt file in Project Directory.
+  - Project Directory Name should be same as project name.
+  - It is recommended to add projects as subdirectiories of /mnt/work/src/gst-plugins-qti-oss
+  - Example: /mnt/work/src/gst-plugins-qti-oss/\<Project-Directory-Name\>
+
+2. In /mnt/work/tmp/scripts/build.sh, add a function which calls base qimsdk-cmake-build function
+
+```bash
+# CMake Build <Project-Directory-Name>
+function qimsdk-cmake-build-<Project-Directory-Name>() {
+    local CONFIG_FLAGS="-DFLAG0=flag-value -DFLAG1=flag-value"
+
+    qimsdk-cmake-build <Path/To/Project/Directory> ${CONFIG_FLAGS}
+}
+```
+
+3. For new project to be compiled automatically during `qimsdk-incremental-build`, newly created function from last steps needs to be added to "qimsdk-incremental-build" in /mnt/work/tmp/scripts/build.sh
+
+```bash
+# Configure and build gst plugins
+function qimsdk-incremental-build() {
+...
+...
+...
+        qimsdk-cmake-build-<Project-Directory-Name>
+...
+...
+...
+        print-green "QIMSDK GStreamer targets built successfully !!!"
+}
+```
+
+4. Add cleanup function to /mnt/work/tmp/scripts/build.sh
+
+```bash
+# Clean CMake <Project-Directory-Name> build directory
+function qimsdk-cmake-clean-<Project-Directory-Name>() {
+    rm -rf ${QIMSDK_BUILD_DIR}/<Project-Directory-Name>
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+```
+
+#### A new Meson Project
+
+1. Add source code and build description meson.build file in Project Directory.
+  - Project Directory Name should be same as project name.
+  - It is recommended to add projects as subdirectiories of /mnt/work/src/gst-plugins-qti-oss
+  - Example: /mnt/work/src/gst-plugins-qti-oss/\<Project-Directory-Name\>
+
+2. In /mnt/work/tmp/scripts/build.sh, add a function which calls base qimsdk-meson-build function
+
+```bash
+# Meson Build <Project-Directory-Name>
+function qimsdk-meson-build-<Project-Directory-Name>() {
+    local CONFIG_FLAGS="--flag0 flag-value --flag1 flag-value"
+    local DESTINATION_DIR='/'
+
+    qimsdk-meson-build <Path/To/Project/Directory> ${DESTINATION_DIR} ${CONFIG_FLAGS}
+}
+```
+
+3. For new project to be compiled automatically during `qimsdk-incremental-build`, newly created function from last steps needs to be added to "qimsdk-incremental-build" in /mnt/work/tmp/scripts/build.sh
+
+```bash
+# Configure and build gst plugins
+function qimsdk-incremental-build() {
+...
+...
+...
+        qimsdk-meson-build-<Project-Directory-Name>
+...
+...
+...
+        print-green "QIMSDK GStreamer targets built successfully !!!"
+}
+```
+
+4. Add cleanup function to /mnt/work/tmp/scripts/build.sh
+
+```bash
+# Clean Meson <Project-Directory-Name> build directory
+function qimsdk-meson-clean-<Project-Directory-Name>() {
+    rm -rf ${QIMSDK_BUILD_DIR}/<Project-Directory-Name>
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+```
 
 <div id="Manual_Commands_Instead_Of_Scripts">
 
