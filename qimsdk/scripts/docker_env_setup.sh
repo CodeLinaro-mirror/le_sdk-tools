@@ -861,10 +861,10 @@ function qimsdk-dev-docker-run-container() {
     }
 
     # Propagate ssh and gitconfig to container
-    docker exec ${QIMSDK_CONTAINER_NAME}_dev mkdir /root/.ssh            || \
+    docker exec --user root ${QIMSDK_CONTAINER_NAME}_dev mkdir /root/.ssh                       || \
         {
             print-red "docker mkdir ~/.ssh failed !!!"
-            return -4
+            return -1
         }
 
     if [ -d ~/.ssh/ ]; then
@@ -872,12 +872,17 @@ function qimsdk-dev-docker-run-container() {
         for f in ~/.ssh/*; do
             local BASE_NAME=`basename $f`
             test "${f}" = ~/.ssh/known_hosts && continue
-            docker cp ${f} ${QIMSDK_CONTAINER_NAME}_dev:/root/.ssh/${BASE_NAME}         || \
+            docker cp ${f} ${QIMSDK_CONTAINER_NAME}_dev:/root/.ssh/${BASE_NAME}                 || \
                 {
                     print-red "Propagating .ssh/ to docker failed !!!"
-                    return -5
+                    return -2
                 }
         done
+        docker exec --user root ${QIMSDK_CONTAINER_NAME}_dev chown -R root:root /root/.ssh      || \
+            {
+                print-red "Propagating .ssh/ to docker failed !!!"
+                return -3
+            }
     fi
 
     print-green "Run dev container successful !!!"
@@ -902,7 +907,7 @@ function qimsdk-device-docker-run-container() {
         return $rc
     }
 
-    docker run -it -d -h ${QIMSDK_CONTAINER_NAME} --name ${QIMSDK_CONTAINER_NAME}          \
+    docker run -it -d -h ${QIMSDK_CONTAINER_NAME} --name ${QIMSDK_CONTAINER_NAME}                  \
         ${QIMSDK_IMAGE_NAME} bash
 
     rc=$?
@@ -912,10 +917,10 @@ function qimsdk-device-docker-run-container() {
     }
 
     # Propagate ssh and gitconfig to container
-    docker exec ${QIMSDK_CONTAINER_NAME} mkdir /root/.ssh            || \
+    docker exec --user root ${QIMSDK_CONTAINER_NAME} mkdir /root/.ssh                           || \
         {
             print-red "docker mkdir ~/.ssh failed !!!"
-            return -4
+            return -1
         }
 
     if [ -d ~/.ssh/ ]; then
@@ -923,12 +928,17 @@ function qimsdk-device-docker-run-container() {
         for f in ~/.ssh/*; do
             local BASE_NAME=`basename $f`
             test "${f}" = ~/.ssh/known_hosts && continue
-            docker cp ${f} ${QIMSDK_CONTAINER_NAME}:/root/.ssh/${BASE_NAME}         || \
+            docker cp ${f} ${QIMSDK_CONTAINER_NAME}:/root/.ssh/${BASE_NAME}                     || \
                 {
                     print-red "Propagating .ssh/ to docker failed !!!"
-                    return -5
+                    return -2
                 }
         done
+        docker exec --user root ${QIMSDK_CONTAINER_NAME} chown -R root:root /root/.ssh          || \
+            {
+                print-red "Propagating .ssh/ to docker failed !!!"
+                return -3
+            }
     fi
 
     print-green "Run device container successful on pc emulator !!!"

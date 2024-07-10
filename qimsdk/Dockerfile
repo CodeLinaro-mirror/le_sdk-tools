@@ -127,7 +127,8 @@ RUN [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ] || (                        
     rm -f v${QIMSDK_ARG_QNP_SDK_VERSION}.zip                                                    && \
     cp -r ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/SNPE/*                \
           ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QNN/*                 \
-          /usr/include/                                                                            \
+          /usr/include/                                                                         && \
+    rm -rf ${QIMSDK_DOWNLOAD_DIR}/qairt                                                            \
     )
 
 # Add and install tflite dev package

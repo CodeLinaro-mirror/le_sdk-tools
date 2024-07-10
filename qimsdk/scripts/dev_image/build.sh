@@ -126,7 +126,7 @@ function qimsdk-meson-install() {
 
         set -o pipefail
 
-        meson install --destdir ${DESTINATION}                                                    |&
+        meson install --destdir ${DESTINATION} --strip                                            |&
                 tee "${QIMSDK_LOGS_DIR}/meson_install_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
     ) || {
         print-red "FAILED: qimsdk-meson-install-${TARGET}: meson install failed !!!"
@@ -142,19 +142,25 @@ function qimsdk-meson-install() {
 #    ${1} - TARGET - CMake Target
 function qimsdk-cmake-install() {
     local TARGET=${1}
+
+    local DATE=$(date "+%Y_%m_%d-%H_%M_%S")
+    local LOG_FILE_NAME=${QIMSDK_LOGS_DIR}/do_install_${TARGET}_${DATE}.log
+
     (
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
 
-        cmake --install . --prefix /usr                                                           |&
-                tee ${QIMSDK_LOGS_DIR}/do_install_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log      |\
+        cmake --install . --prefix /usr --strip                                                   |&
+                tee ${LOG_FILE_NAME}                                                              |\
                 grep -E 'Up-to-date:|Installing:|configuration:' | tail -n +2                     |\
                 cut -d ' ' -f 3 | xargs -i rsync -aR {} ${QIMSDK_INSTALL_DIR}/
     ) || {
         print-red "FAILED: qimsdk-cmake-install-${TARGET}: cmake install failed !!!"
         return -1
     }
+
+    cat ${LOG_FILE_NAME}
 
     print-green "qimsdk ${TARGET} installed successfully !!!"
 
