@@ -123,10 +123,10 @@ class RecipeParser():
             cmake_flags = ' -D'.join(filtred_extra_oecmake)
             cmake_flags += ' '
 
-            SRC_URI_string = bb_parsed.getVar("SRC_URI")
+            S_string = bb_parsed.getVar("S")
 
-            # Remove prefix from SRC_URI to get plugin name
-            plugin = SRC_URI_string[len("file://"):]
+            # Remove prefix from S variable to get plugin name
+            plugin = S_string[len("${WORKDIR}/"):]
             plugin = plugin.replace("-", "_")
 
             self.plugin_to_cmake_flags[plugin] = cmake_flags
