@@ -324,7 +324,20 @@ function qimsdk-dev-docker-build-image() {
     python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                     \
         -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                      \
         -j ${ABSOLUTE_PATH_TO_CONFIG_JSON}                                                         \
-        -t ${QIMSDK_TMP_FOLDER}
+        -t ${QIMSDK_TMP_FOLDER}                                                                    \
+        RecipeParser
+
+    python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                     \
+        -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                      \
+        -t ${QIMSDK_TMP_FOLDER}                                                                    \
+        BBPatchParser
+
+    rc=$?
+
+    [ $rc -ne 0 ] && {
+        print-red "Python Parser Crashed !!!"
+        return $rc
+    }
 
     local QIMSDK_BASE_DIR="/mnt/work"
 
@@ -543,7 +556,20 @@ function qimsdk-docker-build-image() {
     python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                     \
         -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                      \
         -j ${ABSOLUTE_PATH_TO_CONFIG_JSON}                                                         \
-        -t ${QIMSDK_TMP_FOLDER}
+        -t ${QIMSDK_TMP_FOLDER}                                                                    \
+        RecipeParser
+
+    python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                     \
+        -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                      \
+        -t ${QIMSDK_TMP_FOLDER}                                                                    \
+        BBPatchParser
+
+    rc=$?
+
+    [ $rc -ne 0 ] && {
+        print-red "Python Parser Crashed !!!"
+        return $rc
+    }
 
     local QIMSDK_BASE_DIR="/mnt/work"
 

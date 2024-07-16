@@ -198,6 +198,11 @@ ENV QIMSDK_CMAKE_FLAGS_DIR=${QIMSDK_BASE_DIR}/tmp/cmake_flags/
 COPY tmp/cmake_flags.json ${QIMSDK_CMAKE_FLAGS_DIR}
 ENV QIMSDK_CMAKE_FLAGS_JSON=${QIMSDK_CMAKE_FLAGS_DIR}/cmake_flags.json
 
+# Add json file with content of cmake flags
+ENV QIMSDK_RECIPES_PATCHES_DIR=${QIMSDK_BASE_DIR}/tmp/recipes_patches/
+COPY tmp/recipes_patches.json ${QIMSDK_RECIPES_PATCHES_DIR}
+ENV QIMSDK_RECIPES_JSON=${QIMSDK_RECIPES_PATCHES_DIR}/recipes_patches.json
+
 # Change workdir back to base dir from downloads dir
 WORKDIR ${QIMSDK_BASE_DIR}
 
