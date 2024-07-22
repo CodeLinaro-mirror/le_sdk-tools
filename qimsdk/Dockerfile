@@ -2,76 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 ARG QIMSDK_ARG_BASE_IMAGE
-ARG QIMSDK_ARG_PATCHED_SOURCES
-
-# --------------------------------------------------------------------------------------------------
-
-# Get source code of
-# wayland-protocols-1.25, gst-plugins-bad-1.20.7 and wayland-protocols-1.25
-# from GitLab
-FROM ${QIMSDK_ARG_BASE_IMAGE} as get_patched_sources_from_gitlab
-
-# Installing required apt packages
-RUN apt-get update                                                                              && \
-        apt-get install -y wget tar xz-utils                                                    && \
-        apt-get autoremove -y                                                                   && \
-        apt-get clean                                                                           && \
-        rm -rf /var/lib/apt/lists* /var/tmp/*
-
-ENV QIMSDK_DOWNLOAD_DIR=/mnt/work/downloads/
-RUN mkdir -p ${QIMSDK_DOWNLOAD_DIR}
-
-# wayland-protocols: fetch
-RUN wget -t 2 -T 30 --passive-ftp -P ${QIMSDK_DOWNLOAD_DIR}                                        \
-    'https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz'                    && \
-    cd ${QIMSDK_DOWNLOAD_DIR} && tar -xf wayland-protocols-1.25.tar.xz                          && \
-    rm -f wayland-protocols-1.25.tar.xz
-
-# gst-plugins-bad: fetch
-RUN wget -t 2 -T 30 --passive-ftp -P ${QIMSDK_DOWNLOAD_DIR}                                        \
-    'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz'       && \
-    cd ${QIMSDK_DOWNLOAD_DIR} && tar -xf gst-plugins-bad-1.20.7.tar.xz                          && \
-    rm -f gst-plugins-bad-1.20.7.tar.xz
-
-# gst-plugins-good: fetch
-RUN wget -t 2 -T 30 --passive-ftp -P ${QIMSDK_DOWNLOAD_DIR}                                        \
-    'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz'     && \
-    cd ${QIMSDK_DOWNLOAD_DIR} && tar -xf gst-plugins-good-1.20.7.tar.xz                         && \
-    rm -f gst-plugins-good-1.20.7.tar.xz
-
-# --------------------------------------------------------------------------------------------------
-
-# Get source code of
-# wayland-protocols-1.25, gst-plugins-bad-1.20.7 and wayland-protocols-1.25
-# from host file system
-FROM ${QIMSDK_ARG_BASE_IMAGE} as get_patched_sources_from_host
-
-ENV QIMSDK_DOWNLOAD_DIR=/mnt/work/downloads/
-RUN mkdir -p ${QIMSDK_DOWNLOAD_DIR}
-
-ARG QIMSDK_ARG_WAYLAND_PROTOCOLS_DIR
-ARG QIMSDK_ARG_GST_PLUGINS_BAD_DIR
-ARG QIMSDK_ARG_GST_PLUGINS_GOOD_DIR
-
-ENV QIMSDK_WAYLAND_PROTOCOLS_DIR=${QIMSDK_DOWNLOAD_DIR}/${QIMSDK_ARG_WAYLAND_PROTOCOLS_DIR}
-ENV QIMSDK_GST_PLUGINS_BAD_DIR=${QIMSDK_DOWNLOAD_DIR}/${QIMSDK_ARG_GST_PLUGINS_BAD_DIR}
-ENV QIMSDK_GST_PLUGINS_GOOD_DIR=${QIMSDK_DOWNLOAD_DIR}/${QIMSDK_ARG_GST_PLUGINS_GOOD_DIR}
-
-COPY tmp/${QIMSDK_ARG_WAYLAND_PROTOCOLS_DIR} ${QIMSDK_WAYLAND_PROTOCOLS_DIR}
-COPY tmp/${QIMSDK_ARG_GST_PLUGINS_BAD_DIR}   ${QIMSDK_GST_PLUGINS_BAD_DIR}
-COPY tmp/${QIMSDK_ARG_GST_PLUGINS_GOOD_DIR}  ${QIMSDK_GST_PLUGINS_GOOD_DIR}
-
-# --------------------------------------------------------------------------------------------------
-
-# Common layer of
-# wayland-protocols-1.25, gst-plugins-bad-1.20.7 and wayland-protocols-1.25
-# from layers above, chosen by json file
-FROM get_patched_sources_from_${QIMSDK_ARG_PATCHED_SOURCES} as get_patched_sources
-
-# --------------------------------------------------------------------------------------------------
 
 # QIMSDK Development Image
-FROM ${QIMSDK_ARG_BASE_IMAGE} as QIMSDK_dev_image
+FROM --platform=arm64 ${QIMSDK_ARG_BASE_IMAGE} AS qimsdk_dev_image
 
 # Enable color prompt
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc
@@ -115,16 +48,18 @@ COPY tmp/headers/usr/ /usr/
 ENV QIMSDK_DOWNLOAD_DIR=${QIMSDK_BASE_DIR}/downloads
 RUN mkdir -p ${QIMSDK_DOWNLOAD_DIR}
 
-ARG QIMSDK_ARG_QNP_SDK_VERSION
+ARG QIMSDK_ARG_QNP_SDK_DOWNLOAD_LINK
 
 # qnp-sdk: fetch and copy the needed headers
-RUN [ -n "${QIMSDK_ARG_QNP_SDK_VERSION}" ] || touch ${QIMSDK_BASE_DIR}/no-qnp-sdk-provided
+RUN [ -n "${QIMSDK_ARG_QNP_SDK_DOWNLOAD_LINK}" ] || touch ${QIMSDK_BASE_DIR}/no-qnp-sdk-provided
 RUN [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ] || (                                           \
     wget -t 2 -T 30 --passive-ftp -P ${QIMSDK_DOWNLOAD_DIR}                                        \
-    "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v${QIMSDK_ARG_QNP_SDK_VERSION}.zip" && \
+    "${QIMSDK_ARG_QNP_SDK_DOWNLOAD_LINK}"                                                       && \
+    QIMSDK_ARG_QNP_SDK=$(basename -- ${QIMSDK_ARG_QNP_SDK_DOWNLOAD_LINK})                       && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    unzip v${QIMSDK_ARG_QNP_SDK_VERSION}.zip                                                    && \
-    rm -f v${QIMSDK_ARG_QNP_SDK_VERSION}.zip                                                    && \
+    unzip ${QIMSDK_ARG_QNP_SDK}                                                                 && \
+    rm -f ${QIMSDK_ARG_QNP_SDK}                                                                 && \
+    QIMSDK_ARG_QNP_SDK_VERSION=$(ls qairt)                                                      && \
     cp -r ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/SNPE/*                \
           ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QNN/*                 \
           /usr/include/                                                                         && \
@@ -145,40 +80,41 @@ COPY .bash_aliases /root/.bash_aliases
 ENV QIMSDK_PATCHES_DIR=${QIMSDK_BASE_DIR}/tmp/patches
 COPY tmp/patches ${QIMSDK_PATCHES_DIR}
 
-# Get source code of
-# wayland-protocols-1.25, gst-plugins-bad-1.20.7 and wayland-protocols-1.25
-# from common get_patched_sources layer
+# wayland-protocols: fetch and prepare git repo
+RUN wget -t 2 -T 30 --passive-ftp -P ${QIMSDK_DOWNLOAD_DIR}                                        \
+    'https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz'                    && \
+    cd ${QIMSDK_DOWNLOAD_DIR} && tar -xf wayland-protocols-1.25.tar.xz                          && \
+    rm -f wayland-protocols-1.25.tar.xz
+WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25
 
-COPY --from=get_patched_sources /mnt/work/downloads/wayland-protocols-1.25 ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25
-COPY --from=get_patched_sources /mnt/work/downloads/gst-plugins-bad-1.20.7 ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7
-COPY --from=get_patched_sources /mnt/work/downloads/gst-plugins-good-1.20.7 ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7
-
-ENV QIMSDK_WAYLAND_PROTOCOLS_DIR=${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25
-ENV QIMSDK_GST_PLUGINS_BAD_DIR=${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7
-ENV QIMSDK_GST_PLUGINS_GOOD_DIR=${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7
-
-# wayland-protocols: prepare git repo
-WORKDIR ${QIMSDK_WAYLAND_PROTOCOLS_DIR}
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_WAYLAND_PROTOCOLS_DIR}                    && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25      && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
     git commit -m "Initial wayland protocols Commit"
 
-# gst-plugins-bad: prepare git repo
-WORKDIR ${QIMSDK_GST_PLUGINS_BAD_DIR}
+# gst-plugins-bad: fetch and prepare git repo
+RUN wget -t 2 -T 30 --passive-ftp -P ${QIMSDK_DOWNLOAD_DIR}                                        \
+    'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz'       && \
+    cd ${QIMSDK_DOWNLOAD_DIR} && tar -xf gst-plugins-bad-1.20.7.tar.xz                          && \
+    rm -f gst-plugins-bad-1.20.7.tar.xz
+WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_GST_PLUGINS_BAD_DIR}                      && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7      && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
     git commit -m "Initial Plugins Bad Commit"
 
-# gst-plugins-good: prepare git repo
-WORKDIR ${QIMSDK_GST_PLUGINS_GOOD_DIR}
+# gst-plugins-good: fetch and prepare git repo
+RUN wget -t 2 -T 30 --passive-ftp -P ${QIMSDK_DOWNLOAD_DIR}                                        \
+    'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz'     && \
+    cd ${QIMSDK_DOWNLOAD_DIR} && tar -xf gst-plugins-good-1.20.7.tar.xz                         && \
+    rm -f gst-plugins-good-1.20.7.tar.xz
+WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_GST_PLUGINS_GOOD_DIR}                     && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7     && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
@@ -212,14 +148,14 @@ RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-aplly-patches
 # Call wrapper build function to compile and install gst plugins
 RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-incremental-build
 
-# Set artifacts save URL
-ARG QIMSDK_ARG_URL
-ENV URL=${QIMSDK_ARG_URL}
+# Set artifacts save Docker_image_path
+ARG QIMSDK_ARG_DOCKER_IMAGE_PATH
+ENV DOCKER_IMAGE_PATH=${QIMSDK_ARG_DOCKER_IMAGE_PATH}
 
 # # # # # # # # # # # # # # #
 
 # QIMSDK Device Image
-FROM ${QIMSDK_ARG_BASE_IMAGE} as QIMSDK_device_image
+FROM --platform=arm64 ${QIMSDK_ARG_BASE_IMAGE} AS qimsdk_device_image
 
 # Enable color prompt
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc
@@ -239,4 +175,4 @@ RUN apt-get update                                                              
 
 # Copy installed binaries to device image
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
-COPY --from=QIMSDK_dev_image ${QIMSDK_INSTALL_DIR}/usr /usr
+COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/usr /usr

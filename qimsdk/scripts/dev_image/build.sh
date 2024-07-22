@@ -6,7 +6,7 @@
 # Configure qimsdk meson Target
 #    ${1} - SOURCE_PATH - Path to top-level Meson Project Directory
 #    ${2} - TARGET - meson Target
-#    ${3} - MESON_CONFIG_FLAGS - flags to pass to meson configure
+#    ${3..} - MESON_CONFIG_FLAGS - flags to pass to meson configure
 function qimsdk-meson-configure() {
     local SOURCE_PATH=${1}
     local TARGET=${2}
@@ -36,7 +36,7 @@ function qimsdk-meson-configure() {
 # Configure qimsdk CMake Target
 #    ${1} - SOURCE_PATH - Path to top-level CMake Project Directory
 #    ${2} - TARGET - CMake Target
-#    ${3} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
+#    ${3..} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
 function qimsdk-cmake-configure() {
     local SOURCE_PATH=${1}
     local TARGET=${2}
@@ -47,16 +47,16 @@ function qimsdk-cmake-configure() {
 
     (
         local CMAKE_FLAGS="
-                -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
-                -DGST_PLUGINS_QTI_OSS_VERSION=1.20
-                -DGST_VERSION_REQUIRED=1.20
-                -DSYSROOT_INCDIR=/usr/include
-                -DSYSROOT_LIBDIR=/usr/lib
-                -DGST_PLUGINS_QTI_OSS_INSTALL_INCDIR=/usr/include
-                -DGST_PLUGINS_QTI_OSS_INSTALL_BINDIR=/usr/bin
-                -DGST_PLUGINS_QTI_OSS_INSTALL_LIBDIR=/usr/lib/aarch64-linux-gnu
-                ${CMAKE_CUSTOM_CONFIG_FLAGS}
-            "
+            -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
+            -DGST_PLUGINS_QTI_OSS_VERSION=1.20
+            -DGST_VERSION_REQUIRED=1.20
+            -DSYSROOT_INCDIR=/usr/include
+            -DSYSROOT_LIBDIR=/usr/lib
+            -DGST_PLUGINS_QTI_OSS_INSTALL_INCDIR=/usr/include
+            -DGST_PLUGINS_QTI_OSS_INSTALL_BINDIR=/usr/bin
+            -DGST_PLUGINS_QTI_OSS_INSTALL_LIBDIR=/usr/lib/aarch64-linux-gnu
+            ${CMAKE_CUSTOM_CONFIG_FLAGS}
+        "
 
         mkdir -p ${QIMSDK_BUILD_DIR}/${TARGET}
 
@@ -181,8 +181,8 @@ function qimsdk-meson-build() {
     local MESON_CONFIG_FLAGS=$@
 
     qimsdk-meson-configure ${SOURCE_PATH} ${T} ${MESON_CONFIG_FLAGS}                            && \
-        qimsdk-meson-compile ${T}                                                               && \
-        qimsdk-meson-install ${T} ${DESTINATION_DIR}
+            qimsdk-meson-compile ${T}                                                           && \
+            qimsdk-meson-install ${T} ${DESTINATION_DIR}
 }
 
 # Wrapper function to configure, compile & install qimsdk CMake Target
@@ -197,8 +197,8 @@ function qimsdk-cmake-build() {
     local CMAKE_CUSTOM_CONFIG_FLAGS=$@
 
     qimsdk-cmake-configure ${SOURCE_PATH} ${T} ${CMAKE_CUSTOM_CONFIG_FLAGS}                     && \
-        qimsdk-cmake-compile ${T}                                                               && \
-        qimsdk-cmake-install ${T}
+            qimsdk-cmake-compile ${T}                                                           && \
+            qimsdk-cmake-install ${T}
 }
 
 ###########################################################
@@ -206,9 +206,9 @@ function qimsdk-cmake-build() {
 # Meson build wayland-protocols-1.25
 qimsdk-meson-build-wayland-protocols() {
     local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
-                --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                \
-                --includedir include --mandir share/man --infodir share/info --sysconfdir /etc     \
-                --localstatedir /var --sharedstatedir /com --wrap-mode nodownload -Dtests=false"
+            --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
+            --includedir include --mandir share/man --infodir share/info --sysconfdir /etc         \
+            --localstatedir /var --sharedstatedir /com --wrap-mode nodownload -Dtests=false"
     local DESTINATION_DIR='/'
 
     qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25 ${DESTINATION_DIR} ${CONFIG_FLAGS}
@@ -217,20 +217,20 @@ qimsdk-meson-build-wayland-protocols() {
 # Meson build gst-plugins-good-1.20.7
 qimsdk-meson-build-gst-plugins-good() {
     local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
-                --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                \
-                --includedir include --mandir share/man --infodir share/info --sysconfdir /etc     \
-                --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                  \
-                -Dexamples=disabled -Dnls=enabled -Ddoc=disabled -Daalib=disabled                  \
-                -Ddirectsound=disabled -Ddv=disabled -Dlibcaca=disabled -Doss=enabled              \
-                -Doss4=disabled -Dosxaudio=disabled -Dosxvideo=disabled -Dshout2=disabled          \
-                -Dtwolame=disabled -Dwaveform=disabled -Dasm=disabled -Dbz2=enabled                \
-                -Dcairo=enabled -Ddv1394=disabled -Dflac=enabled -Dgdk-pixbuf=enabled              \
-                -Dgtk3=disabled -Dv4l2-gudev=enabled -Djack=disabled -Djpeg=enabled -Dlame=enabled \
-                -Dpng=enabled -Dv4l2-libv4l2=disabled -Dmpg123=enabled -Dorc=enabled               \
-                -Dpulse=enabled -Dqt5=disabled -Drpicamsrc=disabled -Dsoup=enabled -Dspeex=enabled \
-                -Dtaglib=enabled -Dv4l2=enabled -Dv4l2-probe=true -Dvpx=disabled                   \
-                -Dwavpack=disabled -Dximagesrc=disabled -Dximagesrc-xshm=disabled                  \
-                -Dximagesrc-xfixes=disabled -Dximagesrc-xdamage=disabled -Dbuild_all_plugins=false"
+            --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
+            --includedir include --mandir share/man --infodir share/info --sysconfdir /etc         \
+            --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                      \
+            -Dexamples=disabled -Dnls=enabled -Ddoc=disabled -Daalib=disabled                      \
+            -Ddirectsound=disabled -Ddv=disabled -Dlibcaca=disabled -Doss=enabled                  \
+            -Doss4=disabled -Dosxaudio=disabled -Dosxvideo=disabled -Dshout2=disabled              \
+            -Dtwolame=disabled -Dwaveform=disabled -Dasm=disabled -Dbz2=enabled                    \
+            -Dcairo=enabled -Ddv1394=disabled -Dflac=enabled -Dgdk-pixbuf=enabled                  \
+            -Dgtk3=disabled -Dv4l2-gudev=enabled -Djack=disabled -Djpeg=enabled -Dlame=enabled     \
+            -Dpng=enabled -Dv4l2-libv4l2=disabled -Dmpg123=enabled -Dorc=enabled                   \
+            -Dpulse=enabled -Dqt5=disabled -Drpicamsrc=disabled -Dsoup=enabled -Dspeex=enabled     \
+            -Dtaglib=enabled -Dv4l2=enabled -Dv4l2-probe=true -Dvpx=disabled                       \
+            -Dwavpack=disabled -Dximagesrc=disabled -Dximagesrc-xshm=disabled                      \
+            -Dximagesrc-xfixes=disabled -Dximagesrc-xdamage=disabled -Dbuild_all_plugins=false"
     local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
 
     qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7 ${DESTINATION_DIR} ${CONFIG_FLAGS}
@@ -239,37 +239,37 @@ qimsdk-meson-build-gst-plugins-good() {
 # Meson build gst-plugins-bad-1.20.7
 qimsdk-meson-build-gst-plugins-bad() {
     local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
-                --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                \
-                --includedir include --mandir share/man --infodir share/info --sysconfdir /etc     \
-                --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                  \
-                -Dintrospection=enabled -Dexamples=disabled -Dnls=disabled -Dgpl=disabled          \
-                -Ddoc=disabled -Daes=enabled -Dcodecalpha=enabled -Ddecklink=enabled -Ddvb=enabled \
-                -Dfbdev=enabled -Dipcpipeline=enabled -Dshm=enabled -Dtranscode=enabled            \
-                -Dandroidmedia=disabled -Dapplemedia=disabled -Dasio=disabled -Davtp=disabled      \
-                -Dbs2b=disabled -Dchromaprint=disabled -Dd3dvideosink=disabled -Dd3d11=disabled    \
-                -Ddirectsound=disabled -Ddts=disabled -Dfdkaac=disabled -Dflite=disabled           \
-                -Dgme=disabled -Dgs=disabled -Dgsm=disabled -Diqa=disabled -Dkate=disabled         \
-                -Dladspa=disabled -Dldac=disabled -Dlv2=disabled -Dmagicleap=disabled              \
-                -Dmediafoundation=disabled -Dmicrodns=disabled -Dmpeg2enc=disabled                 \
-                -Dmplex=disabled -Dmusepack=disabled -Dnvcodec=disabled -Dopenexr=disabled         \
-                -Dopenni2=disabled -Dopenaptx=disabled -Dopensles=disabled -Donnx=disabled         \
-                -Dqroverlay=disabled -Dsoundtouch=disabled -Dspandsp=disabled                      \
-                -Dsvthevcenc=disabled -Dteletext=disabled -Dwasapi=disabled -Dwasapi2=disabled     \
-                -Dwildmidi=disabled -Dwinks=disabled -Dwinscreencap=disabled -Dwpe=disabled        \
-                -Dzxing=disabled -Daom=disabled -Dassrender=disabled -Dbluez=enabled -Dbz2=enabled \
-                -Dclosedcaption=enabled -Dcurl=enabled -Ddash=enabled -Ddc1394=disabled            \
-                -Ddirectfb=disabled -Ddtls=enabled -Dfaac=disabled -Dfaad=disabled                 \
-                -Dfluidsynth=disabled -Dgl=enabled -Dhls=enabled -Dkms=disabled                    \
-                -Dcolormanagement=disabled -Dlibde265=disabled -Dcurl-ssh2=disabled                \
-                -Dmodplug=disabled -Dmsdk=disabled -Dneon=disabled -Dopenal=disabled               \
-                -Dopencv=disabled -Dopenh264=disabled -Dopenjpeg=disabled -Dopenmpt=disabled       \
-                -Dhls-crypto=openssl -Dopus=disabled -Dorc=enabled -Dresindvd=disabled             \
-                -Drsvg=enabled -Drtmp=disabled -Dsbc=enabled -Dsctp=disabled                       \
-                -Dsmoothstreaming=enabled -Dsndfile=enabled -Dsrt=disabled -Dsrtp=disabled         \
-                -Dtinyalsa=disabled -Dttml=enabled -Duvch264=enabled -Dv4l2codecs=disabled         \
-                -Dva=disabled -Dvoaacenc=disabled -Dvoamrwbenc=disabled -Dvulkan=enabled           \
-                -Dwayland=enabled -Dwebp=enabled -Dwebrtc=disabled -Dwebrtcdsp=disabled            \
-                -Dx11=disabled -Dx265=disabled -Dzbar=disabled -Dbuild_all_plugins=false"
+            --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
+            --includedir include --mandir share/man --infodir share/info --sysconfdir /etc         \
+            --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                      \
+            -Dintrospection=enabled -Dexamples=disabled -Dnls=disabled -Dgpl=disabled              \
+            -Ddoc=disabled -Daes=enabled -Dcodecalpha=enabled -Ddecklink=enabled -Ddvb=enabled     \
+            -Dfbdev=enabled -Dipcpipeline=enabled -Dshm=enabled -Dtranscode=enabled                \
+            -Dandroidmedia=disabled -Dapplemedia=disabled -Dasio=disabled -Davtp=disabled          \
+            -Dbs2b=disabled -Dchromaprint=disabled -Dd3dvideosink=disabled -Dd3d11=disabled        \
+            -Ddirectsound=disabled -Ddts=disabled -Dfdkaac=disabled -Dflite=disabled               \
+            -Dgme=disabled -Dgs=disabled -Dgsm=disabled -Diqa=disabled -Dkate=disabled             \
+            -Dladspa=disabled -Dldac=disabled -Dlv2=disabled -Dmagicleap=disabled                  \
+            -Dmediafoundation=disabled -Dmicrodns=disabled -Dmpeg2enc=disabled                     \
+            -Dmplex=disabled -Dmusepack=disabled -Dnvcodec=disabled -Dopenexr=disabled             \
+            -Dopenni2=disabled -Dopenaptx=disabled -Dopensles=disabled -Donnx=disabled             \
+            -Dqroverlay=disabled -Dsoundtouch=disabled -Dspandsp=disabled                          \
+            -Dsvthevcenc=disabled -Dteletext=disabled -Dwasapi=disabled -Dwasapi2=disabled         \
+            -Dwildmidi=disabled -Dwinks=disabled -Dwinscreencap=disabled -Dwpe=disabled            \
+            -Dzxing=disabled -Daom=disabled -Dassrender=disabled -Dbluez=enabled -Dbz2=enabled     \
+            -Dclosedcaption=enabled -Dcurl=enabled -Ddash=enabled -Ddc1394=disabled                \
+            -Ddirectfb=disabled -Ddtls=enabled -Dfaac=disabled -Dfaad=disabled                     \
+            -Dfluidsynth=disabled -Dgl=enabled -Dhls=enabled -Dkms=disabled                        \
+            -Dcolormanagement=disabled -Dlibde265=disabled -Dcurl-ssh2=disabled                    \
+            -Dmodplug=disabled -Dmsdk=disabled -Dneon=disabled -Dopenal=disabled                   \
+            -Dopencv=disabled -Dopenh264=disabled -Dopenjpeg=disabled -Dopenmpt=disabled           \
+            -Dhls-crypto=openssl -Dopus=disabled -Dorc=enabled -Dresindvd=disabled                 \
+            -Drsvg=enabled -Drtmp=disabled -Dsbc=enabled -Dsctp=disabled                           \
+            -Dsmoothstreaming=enabled -Dsndfile=enabled -Dsrt=disabled -Dsrtp=disabled             \
+            -Dtinyalsa=disabled -Dttml=enabled -Duvch264=enabled -Dv4l2codecs=disabled             \
+            -Dva=disabled -Dvoaacenc=disabled -Dvoamrwbenc=disabled -Dvulkan=enabled               \
+            -Dwayland=enabled -Dwebp=enabled -Dwebrtc=disabled -Dwebrtcdsp=disabled                \
+            -Dx11=disabled -Dx265=disabled -Dzbar=disabled -Dbuild_all_plugins=false"
     local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
 
     qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7 ${DESTINATION_DIR} ${CONFIG_FLAGS}
@@ -392,53 +392,47 @@ function qimsdk-cmake-build-gst-plugin-mlvsegmentation() {
 
 # CMake Build gst-plugin-mlsnpe
 function qimsdk-cmake-build-gst-plugin-mlsnpe() {
-    [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ]                                             && \
-        {
+    [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ] && {
             return 0
-        }                                                                                       || \
-        {
-            local RECIPE_FLAGS=$(
-                cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mlsnpe'
-            )
+    } || {
+        local RECIPE_FLAGS=$(
+            cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mlsnpe'
+        )
 
-            local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlsnpe"
+        local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlsnpe"
 
-            qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlsnpe ${CONFIG_FLAGS}
-        }
+        qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlsnpe ${CONFIG_FLAGS}
+    }
 }
 
 # CMake Build gst-plugin-mltflite
 function qimsdk-cmake-build-gst-plugin-mltflite() {
-    [ -f "${QIMSDK_DOWNLOAD_DIR}/no-tflite-provided" ]                                          && \
-        {
-            return 0
-        }                                                                                       || \
-        {
-            local RECIPE_FLAGS=$(
-                cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mltflite'
-            )
+    [ -f "${QIMSDK_DOWNLOAD_DIR}/no-tflite-provided" ] && {
+        return 0
+    } || {
+        local RECIPE_FLAGS=$(
+            cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mltflite'
+        )
 
-            local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mltflite"
+        local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mltflite"
 
-            qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mltflite ${CONFIG_FLAGS}
-        }
+        qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mltflite ${CONFIG_FLAGS}
+    }
 }
 
 # CMake Build gst-plugin-mlqnn
 function qimsdk-cmake-build-gst-plugin-mlqnn() {
-    [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ]                                             && \
-        {
-            return 0
-        }                                                                                       || \
-        {
-            local RECIPE_FLAGS=$(
-                cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mlqnn'
-            )
+    [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ] && {
+        return 0
+    } || {
+        local RECIPE_FLAGS=$(
+            cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mlqnn'
+        )
 
-            local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlqnn"
+        local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlqnn"
 
-            qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlqnn ${CONFIG_FLAGS}
-        }
+        qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlqnn ${CONFIG_FLAGS}
+    }
 }
 
 # CMake Build gst-plugin-socket
@@ -489,7 +483,7 @@ function qimsdk-cmake-build-gst-sample-apps() {
     # QMMF is not yet decoupled, that is why camera is disabled in the sample apps
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DENABLE_CAMERA=FALSE"
 
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps  ${CONFIG_FLAGS}
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-overlay
@@ -672,31 +666,31 @@ function qimsdk-cmake-clean-gst-plugin-overlay() {
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
     qimsdk-meson-build-wayland-protocols                                                        && \
-        qimsdk-meson-build-gst-plugins-good                                                     && \
-        qimsdk-meson-build-gst-plugins-bad                                                      && \
-        qimsdk-cmake-build-gst-ml-metadata                                                      && \
-        qimsdk-cmake-build-gst-plugin-base                                                      && \
-        qimsdk-cmake-build-gst-plugin-batch                                                     && \
-        qimsdk-cmake-build-gst-plugin-metamux                                                   && \
-        qimsdk-cmake-build-gst-plugin-mldemux                                                   && \
-        qimsdk-cmake-build-gst-plugin-mlvclassification                                         && \
-        qimsdk-cmake-build-gst-plugin-mlvconverter                                              && \
-        qimsdk-cmake-build-gst-plugin-mlvdetection                                              && \
-        qimsdk-cmake-build-gst-plugin-mlvsuperresolution                                        && \
-        qimsdk-cmake-build-gst-plugin-mlvpose                                                   && \
-        qimsdk-cmake-build-gst-plugin-mlvsegmentation                                           && \
-        qimsdk-cmake-build-gst-plugin-mlsnpe                                                    && \
-        qimsdk-cmake-build-gst-plugin-mltflite                                                  && \
-        qimsdk-cmake-build-gst-plugin-mlqnn                                                     && \
-        qimsdk-cmake-build-gst-plugin-socket                                                    && \
-        qimsdk-cmake-build-gst-plugin-tools                                                     && \
-        qimsdk-cmake-build-gst-plugin-vcomposer                                                 && \
-        qimsdk-cmake-build-gst-plugin-vsplit                                                    && \
-        qimsdk-cmake-build-gst-plugin-vtransform                                                && \
-        qimsdk-cmake-build-gst-plugin-overlay                                                   && \
-        qimsdk-cmake-build-gst-sample-apps                                                      && \
-        print-green "QIMSDK GStreamer targets built successfully !!!"
+            qimsdk-meson-build-gst-plugins-good                                                 && \
+            qimsdk-meson-build-gst-plugins-bad                                                  && \
+            qimsdk-cmake-build-gst-ml-metadata                                                  && \
+            qimsdk-cmake-build-gst-plugin-base                                                  && \
+            qimsdk-cmake-build-gst-plugin-batch                                                 && \
+            qimsdk-cmake-build-gst-plugin-metamux                                               && \
+            qimsdk-cmake-build-gst-plugin-mldemux                                               && \
+            qimsdk-cmake-build-gst-plugin-mlvclassification                                     && \
+            qimsdk-cmake-build-gst-plugin-mlvconverter                                          && \
+            qimsdk-cmake-build-gst-plugin-mlvdetection                                          && \
+            qimsdk-cmake-build-gst-plugin-mlvsuperresolution                                    && \
+            qimsdk-cmake-build-gst-plugin-mlvpose                                               && \
+            qimsdk-cmake-build-gst-plugin-mlvsegmentation                                       && \
+            qimsdk-cmake-build-gst-plugin-mlsnpe                                                && \
+            qimsdk-cmake-build-gst-plugin-mltflite                                              && \
+            qimsdk-cmake-build-gst-plugin-mlqnn                                                 && \
+            qimsdk-cmake-build-gst-plugin-socket                                                && \
+            qimsdk-cmake-build-gst-plugin-tools                                                 && \
+            qimsdk-cmake-build-gst-plugin-vcomposer                                             && \
+            qimsdk-cmake-build-gst-plugin-vsplit                                                && \
+            qimsdk-cmake-build-gst-plugin-vtransform                                            && \
+            qimsdk-cmake-build-gst-plugin-overlay                                               && \
+            qimsdk-cmake-build-gst-sample-apps                                                  && \
+            print-green "QIMSDK GStreamer targets built successfully !!!"
 }
 
 print-green "qimsdk-incremental-build"
-echo "Incremental build of gst plugins"
+echo "    Incremental build of gst plugins"

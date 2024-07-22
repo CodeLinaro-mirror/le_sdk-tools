@@ -33,7 +33,6 @@ function print-blue() {
 
 # Source all scripts
 for f in ${QIMSDK_SCRIPTS}/*.sh; do
-    [ "${f}" == "${QIMSDK_SCRIPTS}/env_setup.sh" ]                                              || \
-        source ${f}
+    [ "${f}" == "${QIMSDK_SCRIPTS}/env_setup.sh" ] || source ${f}
 done
 $@

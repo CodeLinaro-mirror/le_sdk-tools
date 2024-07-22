@@ -36,49 +36,49 @@ function print-blue() {
 #   $2 - (optional) device ID
 function qimsdk-device-command () {
     local CMD=${1}
-    local DEVICE_ID=${2}
+    local TARGET_DEVICE_ID=${2}
     local rc
 
     (
-        [ ! -z ${DEVICE_ID} ] && {
-            export ANDROID_SERIAL=${DEVICE_ID}
+        [ ! -z ${TARGET_DEVICE_ID} ] && {
+            export ANDROID_SERIAL=${TARGET_DEVICE_ID}
         }
 
         local rc
 
         adb shell "${CMD} && echo 0 > /tmp/rc.txt"
         rc=$?
-        [ $rc -ne 0 ] && print-red "Executing Command ${CMD} failed !!!" && return $rc
+        [ ${rc} -ne 0 ] && print-red "Executing Command ${CMD} failed !!!" && return ${rc}
 
         adb pull /tmp/rc.txt /tmp/rc.txt 2>&1 > /dev/null
         rc=$?
         adb shell "rm -f /tmp/rc.txt"
-        [ $rc -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command ${CMD} failed !!!") && return $rc
+        [ ${rc} -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command ${CMD} failed !!!") && return ${rc}
 
         rc=`cat /tmp/rc.txt`
         rm -f /tmp/rc.txt
-        [ $rc -ne 0 ] && print-red "Command ${CMD} return code is not 0 !!!" && return $rc
+        [ ${rc} -ne 0 ] && print-red "Command ${CMD} return code is not 0 !!!" && return ${rc}
 
         return 0
     )
 
     rc=$?
 
-    return $rc
+    return ${rc}
 }
 
 # Prepare device after reboot
 #   $1 - (optional) device ID
 function qimsdk-device-prepare() {
-    local DEVICE_ID=${1}
+    local TARGET_DEVICE_ID=${1}
 
     local rc
 
     echo "Waiting for device"
 
     (
-        [ ! -z ${DEVICE_ID} ] && {
-            export ANDROID_SERIAL=${DEVICE_ID}
+        [ ! -z ${TARGET_DEVICE_ID} ] && {
+            export ANDROID_SERIAL=${TARGET_DEVICE_ID}
         }
 
         local rc
@@ -91,11 +91,11 @@ function qimsdk-device-prepare() {
         rc=$?
         [ "${rc}" -ne 0 ] && print-red "adb remount failed !!!" && return -2
 
-        qimsdk-device-command "mount -o remount,rw / > /dev/null" ${DEVICE_ID}
+        qimsdk-device-command "mount -o remount,rw / > /dev/null" ${TARGET_DEVICE_ID}
         rc=$?
         [ "${rc}" -ne 0 ] && print-red "adb file system remount failed !!!" && return -3
 
-        qimsdk-device-command "! command -v setenforce || setenforce 0" ${DEVICE_ID}
+        qimsdk-device-command "! command -v setenforce || setenforce 0" ${TARGET_DEVICE_ID}
         rc=$?
         [ "${rc}" -ne 0 ] && print-red "adb disable SE Linux failed !!!" && return -4
 
@@ -103,9 +103,9 @@ function qimsdk-device-prepare() {
     )
 
     rc=$?
-    [ $rc -ne 0 ] && {
+    [ ${rc} -ne 0 ] && {
         print-red "FAILED: Device prepare !!!"
-        return $rc
+        return ${rc}
     }
 
     print-green "Device prepared successfully !!!"
@@ -152,10 +152,10 @@ function qimsdk-get-container-and-image-name() {
 
 # Get remote sync destination from json
 #   $1 - (mandatory) path to target config json
-#   $2 - (mandatory) give URL as argument
-function qimsdk-get-url() {
+#   $2 - (mandatory) give Docker_image_path as argument
+function qimsdk-get-docker-image-path() {
     local PATH_TO_CONFIG_JSON=${1}
-    local -n OUT_URL=${2}
+    local -n OUT_DOCKER_IMAGE_PATH=${2}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -164,10 +164,10 @@ function qimsdk-get-url() {
 
     local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
 
-    OUT_URL=$(echo ${JSON_CONTENT} |  jq '.URL' | tr -d '"')
+    OUT_DOCKER_IMAGE_PATH=$(echo ${JSON_CONTENT} |  jq '.Docker_image_path' | tr -d '"')
 
-    [ -z "${OUT_URL}" ] && {
-        print-red "URL attribute in config.json is not set !!!"
+    [ -z "${OUT_DOCKER_IMAGE_PATH}" ] && {
+        print-red "Docker_image_path attribute in config.json is not set !!!"
         return -2
     }
 
@@ -179,7 +179,7 @@ function qimsdk-get-url() {
 #   $2 - (mandatory) give Device ID as argument
 function qimsdk-get-device-id() {
     local PATH_TO_CONFIG_JSON=${1}
-    local -n OUT_DEVICE_ID=${2}
+    local -n OUT_TARGET_DEVICE_ID=${2}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -188,10 +188,10 @@ function qimsdk-get-device-id() {
 
     local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
 
-    OUT_DEVICE_ID=$(echo ${JSON_CONTENT} |  jq '.Device_ID' | tr -d '"')
+    OUT_TARGET_DEVICE_ID=$(echo ${JSON_CONTENT} |  jq '.Target_device_ID' | tr -d '"')
 
-    [ -z "${OUT_DEVICE_ID}" ] && {
-        print-red "Device_ID attribute in config.json is not set !!!"
+    [ -z "${OUT_TARGET_DEVICE_ID}" ] && {
+        print-red "Target_device_ID attribute in config.json is not set !!!"
         return -2
     }
 
@@ -214,7 +214,9 @@ function qimsdk-get-platform-specific-mapping() {
 
     declare -a PLATFORM_SPECIFIC_MAPS_ARRAY
 
-    PLATFORM_SPECIFIC_MAPS_ARRAY=$(echo ${JSON_CONTENT} | jq '.Platform_Specific_Mappings[]' | tr -d '"')
+    PLATFORM_SPECIFIC_MAPS_ARRAY=$(
+        echo ${JSON_CONTENT} | jq '.Platform_Specific_Mappings[]' | tr -d '"'
+    )
 
     [ -z "${PLATFORM_SPECIFIC_MAPS_ARRAY}" ] && {
         print-red "Platform_Specific_Mappings attribute in config.json is not set !!!"
@@ -250,7 +252,9 @@ function qimsdk-get-platform-libs-to-mount() {
 
     declare -a PLATFORM_SPECIFIC_LIBS_ARRAY
 
-    PLATFORM_SPECIFIC_LIBS_ARRAY=$(echo ${JSON_CONTENT} | jq '.Platform_Libraries_To_Mount[]' | tr -d '"')
+    PLATFORM_SPECIFIC_LIBS_ARRAY=$(
+        echo ${JSON_CONTENT} | jq '.Platform_Libraries_To_Mount[]' | tr -d '"'
+    )
 
     [ -z "${PLATFORM_SPECIFIC_LIBS_ARRAY}" ] && {
         print-red "Platform_Libraries_To_Mount attribute in config.json is not set !!!"
