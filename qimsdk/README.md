@@ -206,12 +206,11 @@ The json file must contain certain data :
  2. ***OPTIONAL*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose (to not set an additional tag just leave the value for this field empty)
  3. ***OPTIONAL*** - **Docker_image_path** - Remote ssh destination or local path to sync docker images or artifacts
  4. ***MANDATORY*** -  **Target_device_ID** - adb devices command ID of the device.
- 5. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
- 6. ***OPTIONAL*** - **"Qnp_sdk_download_link" : "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.22.10.240618.zip",** - Set qnp-sdk link to download from Internet. Leve it blank if unsure. ***Note: If left empty, gst-plugin-mlsnpe and gst-plugin-mlqnn will not be build***
- 7. ***OPTIONAL*** - **Path_to_tflite_dev_package** - Path to tflite dev package which is automatically installed by environment scripts. ***Note: If left empty, gst-plugin-mltflite will not be build***
- 8. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
- 9. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
- 10. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
+ 6. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
+ 8. ***OPTIONAL*** - **"Qnp_sdk_download_link" : "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.22.10.240618.zip",** - Set qnp-sdk link to download from Internet. Leve it blank if unsure. ***Note: If left empty, gst-plugin-mlsnpe and gst-plugin-mlqnn will not be build***
+ 9. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
+ 11. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
+ 12. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
 
 <div id="Docker_Host_Side_Helper_Scripts">
 
@@ -272,7 +271,7 @@ These functions are available immediately inside development container:
 
 ### Initial One Time Setup
 
-# Steps for eSDK and TFLite dev-package Installation
+# Steps for eSDK Installation
 
 ## eSDK
 
@@ -298,19 +297,6 @@ umask 022
 {
   ...
   "Path_to_eSDK_dir" : "<some/destination/directory>",
-  ...
-}
-```
-
-## TFLite dev-package
-
-***Generated artifacts (tflite-dev_2.XX.X.deb or tflite-dev_2.XX.X.ipk) can be recieved via tflite-sdk (please follow instructions provided with tflite-sdk project)***
-
-### JSON should be filled:
-```bash
-{
-  ...
-  "Path_to_tflite_dev_package" : "<path/to/rsync/destination/tflite-dev_2.XX.X.deb>",
   ...
 }
 ```
@@ -665,21 +651,6 @@ function qimsdk-meson-clean-<Project-Directory-Name>() {
 
       ```bash
       touch no-qnp-sdk-provided
-      ```
-      </ul>
-    </div>
-
-    <div name="tflite"> TFLITE
-      <ul>
-      <div style="color:#00FF7F">FILE: tflite-dev.deb</div>
-
-      ```bash
-        rsync -a /path/to/rsync/destination/of/tflite/project/tflite-dev_2.XX.X.deb <current/docker/dir>/tmp/.
-      ```
-      <div style="color:#FF4500">OR</div>
-
-      ```bash
-      touch no-tflite-provided
       ```
       </ul>
     </div>

@@ -440,17 +440,13 @@ function qimsdk-cmake-build-gst-plugin-mlsnpe() {
 
 # CMake Build gst-plugin-mltflite
 function qimsdk-cmake-build-gst-plugin-mltflite() {
-    [ -f "${QIMSDK_DOWNLOAD_DIR}/no-tflite-provided" ] && {
-        return 0
-    } || {
-        local RECIPE_FLAGS=$(
-            cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mltflite'
-        )
+    local RECIPE_FLAGS=$(
+        cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mltflite'
+    )
 
-        local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mltflite"
+    local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mltflite"
 
-        qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mltflite ${CONFIG_FLAGS}
-    }
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mltflite ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-mlqnn

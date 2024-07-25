@@ -48,6 +48,13 @@ COPY tmp/headers/usr/ /usr/
 ENV QIMSDK_DOWNLOAD_DIR=${QIMSDK_BASE_DIR}/downloads
 RUN mkdir -p ${QIMSDK_DOWNLOAD_DIR}
 
+# Clone Tensorflow Lite
+ENV QIMSDK_TF_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/tensorflow
+RUN mkdir -p ${QIMSDK_TF_SRC_DIR}
+
+RUN git clone --progress https://github.com/tensorflow/tensorflow.git                              \
+    --single-branch --branch master ${QIMSDK_TF_SRC_DIR}
+
 ARG QIMSDK_ARG_QNP_SDK_DOWNLOAD_LINK
 
 # qnp-sdk: fetch and copy the needed headers
@@ -65,13 +72,6 @@ RUN [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ] || (                        
           /usr/include/                                                                         && \
     rm -rf ${QIMSDK_DOWNLOAD_DIR}/qairt                                                            \
     )
-
-# Add and install tflite dev package
-COPY tmp/tflite* ${QIMSDK_DOWNLOAD_DIR}
-COPY tmp/*no-tflite-provided ${QIMSDK_DOWNLOAD_DIR}
-RUN [ ! -f "${QIMSDK_DOWNLOAD_DIR}/tflite-dev.deb" ]                                            || \
-        dpkg -i ${QIMSDK_DOWNLOAD_DIR}/tflite-dev.deb                                           && \
-        rm -f ${QIMSDK_DOWNLOAD_DIR}/tflite-dev.deb
 
 # Add bash aliases file
 COPY .bash_aliases /root/.bash_aliases
@@ -128,6 +128,9 @@ COPY tmp/gst-plugins-qti-oss ${QIMSDK_SRC_DIR}
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/tmp/scripts/
 COPY scripts/dev_image ${QIMSDK_SCRIPTS}
+
+# Copy the Tensorflow Lite's headers and dependent headers to the sysroot
+RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-copy-tf-lite-headers-to-sysroot
 
 # Add json file with content of cmake flags
 ENV QIMSDK_CMAKE_FLAGS_DIR=${QIMSDK_BASE_DIR}/tmp/cmake_flags/

@@ -9,16 +9,14 @@
 #   $3 - (mandatory) variable to take image name value
 #   $4 - (mandatory) variable to take Gstreamer sources of SP
 #   $5 - (mandatory) variable to take qnp sdk download link
-#   $6 - (mandatory) variable to take path to tflite dev package
-#   $7 - (mandatory) variable to take path to eSDK
+#   $6 - (mandatory) variable to take path to eSDK
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
     local -n OUT_QIMSDK_IMAGE_NAME=${3}
     local -n OUT_QIMSDK_GST_SOURCES=${4}
     local -n OUT_QIMSDK_QNP_SDK_DOWNLOAD_LINK=${5}
-    local -n OUT_QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE=${6}
-    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${7}
+    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${6}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -59,14 +57,6 @@ function qimsdk-docker-parse-json() {
         echo ${JSON_CONTENT} | jq '.Qnp_sdk_download_link' | tr -d '"'
     )
 
-    OUT_QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE=$(
-        echo ${JSON_CONTENT} | jq '.Path_to_tflite_dev_package' | tr -d '"'
-    )
-
-    [ -z "${OUT_QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE}" ] && {
-        OUT_QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE="no-tflite-provided"
-    }
-
     OUT_QIMSDK_PATH_TO_eSDK_DIR=$(
         echo ${JSON_CONTENT} | jq '.Path_to_eSDK_dir' | tr -d '"'
     )
@@ -91,7 +81,6 @@ function qimsdk-dev-docker-build-image() {
     local QIMSDK_IMAGE_NAME
     local QIMSDK_GST_SOURCES
     local QIMSDK_QNP_SDK_DOWNLOAD_LINK
-    local QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE
     local QIMSDK_PATH_TO_eSDK_DIR
     local DOCKER_IMAGE_PATH
 
@@ -100,7 +89,6 @@ function qimsdk-dev-docker-build-image() {
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_GST_SOURCES                                                                     \
             QIMSDK_QNP_SDK_DOWNLOAD_LINK                                                           \
-            QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE                                                      \
             QIMSDK_PATH_TO_eSDK_DIR
 
     local rc=$?
@@ -122,11 +110,7 @@ function qimsdk-dev-docker-build-image() {
 
     rsync -a ${QIMSDK_GST_SOURCES} ${QIMSDK_TMP_FOLDER}/gst-plugins-qti-oss
 
-    [ "${QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE}" == "no-tflite-provided" ] && {
-        touch ${QIMSDK_TMP_FOLDER}/${QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE}
-    } || {
-        rsync -a ${QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE} ${QIMSDK_TMP_FOLDER}/tflite-dev.deb
-    }
+    QIMSDK_PATH_TO_eSDK_DIR=${QIMSDK_PATH_TO_eSDK_DIR%/}
 
     local PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
             `meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.20/"
@@ -277,7 +261,6 @@ function qimsdk-docker-build-image() {
     local QIMSDK_IMAGE_NAME
     local QIMSDK_GST_SOURCES
     local QIMSDK_QNP_SDK_DOWNLOAD_LINK
-    local QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE
     local QIMSDK_PATH_TO_eSDK_DIR
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
@@ -285,7 +268,6 @@ function qimsdk-docker-build-image() {
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_GST_SOURCES                                                                     \
             QIMSDK_QNP_SDK_DOWNLOAD_LINK                                                           \
-            QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE                                                      \
             QIMSDK_PATH_TO_eSDK_DIR
 
     local rc=$?
@@ -299,12 +281,7 @@ function qimsdk-docker-build-image() {
 
     rsync -a ${QIMSDK_GST_SOURCES} ${QIMSDK_TMP_FOLDER}/gst-plugins-qti-oss
 
-    [ "${QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE}" == "no-tflite-provided" ] && {
-        touch ${QIMSDK_TMP_FOLDER}/${QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE}
-    } || {
-        rsync -a ${QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE} ${QIMSDK_TMP_FOLDER}/tflite-dev.deb
-    }
-
+    QIMSDK_PATH_TO_eSDK_DIR=${QIMSDK_PATH_TO_eSDK_DIR%/}
 
     local PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
         `meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.20/"
