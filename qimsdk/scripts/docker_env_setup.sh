@@ -570,6 +570,8 @@ function qimsdk-docker-device-save-image() {
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local DOCKER_IMAGE_PATH
+    local PLATFORM_SPECIFIC_MAP
+    local PLATFORM_LIBS_TO_MOUNT
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -586,6 +588,22 @@ function qimsdk-docker-device-save-image() {
     rc=$?
     [ ${rc} -ne 0 ] && {
         print-red "FAILED: qimsdk-get-docker-image-path !!!"
+        return ${rc}
+    }
+
+    qimsdk-get-platform-specific-mapping ${PATH_TO_CONFIG_JSON} PLATFORM_SPECIFIC_MAP
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-platform-specific-mapping  !!!"
+        return ${rc}
+    }
+
+    qimsdk-get-platform-libs-to-mount ${PATH_TO_CONFIG_JSON} PLATFORM_LIBS_TO_MOUNT
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-platform-specific-mapping  !!!"
         return ${rc}
     }
 
@@ -612,6 +630,24 @@ function qimsdk-docker-device-save-image() {
     }
 
     rm ${FILE_NAME}
+
+    local CONFIG_NAME=$(basename -- ${PATH_TO_CONFIG_JSON} | cut -d '.' -f 1)
+
+    echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT}                 \
+                -h ${QIMSDK_CONTAINER_NAME} --name ${QIMSDK_CONTAINER_NAME} ${QIMSDK_IMAGE_NAME}   \
+                " > /tmp/docker_run_${CONFIG_NAME}.sh
+
+    rsync -aP /tmp/docker_run_${CONFIG_NAME}.sh ${DOCKER_IMAGE_PATH}
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: rsync -aP /tmp/docker_run_${CONFIG_NAME}.sh ${DOCKER_IMAGE_PATH}"
+        rm /tmp/docker_run_${CONFIG_NAME}.sh
+
+        return ${rc}
+    }
+
+    rm /tmp/docker_run_${CONFIG_NAME}.sh
 
     return 0
 }
