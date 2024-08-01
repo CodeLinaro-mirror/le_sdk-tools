@@ -232,7 +232,7 @@ The developer generally needs to build the image, load the image to the device a
 - qimsdk-device-prepare - Prepare device after reboot
 - qimsdk-docker-build-image            \<path-to-config-json> - Build docker image based on Dockerfile
 - qimsdk-docker-device-update-image    \<path-to-config-json> - Update selected device image to the device
-- qimsdk-docker-device-save-image      \<path-to-config-json> - Save selected device image
+- qimsdk-docker-device-save-image      \<path-to-config-json> - Save selected device image and run command
 - qimsdk-docker-device-load-image      \<path-to-config-json> - Loads device image on the device
 - qimsdk-docker-device-run-container   \<path-to-config-json> - Run device container
 - qimsdk-docker-device-rm-container    \<path-to-config-json> - Remove device container
@@ -353,7 +353,7 @@ qimsdk-docker-build-image <path-to-config-json>
 qimsdk-docker-device-update-image <path-to-config-json>
 ```
 
-#### Save Compiled Docker Image To Remote Docker_image_path
+#### Save Compiled Docker Image and Run Command To Remote Docker_image_path
 
 ```bash
 qimsdk-docker-device-save-image <path-to-config-json>
@@ -404,7 +404,7 @@ Build docker image and save the docker image to file on build machine
 ###############
 # Build docker image
 qimsdk-docker-build-image <path-to-config-json>
-# Save docker image to url
+# Save docker image and run command to Docker_image_path
 qimsdk-docker-device-save-image <path-to-config-json>
 ```
 
@@ -413,7 +413,7 @@ Load docker image and run the container on remote machine with device connected 
 ```bash
 # Remote machine with device connected to it
 ############################################
-# Load docker image from url
+# Load docker image from Docker_image_path
 qimsdk-docker-device-load-image <path-to-config-json>
 # Run device container
 qimsdk-docker-device-run-container <path-to-config-json>
@@ -717,7 +717,7 @@ docker save <generated-image-name>:latest -o qimsdk.tar
 
 ### Sync result product with other machine (OPTIONAL):
 ```bash
-rsync -a qimsdk.tar /url/of/remote/destination/
+rsync -a qimsdk.tar /path/on/remote/destination/
 ```
 
 ### Push QIMSDK Device Image archive to the device.
@@ -911,7 +911,7 @@ qimsdk-docker-build-image <path-to-config-json>
 3. Save qimsdk device image to Docker_image_path listed in json
 
 ```bash
-# Save docker image
+# Save docker image and run command
 qimsdk-docker-device-save-image <path-to-config-json>
 ```
 

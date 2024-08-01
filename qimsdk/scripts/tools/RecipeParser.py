@@ -332,6 +332,8 @@ class RecipeParser(Parsable):
             # Remove prefix from S variable to get plugin name
             plugin = S_string[len("${WORKDIR}/"):]
             plugin = plugin.replace("-", "_")
+            if plugin.endswith('/') :
+                plugin = plugin[:-1]
 
             self.plugin_to_cmake_flags[plugin] = cmake_flags
 

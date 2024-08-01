@@ -25,6 +25,8 @@ RUN apt-get update                                                              
         opencl-headers                                                                             \
         libjson-glib-dev                                                                           \
         libsoup2.4-dev                                                                             \
+        libhiredis-dev                                                                             \
+        libjsoncpp-dev                                                                             \
         python3 python3-pip python3-setuptools                                                     \
         python3-wheel ninja-build                                                               && \
         pip3 install meson                                                                      && \
@@ -167,8 +169,9 @@ ENV QIMSDK_BASE_DIR=${QIMSDK_ARG_BASE_DIR}
 # Installing required apt packages
 RUN apt-get update                                                                              && \
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
-        gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools                      \
-        libudev1 libgstrtspserver-1.0-0 bash-completion libsoup2.4 gstreamer1.0-nice            && \
+        gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools libhiredis0.14       \
+        libudev1 libgstrtspserver-1.0-0 bash-completion libsoup2.4 gstreamer1.0-nice               \
+        libjsoncpp25                                                                            && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
