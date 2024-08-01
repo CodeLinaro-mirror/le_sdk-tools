@@ -205,18 +205,15 @@ The json file must contain certain data :
  1. ***MANDATORY*** - **Base_Image** - Base docker image to be used in development and device container.
  2. ***OPTIONAL*** - **Additional_tag_container** - Additional tag for container - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
  3. ***OPTIONAL*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose (to not set an additional tag just leave the value for this field empty)
- 4. ***OPTIONAL*** - **URL** - Remote destination To be able to sync to this destination folder
- 5. ***MANDATORY*** -  **Device_ID** - adb devices command ID of the device.
- 6. ***MANDATORY*** -  **Target_platform** - Target device platform, check the eSDK for this info, default is qcm6490.
- 7. ***MANDATORY*** - **Gst_Source_Dir** - PATH to Gstreamer sources directory, which contains all gst plugins, of SP. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
- 8. ***OPTIONAL*** - **Qnp_sdk_ver** - Set which qnp-sdk version to download from Internet. Leve it blank if unsure. ***Note: If left empty, gst-plugin-mlsnpe and gst-plugin-mlqnn will not be build***
+ 4. ***OPTIONAL*** - **Docker_image_path** - Remote ssh destination or local path to sync docker images or artifacts
+ 5. ***MANDATORY*** -  **Target_device_ID** - adb devices command ID of the device.
+ 6. ***MANDATORY*** -  **Target_platform** - Target device platform, check the eSDK for this info.
+ 7. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
+ 8. ***OPTIONAL*** - **"Qnp_sdk_download_link" : "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.22.10.240618.zip",** - Set qnp-sdk link to download from Internet. Leve it blank if unsure. ***Note: If left empty, gst-plugin-mlsnpe and gst-plugin-mlqnn will not be build***
  9. ***OPTIONAL*** - **Path_to_tflite_dev_package** - Path to tflite dev package which is automatically installed by environment scripts. ***Note: If left empty, gst-plugin-mltflite will not be build***
- 10. ***OPTIONAL*** - **Path_to_wayland_protocols_dir** - Path to wayland protocols directory (Can get it from https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz via wget). ***Note: Should be version: 1.25 and unzipped, If one field set as empty, all will be fetched automatically. Either all fields should be provided locally, or none.***
- 11. ***OPTIONAL*** - **Path_to_gst_plugins_bad_dir** - Path to gst plugins bad directory (Can get it from https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz via wget). ***Note: Should be version: 1.20.7 and unzipped, If one field set as empty, all will be fetched automatically. Either all fields should be provided locally, or none.***
- 12. ***OPTIONAL*** - **Path_to_gst_plugins_good_dir** - Path to gst plugins good directory (Can get it from https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz via wget). ***Note: Should be version: 1.20.7 and unzipped, If one field set as empty, all will be fetched automatically. Either all fields should be provided locally, or none.***
- 13. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
- 14. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
- 15. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
+ 10. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
+ 11. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
+ 12. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
 
 <div id="Docker_Host_Side_Helper_Scripts">
 
@@ -261,13 +258,13 @@ source scripts/docker_env_setup.sh
  - qimsdk-dev-docker-build-image       \<path-to-config-json> - Build development image
  - qimsdk-dev-docker-run-container     \<path-to-config-json> - Run development container
  - qimsdk-dev-send-artifacts-to-device \<path-to-config-json> - Extract artifacts from Development container and send them to the device
- - qimsdk-dev-save-artifacts           \<path-to-config-json> - Save artifacts to specified URL in configuration json file
- - qimsdk-dev-load-artifacts           \<path-to-config-json> - Load artifacts from specified URL in configuration json file and install them to the device. They are installed in a shared directory between device and device container
+ - qimsdk-dev-save-artifacts           \<path-to-config-json> - Save artifacts to specified Docker_image_path in configuration json file
+ - qimsdk-dev-load-artifacts           \<path-to-config-json> - Load artifacts from specified Docker_image_path in configuration json file and install them to the device. They are installed in a shared directory between device and device container
 
 These functions are available immediately inside development container:
 
  - qimsdk-incremental-build - Incremental build of gst plugins
- - qimsdk-dev-save-artifacts - Save artifacts to specified URL in configuration json file. They can then be loaded using the load functions in the environment.
+ - qimsdk-dev-save-artifacts - Save artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment.
 
 <div id="Development_Workflow">
 
@@ -356,13 +353,13 @@ qimsdk-docker-build-image <path-to-config-json>
 qimsdk-docker-device-update-image <path-to-config-json>
 ```
 
-#### Save Compiled Docker Image To Remote URL
+#### Save Compiled Docker Image To Remote Docker_image_path
 
 ```bash
 qimsdk-docker-device-save-image <path-to-config-json>
 ```
 
-#### Load Saved Docker Image From Remote URL To Locally Connected Device
+#### Load Saved Docker Image From Remote Docker_image_path To Locally Connected Device
 
 ```bash
 qimsdk-docker-device-load-image <path-to-config-json>
@@ -573,7 +570,7 @@ function qimsdk-meson-clean-<Project-Directory-Name>() {
       <div style="color:#90EE90">DIR: headers</div>
 
       ```bash
-        cd <path/to/unarchived/eSDK/directory>/tmp/sysroots/qcm6490/
+        cd <path/to/unarchived/eSDK/directory>/tmp/sysroots/${TARGET}/
 
         rsync -a ./usr/share/libweston-10/protocols/gbm-buffer-backend.xml                         \
           <current/docker/dir>/tmp/headers/usr/share/wayland-protocols/stable/`
@@ -699,7 +696,6 @@ function qimsdk-meson-clean-<Project-Directory-Name>() {
   DOCKER_BUILDKIT=1 docker build                                                                   \
       --build-arg QIMSDK_ARG_BASE_IMAGE=ubuntu:22.04 --platform=arm64                              \
       --build-arg QIMSDK_ARG_BASE_DIR=/mnt/work                                                    \
-      --build-arg QIMSDK_ARG_PATCHED_SOURCES=gitlab                                                \
       --progress=plain --target QIMSDK_device_image <path/to/Dockerfile/directory> -t <generated-image-name>
   ```
   <div style="color:#FF4500">Variant Host</div>
@@ -708,10 +704,6 @@ function qimsdk-meson-clean-<Project-Directory-Name>() {
   DOCKER_BUILDKIT=1 docker build                                                                   \
       --build-arg QIMSDK_ARG_BASE_IMAGE=ubuntu:22.04 --platform=arm64                              \
       --build-arg QIMSDK_ARG_BASE_DIR=/mnt/work                                                    \
-      --build-arg QIMSDK_ARG_WAYLAND_PROTOCOLS_DIR=wayland-protocols-1.25                          \
-      --build-arg QIMSDK_ARG_GST_PLUGINS_BAD_DIR=gst-plugins-bad-1.20.7                            \
-      --build-arg QIMSDK_ARG_GST_PLUGINS_GOOD_DIR=gst-plugins-good-1.20.7                          \
-      --build-arg QIMSDK_ARG_PATCHED_SOURCES=host                                                  \
       --progress=plain --target QIMSDK_device_image <path/to/Dockerfile/directory> -t <generated-image-name>
   ```
   </ul>
@@ -750,14 +742,11 @@ docker run -it -d                                                               
 --device /dev/dri/card0                                                                            \
 --device /dev/dri/renderD128                                                                       \
 --device /dev/kgsl-3d0                                                                             \
---device /dev/video1                                                                               \
---device /dev/video0                                                                               \
 --device /dev/video32                                                                              \
 --device /dev/video33                                                                              \
 --device /dev/dma_heap/system                                                                      \
 --device /dev/dma_heap/qcom,system                                                                 \
 --device /dev/fastrpc-cdsp                                                                         \
---device /dev/fb0                                                                                  \
 -v /usr/lib/libatomic.so.1:/usr/lib/libatomic.so.1                                                 \
 -v /usr/lib/libatomic.so.1.2.0:/usr/lib/libatomic.so.1.2.0                                         \
 -v /dev/socket/weston:/dev/socket/weston                                                           \
@@ -910,7 +899,7 @@ The following steps can be followed to use QIMSDK device image on a target, conn
 
 #### Steps to follow on the Build machine:
 
-1. In **Build machine** config json, set ***"URL"*** field to path, from which remote machine will copy built QIMSDK image and needed config files. (Path can also be on the remote machine.)
+1. In **Build machine** config json, set ***"Docker_image_path"*** field to path, from which remote machine will copy built QIMSDK image and needed config files. (Path can also be on the remote machine.)
 
 2. Build QIMSDK device image
 
@@ -919,7 +908,7 @@ The following steps can be followed to use QIMSDK device image on a target, conn
 qimsdk-docker-build-image <path-to-config-json>
 ```
 
-3. Save qimsdk device image to URL listed in json
+3. Save qimsdk device image to Docker_image_path listed in json
 
 ```bash
 # Save docker image
@@ -928,7 +917,7 @@ qimsdk-docker-device-save-image <path-to-config-json>
 
 #### Steps to follow on the Machine, connected to the device:
 
-1. In **Remote machine** config json, set ***"URL"*** field to path, where build machine has saved built QIMSDK image and needed config files. (Same as previously set in build image json.)
+1. In **Remote machine** config json, set ***"Docker_image_path"*** field to path, where build machine has saved built QIMSDK image and needed config files. (Same as previously set in build image json.)
 
 2. Load QIMSDK device image
 
