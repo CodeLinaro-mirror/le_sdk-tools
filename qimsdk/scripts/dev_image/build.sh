@@ -41,6 +41,13 @@ function qimsdk-cmake-configure() {
     local SOURCE_PATH=${1}
     local TARGET=${2}
 
+    [ ! -d ${SOURCE_PATH} ]                                                                     && {
+        print-yellow "No such source: ${SOURCE_PATH}"
+        print-yellow "Configuration will be skipped !"
+
+        return 0
+    }
+
     shift;shift
 
     local CMAKE_CUSTOM_CONFIG_FLAGS=$@
@@ -99,6 +106,14 @@ function qimsdk-meson-compile() {
 #    ${1} - TARGET - CMake Target
 function qimsdk-cmake-compile() {
     local TARGET=${1}
+
+    [ ! -d ${QIMSDK_BUILD_DIR}/${TARGET} ]                                                      && {
+        print-yellow "No such build dir: ${QIMSDK_BUILD_DIR}/${TARGET}"
+        print-yellow "Compilation will be skipped !"
+
+        return 0
+    }
+
     (
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
@@ -145,6 +160,13 @@ function qimsdk-cmake-install() {
 
     local DATE=$(date "+%Y_%m_%d-%H_%M_%S")
     local LOG_FILE_NAME=${QIMSDK_LOGS_DIR}/do_install_${TARGET}_${DATE}.log
+
+    [ ! -d ${QIMSDK_BUILD_DIR}/${TARGET} ]                                                      && {
+        print-yellow "No such build dir: ${QIMSDK_BUILD_DIR}/${TARGET}"
+        print-yellow "Installation will be skipped !"
+
+        return 0
+    }
 
     (
         cd ${QIMSDK_BUILD_DIR}/${TARGET}

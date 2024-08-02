@@ -1,10 +1,8 @@
 # Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
-ARG QIMSDK_ARG_BASE_IMAGE
-
 # QIMSDK Development Image
-FROM --platform=arm64 ${QIMSDK_ARG_BASE_IMAGE} AS qimsdk_dev_image
+FROM --platform=arm64 ubuntu:22.04 AS qimsdk_dev_image
 
 # Enable color prompt
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc
@@ -157,7 +155,7 @@ ENV DOCKER_IMAGE_PATH=${QIMSDK_ARG_DOCKER_IMAGE_PATH}
 # # # # # # # # # # # # # # #
 
 # QIMSDK Device Image
-FROM --platform=arm64 ${QIMSDK_ARG_BASE_IMAGE} AS qimsdk_device_image
+FROM --platform=arm64 ubuntu:22.04 AS qimsdk_device_image
 
 # Enable color prompt
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc

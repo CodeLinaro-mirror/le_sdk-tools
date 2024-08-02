@@ -73,7 +73,7 @@ class BBPatchParser(Parsable):
 
             self.title = str()
 
-    def __init__(self, path_to_layers: pathlib.Path, path_to_config_json: pathlib.Path) -> None:
+    def __init__(self, path_to_layers: pathlib.Path, platform: pathlib.Path) -> None:
 
         super().__init__(path_to_layers)
 
@@ -242,15 +242,10 @@ class RecipeParser(Parsable):
 
     # Init of RecipeParser
     # Reads the recipes and buffers them in dictionary (plugin : content)
-    def __init__(self, path_to_layers: pathlib.Path, path_to_config_json: pathlib.Path) -> None:
+    def __init__(self, path_to_layers: pathlib.Path, platform: pathlib.Path) -> None:
         super().__init__(path_to_layers)
 
-        with open(f"{path_to_config_json}", "r") as json_file:
-            json_content = json_file.read()
-
-            info_from_json = json.loads(json_content)
-
-            self.platform = info_from_json["Target_platform"]
+        self.platform = platform
 
         self.plugin_to_content = dict()
 
@@ -357,8 +352,8 @@ def parse_arguments() -> str:
     parser.add_argument("-l", "--layers", dest="path_to_layers", required=True,
                         help="Path to layers directory of eSDK")
 
-    parser.add_argument("-j", "--json", dest="path_to_config_json", required=False,
-                        help="Path to config json of the current project")
+    parser.add_argument("-p", "--platform", dest="platform", required=False,
+                        help="Platform e.g. qcm6490, qcs9100")
 
     parser.add_argument("-t", "--tmp", dest="path_to_tmp", required=True,
                         help="Path to tmp directory of the current project")
@@ -380,7 +375,7 @@ def main():
 
     parser = parser_map[args.action](
         args.path_to_layers,
-        args.path_to_config_json
+        args.platform
     )
 
     parser.process()

@@ -202,18 +202,16 @@ Two QIMSDK docker images are built. One for development. One for device target.
 ### How to fill out Configuration JSON File
 
 The json file must contain certain data :
- 1. ***MANDATORY*** - **Base_Image** - Base docker image to be used in development and device container.
- 2. ***OPTIONAL*** - **Additional_tag_container** - Additional tag for container - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
- 3. ***OPTIONAL*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose (to not set an additional tag just leave the value for this field empty)
- 4. ***OPTIONAL*** - **Docker_image_path** - Remote ssh destination or local path to sync docker images or artifacts
- 5. ***MANDATORY*** -  **Target_device_ID** - adb devices command ID of the device.
- 6. ***MANDATORY*** -  **Target_platform** - Target device platform, check the eSDK for this info.
- 7. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
- 8. ***OPTIONAL*** - **"Qnp_sdk_download_link" : "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.22.10.240618.zip",** - Set qnp-sdk link to download from Internet. Leve it blank if unsure. ***Note: If left empty, gst-plugin-mlsnpe and gst-plugin-mlqnn will not be build***
- 9. ***OPTIONAL*** - **Path_to_tflite_dev_package** - Path to tflite dev package which is automatically installed by environment scripts. ***Note: If left empty, gst-plugin-mltflite will not be build***
- 10. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
- 11. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
- 12. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
+ 1. ***OPTIONAL*** - **Additional_tag_container** - Additional tag for container - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
+ 2. ***OPTIONAL*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose (to not set an additional tag just leave the value for this field empty)
+ 3. ***OPTIONAL*** - **Docker_image_path** - Remote ssh destination or local path to sync docker images or artifacts
+ 4. ***MANDATORY*** -  **Target_device_ID** - adb devices command ID of the device.
+ 5. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
+ 6. ***OPTIONAL*** - **"Qnp_sdk_download_link" : "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.22.10.240618.zip",** - Set qnp-sdk link to download from Internet. Leve it blank if unsure. ***Note: If left empty, gst-plugin-mlsnpe and gst-plugin-mlqnn will not be build***
+ 7. ***OPTIONAL*** - **Path_to_tflite_dev_package** - Path to tflite dev package which is automatically installed by environment scripts. ***Note: If left empty, gst-plugin-mltflite will not be build***
+ 8. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
+ 9. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
+ 10. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
 
 <div id="Docker_Host_Side_Helper_Scripts">
 
@@ -694,7 +692,6 @@ function qimsdk-meson-clean-<Project-Directory-Name>() {
 
   ```bash
   DOCKER_BUILDKIT=1 docker build                                                                   \
-      --build-arg QIMSDK_ARG_BASE_IMAGE=ubuntu:22.04 --platform=arm64                              \
       --build-arg QIMSDK_ARG_BASE_DIR=/mnt/work                                                    \
       --progress=plain --target QIMSDK_device_image <path/to/Dockerfile/directory> -t <generated-image-name>
   ```
@@ -702,7 +699,6 @@ function qimsdk-meson-clean-<Project-Directory-Name>() {
 
   ```bash
   DOCKER_BUILDKIT=1 docker build                                                                   \
-      --build-arg QIMSDK_ARG_BASE_IMAGE=ubuntu:22.04 --platform=arm64                              \
       --build-arg QIMSDK_ARG_BASE_DIR=/mnt/work                                                    \
       --progress=plain --target QIMSDK_device_image <path/to/Dockerfile/directory> -t <generated-image-name>
   ```
