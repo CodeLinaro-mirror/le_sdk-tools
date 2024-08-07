@@ -9,12 +9,16 @@
 #   $3 - (mandatory) variable to take image name value
 #   $4 - (mandatory) variable to take Gstreamer sources of SP
 #   $5 - (mandatory) variable to take path to eSDK
+#   $6 - (mandatory) variable to take supported targets
+#   $7 - (mandatory) variable to take default target
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
     local -n OUT_QIMSDK_IMAGE_NAME=${3}
     local -n OUT_QIMSDK_GST_SOURCES=${4}
     local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${5}
+    local -n OUT_QIMSDK_SUPPORTED_TARGETS=${6}
+    local -n OUT_QIMSDK_DEFAULT_TARGET=${7}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -64,6 +68,19 @@ function qimsdk-docker-parse-json() {
         return -4
     }
 
+    OUT_QIMSDK_SUPPORTED_TARGETS=( $(
+        echo ${JSON_CONTENT} | jq '.Supported_targets[]' | tr -d '"'
+    ) )
+
+    OUT_QIMSDK_DEFAULT_TARGET=( $(
+        echo ${JSON_CONTENT} | jq '.Default_target' | tr -d '"'
+    ) )
+
+    [ ${#OUT_QIMSDK_SUPPORTED_TARGETS[@]} -eq 0 ]                                               && {
+        print-red "Supported_targets attribute is empty in config json !!!"
+        return -5
+    }
+
     return 0
 }
 
@@ -75,13 +92,17 @@ function qimsdk-dev-docker-build-image() {
     local QIMSDK_IMAGE_NAME
     local QIMSDK_GST_SOURCES
     local QIMSDK_PATH_TO_eSDK_DIR
+    local QIMSDK_SUPPORTED_TARGETS
+    local QIMSDK_DEFAULT_TARGET
     local DOCKER_IMAGE_PATH
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_GST_SOURCES                                                                     \
-            QIMSDK_PATH_TO_eSDK_DIR
+            QIMSDK_PATH_TO_eSDK_DIR                                                                \
+            QIMSDK_SUPPORTED_TARGETS                                                               \
+            QIMSDK_DEFAULT_TARGET
 
     local rc=$?
     [ ${rc} -ne 0 ] && {
@@ -224,20 +245,49 @@ function qimsdk-dev-docker-build-image() {
             -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                  \
             -p ${PLATFORM}                                                                         \
             -t ${QIMSDK_TMP_FOLDER}                                                                \
-            RecipeParser
-
-    python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                     \
-            -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                  \
-            -t ${QIMSDK_TMP_FOLDER}                                                                \
-            BBPatchParser
-
-    rc=$?
-
-    [ ${rc} -ne 0 ] && {
-        print-red "Python Parser Crashed !!!"
+            RecipeParser                                                                        || {
+        print-red "Python Parser returns error, mode RecipeParser !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return ${rc}
+        return -7
     }
+
+    local QIMSDK_SUPPORTED_TARGETS_COUNT=${#QIMSDK_SUPPORTED_TARGETS[@]}
+
+    for ((INDEX=0 ; INDEX<${QIMSDK_SUPPORTED_TARGETS_COUNT} ; INDEX++)); do
+
+        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
+                -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
+                -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
+                -t ${QIMSDK_TMP_FOLDER}                                                            \
+                BBPatchParser                                                                   || {
+            print-red "Python Parser returns error, mode BBPatchParser !!!"
+            rm -rf ${QIMSDK_TMP_FOLDER}
+            return -8
+        }
+
+        # Skipping a comparison with index zero
+        [ ${INDEX} -eq 0 ]                                                                      && {
+            continue
+        }
+
+        diff ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[0]}_recipes_patches.json              \
+            ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}_recipes_patches.json     || {
+            [ -z ${QIMSDK_DEFAULT_TARGET} ]                                                     && {
+                print-red "Patches of supported targets differ !!!"
+                rm -rf ${QIMSDK_TMP_FOLDER}
+                return -9
+            } || {
+                print-yellow "Patches of supported targets differ !!!"
+            }
+        }
+    done
+
+    [ -z ${QIMSDK_DEFAULT_TARGET} ]                                                             && {
+        QIMSDK_DEFAULT_TARGET=${QIMSDK_SUPPORTED_TARGETS[0]}
+    }
+
+    mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_DEFAULT_TARGET}_recipes_patches.json                          \
+        ${QIMSDK_TMP_FOLDER}/recipes_patches.json
 
     local QIMSDK_BASE_DIR="/mnt/work"
 
@@ -268,13 +318,17 @@ function qimsdk-docker-build-image() {
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_GST_SOURCES
+    local QIMSDK_SUPPORTED_TARGETS
+    local QIMSDK_DEFAULT_TARGET
     local QIMSDK_PATH_TO_eSDK_DIR
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_GST_SOURCES                                                                     \
-            QIMSDK_PATH_TO_eSDK_DIR
+            QIMSDK_PATH_TO_eSDK_DIR                                                                \
+            QIMSDK_SUPPORTED_TARGETS                                                               \
+            QIMSDK_DEFAULT_TARGET
 
     local rc=$?
     [ ${rc} -ne 0 ]                                                                             && {
@@ -413,20 +467,49 @@ function qimsdk-docker-build-image() {
             -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                  \
             -p ${PLATFORM}                                                                         \
             -t ${QIMSDK_TMP_FOLDER}                                                                \
-            RecipeParser
-
-    python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                     \
-            -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                  \
-            -t ${QIMSDK_TMP_FOLDER}                                                                \
-            BBPatchParser
-
-    rc=$?
-
-    [ ${rc} -ne 0 ] && {
-        print-red "Python Parser Crashed !!!"
+            RecipeParser                                                                        || {
+        print-red "Python Parser Crashed, mode RecipeParser !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return ${rc}
+        return -7
     }
+
+    local QIMSDK_SUPPORTED_TARGETS_COUNT=${#QIMSDK_SUPPORTED_TARGETS[@]}
+
+    for ((INDEX=0 ; INDEX<${QIMSDK_SUPPORTED_TARGETS_COUNT} ; INDEX++)); do
+
+        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
+                -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
+                -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
+                -t ${QIMSDK_TMP_FOLDER}                                                            \
+                BBPatchParser                                                                   || {
+            print-red "Python Parser Crashed, mode BBPatchParser !!!"
+            rm -rf ${QIMSDK_TMP_FOLDER}
+            return -8
+        }
+
+        # Skipping a comparison with index zero
+        [ ${INDEX} -eq 0 ]                                                                      && {
+            continue
+        }
+
+        diff ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[0]}_recipes_patches.json              \
+            ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}_recipes_patches.json     || {
+            [ -z ${QIMSDK_DEFAULT_TARGET} ]                                                     && {
+                print-red "Patches of supported targets differ !!!"
+                rm -rf ${QIMSDK_TMP_FOLDER}
+                return -9
+            } || {
+                print-yellow "Patches of supported targets differ !!!"
+            }
+        }
+    done
+
+    [ -z ${QIMSDK_DEFAULT_TARGET} ]                                                             && {
+        QIMSDK_DEFAULT_TARGET=${QIMSDK_SUPPORTED_TARGETS[0]}
+    }
+
+    mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_DEFAULT_TARGET}_recipes_patches.json                          \
+        ${QIMSDK_TMP_FOLDER}/recipes_patches.json
 
     local QIMSDK_BASE_DIR="/mnt/work"
 
@@ -618,7 +701,7 @@ function qimsdk-docker-device-save-image() {
 
     local CONFIG_NAME=$(basename -- ${PATH_TO_CONFIG_JSON} | cut -d '.' -f 1)
 
-    echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT}                 \
+    echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT}                     \
                 -h ${QIMSDK_CONTAINER_NAME} --name ${QIMSDK_CONTAINER_NAME} ${QIMSDK_IMAGE_NAME}   \
                 " > /tmp/docker_run_${CONFIG_NAME}.sh
 

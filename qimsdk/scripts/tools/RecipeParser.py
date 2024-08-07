@@ -73,9 +73,11 @@ class BBPatchParser(Parsable):
 
             self.title = str()
 
-    def __init__(self, path_to_layers: pathlib.Path, platform: pathlib.Path) -> None:
+    def __init__(self, path_to_layers: pathlib.Path, platform: str) -> None:
 
         super().__init__(path_to_layers)
+
+        self.platform = platform
 
         self.path_to_layers = path_to_layers
 
@@ -239,7 +241,9 @@ class BBPatchParser(Parsable):
         for recipe in self.recipes.values():
             title_to_patches[recipe.title] = recipe.patches
 
-        path_to_json = os.path.join(path_to_tmp, "recipes_patches.json")
+        path_to_json = os.path.join(
+            path_to_tmp, f"{self.platform}_recipes_patches.json"
+        )
 
         with open(path_to_json, "w") as recipes_patches:
             json_buffer = json.dumps(title_to_patches, indent=4)
@@ -250,7 +254,7 @@ class RecipeParser(Parsable):
 
     # Init of RecipeParser
     # Reads the recipes and buffers them in dictionary (plugin : content)
-    def __init__(self, path_to_layers: pathlib.Path, platform: pathlib.Path) -> None:
+    def __init__(self, path_to_layers: pathlib.Path, platform: str) -> None:
         super().__init__(path_to_layers)
 
         self.platform = platform
