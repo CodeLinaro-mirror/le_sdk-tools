@@ -3,9 +3,6 @@
 # Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
-echo "Docker build environment setup"
-echo "=============================="
-
 # Parse json configuraiton
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) variable to take base image value
@@ -1329,12 +1326,16 @@ QIMSDK_DOCKER_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/.. && pwd )"
 
 source ${QIMSDK_DOCKER_DIR}/scripts/common.sh
 
+print-green "Docker build environment setup"
+echo "=============================="
+print-yellow "Device Docker Commands"
+echo        "======================"
 print-green "qimsdk-docker-build-image                                        <path-to-config-json>"
 echo "    Build docker image based on Dockerfile in ${QIMSDK_DOCKER_DIR}"
 print-blue "qimsdk-docker-device-update-image                                 <path-to-config-json>"
 echo "    Update selected device image to the device"
 print-blue "qimsdk-docker-device-save-image                                   <path-to-config-json>"
-echo "    Save selected device image"
+echo "    Save selected device image and docker run command"
 print-blue "qimsdk-docker-device-load-image                                   <path-to-config-json>"
 echo "    Loads device image on the device"
 print-blue "qimsdk-docker-device-run-container                                <path-to-config-json>"
@@ -1353,13 +1354,16 @@ print-red "qimsdk-docker-device-images-cleanup                                <p
 echo "    Docker device images clean up"
 print-red "qimsdk-docker-host-images-cleanup"
 echo "    Docker host images clean up"
-echo "qimsdk-dev-docker-build-image                                           <path-to-config-json>"
+echo        "==================="
+print-yellow "Dev Docker Commands"
+echo        "==================="
+print-green "qimsdk-dev-docker-build-image                                           <path-to-config-json>"
 echo "    Build dev Docker image"
-echo "qimsdk-dev-docker-run-container                                         <path-to-config-json>"
+print-blue "qimsdk-dev-docker-run-container                                         <path-to-config-json>"
 echo "    Run dev Docker container"
-echo "qimsdk-dev-send-artifacts-to-device                                     <path-to-config-json>"
+print-blue "qimsdk-dev-send-artifacts-to-device                                     <path-to-config-json>"
 echo "    Copy artifacts directly to /opt/qti/development/ path in device"
-echo "qimsdk-dev-save-artifacts                                               <path-to-config-json>"
+print-blue "qimsdk-dev-save-artifacts                                               <path-to-config-json>"
 echo "    Save artifacts to Docker_image_path provided in config json file."
-echo "qimsdk-dev-load-artifacts                                               <path-to-config-json>"
+print-blue "qimsdk-dev-load-artifacts                                               <path-to-config-json>"
 echo "    Load artifacts from Docker_image_path provided in config json file."

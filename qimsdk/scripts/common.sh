@@ -273,6 +273,3 @@ function qimsdk-get-platform-libs-to-mount() {
 
     return 0
 }
-
-print-yellow "qimsdk-device-prepare                                 <Device-ID (optional argument)>"
-echo "    Prepare device after reboot"
