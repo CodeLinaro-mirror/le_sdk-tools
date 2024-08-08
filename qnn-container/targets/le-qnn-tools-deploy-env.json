@@ -1,0 +1,11 @@
+{
+    "Image": "qnn-tools-image",
+    "Acceleration_engine":"qnn",
+    "Acceleration_engine_path":"QNN downloaded path",
+    "Base_Image": "ubuntu:22.04",
+    "Target_platform": "",
+    "Additional_tag": "",
+    "Device_OS": "le",
+    "Qnn_Version": "QNN downloaded Version",
+    "DeviceID": "Connected Device Id"
+}
