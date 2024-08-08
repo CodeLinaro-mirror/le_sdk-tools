@@ -5,6 +5,12 @@
 
 # Parse python json configuraiton
 #   ${1} - (mandatory) path to container config json
+#   ${2} - out device id
+#   ${3} - out backend name
+#   ${4} - out dlc model name
+#   ${5} - out buffer type
+#   ${6} - path of example directory
+#   ${7} - path of output results directory
 function qml-host-parse-python-json() {
     PATH_TO_CONFIG_JSON=${1}
     local -n OUT_DEVICE_ID=${2}
@@ -38,7 +44,7 @@ function qml-host-parse-python-json() {
     OUT_BUFFER_TYPE=$(echo ${JSON_CONTENT} | jq '.Buffer' | tr -d '"')
 
     [ -z "${OUT_BUFFER_TYPE}" ] && {
-        print-red "Buffer attribute in dev_config.json is not set,                                     \
+        print-red "Buffer attribute in dev_config.json is not set,                                 \
             it must be one of the following USERBUFFER_TF8, USERBUFFER_TF16 or USERBUFFER_FLOAT !!!"
         return -4
     }
@@ -46,11 +52,13 @@ function qml-host-parse-python-json() {
     OUT_PATH_TO_EXAMPLES_DIRECTORY=$(echo ${JSON_CONTENT} | jq '.TestExamplesDirectory' | tr -d '"')
 
     [ ! -d "${OUT_PATH_TO_EXAMPLES_DIRECTORY}" ] && {
-        print-red "TestExamplesDirectory attribute in dev_config.json is empty or no such directory !!!"
+        print-red "TestExamplesDirectory attribute in dev_config.json is empty,                    \
+         or no such directory !!!"
         return -5
     }
 
-    OUT_TEST_OUTPUT_DIRECTORY_NAME=$(echo ${JSON_CONTENT} | jq '.TestOutputDirectoryName' | tr -d '"')
+    OUT_TEST_OUTPUT_DIRECTORY_NAME=$(echo ${JSON_CONTENT} | jq '.TestOutputDirectoryName' |
+        tr -d '"')
 
     [ -z "${OUT_TEST_OUTPUT_DIRECTORY_NAME}" ] && {
         print-red "TestOutputDirectoryName attribute in dev_config.json is not set !!!"
@@ -112,7 +120,8 @@ function qml-sync-snpe() {
             return $rc
         }
 
-        local RELATIVE_PATH_TO_EXAMPLES_DIRECTORY=$(realpath --relative-to="${PWD}" "$PATH_TO_EXAMPLES_DIRECTORY")
+        local RELATIVE_PATH_TO_EXAMPLES_DIRECTORY=$(realpath --relative-to="${PWD}"                \
+            "$PATH_TO_EXAMPLES_DIRECTORY")
 
         adb push ${RELATIVE_PATH_TO_EXAMPLES_DIRECTORY} /tmp/examples
 
@@ -122,7 +131,8 @@ function qml-sync-snpe() {
             return $rc
         }
 
-        qml-device-command "docker cp /tmp/examples/ ${QML_CONTAINER_NAME}:${QML_ARG_BASE_DIR}/." ${DEVICE_ID}
+        qml-device-command "docker cp /tmp/examples/ ${QML_CONTAINER_NAME}:${QML_ARG_BASE_DIR}/." \
+            ${DEVICE_ID}
 
         rc=$?
         [ $rc -ne 0 ] && {
@@ -145,6 +155,7 @@ function qml-sync-snpe() {
 }
 
 # Run Python wrapper script on the container
+#   ${1} - (mandatory) path to container config json
 function qml-run-snpe() {
 
     local QML_ARG_BASE_DIR=/mnt/qml
@@ -202,7 +213,7 @@ function qml-run-snpe() {
     )
 }
 
-QML_DOCKER_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/../.. && pwd )"
+QML_DOCKER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
 
 source ${QML_DOCKER_DIR}/scripts/host/common.sh
 
