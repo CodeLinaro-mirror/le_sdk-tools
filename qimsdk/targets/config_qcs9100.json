@@ -12,6 +12,13 @@
 
     "Path_to_eSDK_dir" : "<path-to-installed-eSDK-dir>",
 
+    "Exports": [
+        "XDG_RUNTIME_DIR=/dev/socket/weston",
+        "WAYLAND_DISPLAY=wayland-1",
+        "GST_DEBUG_NO_COLOR=1",
+        "ADSP_LIBRARY_PATH=\"/usr/lib/dsp/cdsp;/usr/lib/dsp/cdsp1;${ADSP_LIBRARY_PATH}\""
+    ],
+
     "Platform_Libraries_To_Mount": [
         "/usr/lib/libatomic.so.1",
         "/usr/lib/libatomic.so.1.2.0",

@@ -273,3 +273,80 @@ function qimsdk-get-platform-libs-to-mount() {
 
     return 0
 }
+
+# Get Exports from json
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) EXPORTS: set of variables, which will be exported
+function qimsdk-get-variables-to-export() {
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_EXPORTS=${2}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    EXPORTS=$(
+        echo ${JSON_CONTENT} | jq -r '.Exports[]'
+    )
+
+    declare -a EXPORT_TEMP=""
+
+    for EXPORT in ${EXPORTS[@]}; do
+        EXPORT_TEMP+="-e ${EXPORT} "
+    done
+
+    OUT_EXPORTS=${EXPORT_TEMP}
+
+    return 0
+}
+
+# Remote Sync Wrapper
+# Sync from host to remote and clean-up if success
+#   $1 - (mandatory) SRC: source to sync
+#   $2 - (mandatory) DST: destination where to sync
+function qimsdk-sync-to-remote-and-clean() {
+    local SRC=${1}
+    local DST=${2}
+
+    [[ -d ${DST} || -f ${DST} ]] && {
+        return 0
+    }
+
+    rsync -aP ${SRC} ${DST}
+
+    local rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: rsync -aP ${SRC} ${DST}"
+        return ${rc}
+    }
+
+    rm -f ${SRC}
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: rm ${SRC}"
+        return ${rc}
+    }
+
+    return 0
+}
+
+# Remove
+# Remove argument if its located in tmp of file system
+#   $1 - (mandatory) TEMP: file or dir to remove
+function qimsdk-remove-if-temp() {
+    local TEMP=${1}
+
+    [ -z ${TEMP} ] && {
+        return 0
+    }
+
+    [[ "${TEMP}" == /tmp/* ]] && {
+        rm -rf ${TEMP}
+    }
+
+    return 0
+}

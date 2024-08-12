@@ -210,8 +210,9 @@ The json file must contain certain data :
  6. ***OPTIONAL*** -  **Default_target** - Default platform
  7. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
  8. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
- 7. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
- 9. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
+ 9. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
+ 10. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
+ 11. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
 
 <div id="Docker_Host_Side_Helper_Scripts">
 

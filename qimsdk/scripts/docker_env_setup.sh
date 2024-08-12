@@ -677,45 +677,49 @@ function qimsdk-docker-device-save-image() {
 
     local FILE_NAME="${QIMSDK_IMAGE_NAME}.tar"
 
-    docker save ${QIMSDK_IMAGE_NAME}:latest -o ${FILE_NAME}
+    local COMMON_PATH=""
+
+    [ -d ${DOCKER_IMAGE_PATH} ] && {
+        COMMON_PATH=${DOCKER_IMAGE_PATH}
+    } || {
+        COMMON_PATH=$(mktemp -d)
+    }
+
+    docker save ${QIMSDK_IMAGE_NAME}:latest -o ${COMMON_PATH}/${FILE_NAME}
 
     rc=$?
     [ ${rc} -ne 0 ] && {
-        print-red "Device load image failed: docker save failed !!!"
-        rm ${FILE_NAME}
+        print-red "Device save image failed: docker save failed !!!"
+        rm -f ${COMMON_PATH}/${FILE_NAME}
 
         return ${rc}
     }
 
-    rsync -aP ${FILE_NAME} ${DOCKER_IMAGE_PATH}
+    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/${FILE_NAME} ${DOCKER_IMAGE_PATH}
 
     rc=$?
     [ ${rc} -ne 0 ] && {
-        print-red "FAILED: rsync -aP ${FILE_NAME} ${DOCKER_IMAGE_PATH}"
-        rm ${FILE_NAME}
+        print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+        rm -f ${COMMON_PATH}/${FILE_NAME}
 
         return ${rc}
     }
-
-    rm ${FILE_NAME}
 
     local CONFIG_NAME=$(basename -- ${PATH_TO_CONFIG_JSON} | cut -d '.' -f 1)
 
     echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT}                     \
                 -h ${QIMSDK_CONTAINER_NAME} --name ${QIMSDK_CONTAINER_NAME} ${QIMSDK_IMAGE_NAME}   \
-                " > /tmp/docker_run_${CONFIG_NAME}.sh
+                " > ${COMMON_PATH}/docker_run_${CONFIG_NAME}.sh
 
-    rsync -aP /tmp/docker_run_${CONFIG_NAME}.sh ${DOCKER_IMAGE_PATH}
+    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run_${CONFIG_NAME}.sh ${DOCKER_IMAGE_PATH}
 
     rc=$?
     [ ${rc} -ne 0 ] && {
-        print-red "FAILED: rsync -aP /tmp/docker_run_${CONFIG_NAME}.sh ${DOCKER_IMAGE_PATH}"
-        rm /tmp/docker_run_${CONFIG_NAME}.sh
+        print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+        rm -f ${COMMON_PATH}/docker_run_${CONFIG_NAME}.sh
 
         return ${rc}
     }
-
-    rm /tmp/docker_run_${CONFIG_NAME}.sh
 
     return 0
 }
@@ -757,14 +761,22 @@ function qimsdk-docker-device-load-image() {
 
     local FILE_NAME="${QIMSDK_IMAGE_NAME}.tar"
 
-    rsync -aP ${DOCKER_IMAGE_PATH}/${FILE_NAME} ${FILE_NAME}
+    local LOCAL_DOCKER_IMAGE="${DOCKER_IMAGE_PATH}/${FILE_NAME}"
 
-    rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "FAILED: rsync -aP ${DOCKER_IMAGE_PATH}/${FILE_NAME} ${FILE_NAME}"
-        rm ${FILE_NAME}
+    [ ! -d ${DOCKER_IMAGE_PATH} ] && {
+        local TMP_DOCKER_IMAGE_PATH=$(mktemp -d)
 
-        return ${rc}
+        rsync -aP ${DOCKER_IMAGE_PATH}/${FILE_NAME} ${TMP_DOCKER_IMAGE_PATH}/${FILE_NAME}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: rsync -aP ${DOCKER_IMAGE_PATH}/${FILE_NAME}                         \
+                    ${TMP_DOCKER_IMAGE_PATH}/${FILE_NAME}"
+
+            return ${rc}
+        }
+
+        LOCAL_DOCKER_IMAGE="${TMP_DOCKER_IMAGE_PATH}/${FILE_NAME}"
     }
 
     (
@@ -772,7 +784,7 @@ function qimsdk-docker-device-load-image() {
 
         [ -z ${ANDROID_SERIAL} ] && {
             print-red "Android serial is not set !!!"
-            rm ${FILE_NAME}
+            qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
             return -1
         }
@@ -782,22 +794,24 @@ function qimsdk-docker-device-load-image() {
         local rc=$?
         [ ${rc} -ne 0 ] && {
             print-red "FAILED: qimsdk-device-command !!!"
-            rm ${FILE_NAME}
+            qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
             return ${rc}
         }
 
-        adb push ${FILE_NAME} /home/data/docker_images
+        adb push ${LOCAL_DOCKER_IMAGE} /home/data/docker_images
 
         rc=$?
         [ ${rc} -ne 0 ] && {
-            print-red "FAILED: adb push ${FILE_NAME} /home/data/docker_images !!!"
-            rm ${FILE_NAME}
+            print-red "FAILED: adb push ${LOCAL_DOCKER_IMAGE}                                      \
+                    /home/data/docker_images !!!"
+
+            qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
             return ${rc}
         }
 
-        rm ${FILE_NAME}
+        qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
         qimsdk-device-command "docker load -i /home/data/docker_images/${FILE_NAME}" ${QIMSDK_DEVICE_ID}
 
@@ -877,6 +891,22 @@ function qimsdk-dev-docker-run-container() {
         }
     fi
 
+    if [ -f ~/.gitconfig ]; then
+        docker cp ~/.gitconfig ${QIMSDK_CONTAINER_NAME}_dev:/root/.gitconfig                    && \
+            docker exec --user root ${QIMSDK_CONTAINER_NAME}_dev chown -R root:root                \
+                /root/.gitconfig                                                                || {
+                print-red "Propagating .gitconfig to docker failed !!!"
+                return -4
+            }
+    fi
+
+    if [ -f /etc/gitconfig ]; then
+        docker cp /etc/gitconfig ${QIMSDK_CONTAINER_NAME}_dev:/etc/gitconfig                    || {
+            print-red "Propagating .gitconfig to docker failed !!!"
+            return -5
+        }
+    fi
+
     print-green "Run dev container successful !!!"
 
     return 0
@@ -944,6 +974,7 @@ function qimsdk-docker-device-run-container() {
     local QIMSDK_DEVICE_ID
     local PLATFORM_SPECIFIC_MAP
     local PLATFORM_LIBS_TO_MOUNT
+    local EXPORTS
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -978,9 +1009,18 @@ function qimsdk-docker-device-run-container() {
         print-red "FAILED: qimsdk-get-platform-specific-mapping  !!!"
         return ${rc}
     }
+
+    qimsdk-get-variables-to-export ${PATH_TO_CONFIG_JSON}                                          \
+            EXPORTS
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-variables-to-export !!!"
+        return ${rc}
+    }
     (
 
-        echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT}                 \
+        echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT} ${EXPORTS}      \
                 -h ${QIMSDK_CONTAINER_NAME} --name ${QIMSDK_CONTAINER_NAME} ${QIMSDK_IMAGE_NAME}   \
                 " > /tmp/docker_run.sh
         export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
