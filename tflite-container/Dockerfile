@@ -64,7 +64,7 @@ RUN mkdir -p ${TFLITE_SDK_BASE_DIR}
 ADD tmp/sdk.sh ${TFLITE_SDK_BASE_DIR}/sdk.sh
 
 # Setup SDK as HOST user
-RUN chmod a+r ${TFLITE_SDK_BASE_DIR}/sdk.sh
+RUN chmod ug+x ${TFLITE_SDK_BASE_DIR}/sdk.sh
 RUN umask 022
 RUN ${TFLITE_SDK_BASE_DIR}/sdk.sh -y -d ${TFLITE_SDK_BASE_DIR}
 RUN rm -rf ${TFLITE_SDK_BASE_DIR}/sdk.sh
