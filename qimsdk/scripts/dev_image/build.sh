@@ -313,6 +313,17 @@ function qimsdk-cmake-build-gst-plugin-base() {
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-base
 }
 
+# CMake Build gst-plugin-metatransform
+function qimsdk-cmake-build-gst-plugin-metatransform() {
+    local RECIPE_FLAGS=$(
+        cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_metatransform'
+    )
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-metatransform"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-metatransform ${CONFIG_FLAGS}
+}
+
 # CMake Build gst-plugin-batch
 function qimsdk-cmake-build-gst-plugin-batch() {
     local RECIPE_FLAGS=$(
@@ -588,6 +599,13 @@ function qimsdk-cmake-clean-gst-plugin-base() {
     print-green "${FUNCNAME} completed succesfully!"
 }
 
+# Clean CMake gst-plugin-metatransform build directory
+function qimsdk-cmake-clean-gst-plugin-metatransform() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugin-metatransform
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
 # Clean CMake gst-plugin-batch build directory
 function qimsdk-cmake-clean-gst-plugin-batch() {
     rm -rf ${QIMSDK_BUILD_DIR}/gst-plugin-batch
@@ -756,6 +774,7 @@ function qimsdk-incremental-build() {
             qimsdk-meson-build-gst-plugins-bad                                                  && \
             qimsdk-cmake-build-gst-ml-metadata                                                  && \
             qimsdk-cmake-build-gst-plugin-base                                                  && \
+            qimsdk-cmake-build-gst-plugin-metatransform                                         && \
             qimsdk-cmake-build-gst-plugin-batch                                                 && \
             qimsdk-cmake-build-gst-plugin-metamux                                               && \
             qimsdk-cmake-build-gst-plugin-mldemux                                               && \
