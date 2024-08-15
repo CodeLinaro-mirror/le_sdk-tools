@@ -219,7 +219,7 @@ function qimsdk-get-platform-specific-mapping() {
     )
 
     [ -z "${PLATFORM_SPECIFIC_MAPS_ARRAY}" ] && {
-        print-red "Platform_Specific_Mappings attribute in config.json is not set !!!"
+        print-red "Platform_Specific_Mappings attribute in ${PATH_TO_CONFIG_JSON} is not set !!!"
         return -2
     }
 
@@ -257,7 +257,7 @@ function qimsdk-get-platform-libs-to-mount() {
     )
 
     [ -z "${PLATFORM_SPECIFIC_LIBS_ARRAY}" ] && {
-        print-red "Platform_Libraries_To_Mount attribute in config.json is not set !!!"
+        print-red "Platform_Libraries_To_Mount attribute in ${PATH_TO_CONFIG_JSON} is not set !!!"
         return -2
     }
 
@@ -346,6 +346,80 @@ function qimsdk-remove-if-temp() {
 
     [[ "${TEMP}" == /tmp/* ]] && {
         rm -rf ${TEMP}
+    }
+
+    return 0
+}
+
+# Get Platform_Libraries_To_Mount from json
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) path to docker compose yaml
+function qimsdk-generate-docker-compose-yaml() {
+    local PATH_TO_CONFIG_JSON=${1}
+    local PATH_TO_DOCKER_COMPOSE_YAML=${2}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    declare -a PLATFORM_SPECIFIC_LIBS_ARRAY
+    PLATFORM_SPECIFIC_LIBS_ARRAY=$(
+        echo ${JSON_CONTENT} | jq '.Platform_Libraries_To_Mount[]' | tr -d '"'
+    )
+    [ -z "${PLATFORM_SPECIFIC_LIBS_ARRAY}" ] && {
+        print-red "Platform_Libraries_To_Mount attribute in ${PATH_TO_CONFIG_JSON} is not set !!!"
+        return -2
+    }
+
+    declare -a PLATFORM_SPECIFIC_MAPS_ARRAY
+    PLATFORM_SPECIFIC_MAPS_ARRAY=$(
+        echo ${JSON_CONTENT} | jq '.Platform_Specific_Mappings[]' | tr -d '"'
+    )
+    [ -z "${PLATFORM_SPECIFIC_MAPS_ARRAY}" ] && {
+        print-red "Platform_Specific_Mappings attribute in ${PATH_TO_CONFIG_JSON} is not set !!!"
+        return -3
+    }
+
+    declare -a EXPORTS_ARRAY
+    EXPORTS_ARRAY=$(
+        echo ${JSON_CONTENT} | jq -r '.Exports[]'
+    )
+
+    EXPORTS_ARRAY=$(
+        echo ${EXPORTS_ARRAY} | tr -d '"'
+    )
+
+    local QIMSDK_IMAGE_NAME
+    local DOCKER_IMAGE_PATH
+    qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
+            QIMSDK_CONTAINER_NAME                                                                  \
+            QIMSDK_IMAGE_NAME
+
+    local I
+    echo "services:" > ${PATH_TO_DOCKER_COMPOSE_YAML}                                           && \
+            yq -i ".services.qimsdk.image=\"${QIMSDK_IMAGE_NAME}\""                                \
+                    ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
+            yq -i ".services.qimsdk.container_name=\"${QIMSDK_CONTAINER_NAME}\""                   \
+                    ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
+            yq -i ".services.qimsdk.hostname=\"${QIMSDK_CONTAINER_NAME}\""                         \
+                    ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
+            yq -i ".services.qimsdk.command=\"bash\"" ${PATH_TO_DOCKER_COMPOSE_YAML}            && \
+            yq -i ".services.qimsdk.restart=\"always\"" ${PATH_TO_DOCKER_COMPOSE_YAML}          && \
+            for I in ${EXPORTS_ARRAY[@]}; do
+                yq -i ".services.qimsdk.environment += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
+            done                                                                                && \
+            for I in ${PLATFORM_SPECIFIC_MAPS_ARRAY[@]}; do
+                yq -i ".services.qimsdk.devices += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
+            done                                                                                && \
+            for I in ${PLATFORM_SPECIFIC_LIBS_ARRAY[@]}; do
+                yq -i ".services.qimsdk.volumes += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
+            done                                                                                || {
+        print-red "Failed to generate docker compose yaml file failed !!!"
+        rm -rf  ${PATH_TO_DOCKER_COMPOSE_YAML}
+        return -4
     }
 
     return 0

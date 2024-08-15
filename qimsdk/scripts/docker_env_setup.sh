@@ -721,6 +721,27 @@ function qimsdk-docker-device-save-image() {
         return ${rc}
     }
 
+    qimsdk-generate-docker-compose-yaml ${PATH_TO_CONFIG_JSON}                                     \
+            ${COMMON_PATH}/docker-compose-${CONFIG_NAME}.yml
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "Generate qimsk docker compose file failed !!!"
+        rm -f ${COMMON_PATH}/docker-compose-${CONFIG_NAME}.yml
+
+        return ${rc}
+    }
+
+    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-compose-${CONFIG_NAME}.yml               \
+            ${DOCKER_IMAGE_PATH}
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+        rm -f ${COMMON_PATH}/docker-compose-${CONFIG_NAME}.yml
+
+        return ${rc}
+    }
+
     return 0
 }
 

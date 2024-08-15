@@ -44,7 +44,27 @@ Prerequisite packages must be installed on the host (one time)
 
 ```bash
 sudo apt install -y jq tofrodos qemu-user-static qemu-system-arm
+sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+sudo chmod +x /usr/bin/yq
 ```
+
+<h3 style="color:red">
+  <b>Do NOT install yq via snap</b>
+</h3>
+
+If this happened then remove it:
+
+```bash
+sudo snap remove yq
+```
+
+And then stop the snapd service
+```bash
+sudo systemctl stop snapd
+```
+
+Goto [Ubuntu Packages](#Ubuntu_Packages) and try to install yq with the instructions mentioned in Ubuntu Packages
+
 
 <div id="Max_user_watches">
 
