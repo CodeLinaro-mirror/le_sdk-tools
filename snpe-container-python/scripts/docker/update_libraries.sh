@@ -36,6 +36,7 @@ function qml-update-libraries-snpe() {
     MAP_TARGET_TO_LIB["qcm6490"]="aarch64-oe-linux-gcc11.2"
     MAP_TARGET_TO_LIB["qcs6490"]="aarch64-ubuntu-gcc9.4"
     MAP_TARGET_TO_LIB["qrb5165"]="aarch64-oe-linux-gcc9.3"
+    MAP_TARGET_TO_LIB["qcs9100"]="aarch64-oe-linux-gcc11.2"
 
     TARGET_ACCELERATION_ENGINE_LIBRARY=${MAP_TARGET_TO_LIB[${QML_TARGET_PLATFORM}]}
 
