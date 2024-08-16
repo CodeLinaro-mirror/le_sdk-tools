@@ -259,6 +259,12 @@ COPY --from=qimsdk_dev_image                                                    
     ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-plugin-tools/gst-scripts/demo_setup_wizard.sh   \
     /usr/bin
 
+# Add json file with content of runtime flags
+ENV QIMSDK_RUNTIME_FLAGS_DIR=/opt/qti/runtime_flags/
+RUN mkdir -p ${QIMSDK_RUNTIME_FLAGS_DIR}
+
+COPY tmp/*runtime_flags.json ${QIMSDK_RUNTIME_FLAGS_DIR}
+
 # Change user to qimsdk
 USER qimsdk
 

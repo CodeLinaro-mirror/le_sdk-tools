@@ -718,6 +718,20 @@ docker-compose up -d -f <docker-compose.yml>
                 BuildCodeGenerator
       </ul>
 
+      <ul>
+      <div style="color:#90EE90">RuntimeFlagsGenerator</div>
+      <div style="color:#6495ED">
+        Generate json file with content of runtime flags with upcomming data from gstreamer recipes.
+      </div>
+
+        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
+                -l <path/to/unarchived/eSDK/directory>/layers/                                     \
+                -m <path/to/unarchived/eSDK/directory>/layers/meta-qti-gst                         \
+                -p <target>                                                                        \
+                -t <current/docker/dir>/tmp/                                                       \
+                RuntimeFlagsGenerator
+      </ul>
+
     </div>
 
 ### Docker Build

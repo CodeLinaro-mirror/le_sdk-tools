@@ -500,6 +500,106 @@ print-yellow \"qimsdk-help-build\"
 echo \"    Print build and clean function of each gst plugins\"
 """)
 
+class RuntimeFlagsGenerator(RecipeParser):
+
+    # Init of RecipeFlagsParser
+    # Reads the recipes and buffers them in dictionary (plugin : content)
+    def __init__(self, path_to_layers: pathlib.Path, path_to_meta: pathlib.Path,
+                platform: str) -> None:
+        super().__init__(path_to_layers, path_to_meta, platform)
+
+        self.platform_to_soc = {
+            "qcs9100" : "SA8775P",
+            "qcm6490" : "QCS6490"
+        }
+
+        self.plugin_to_flags = dict()
+
+        for file in self.path_to_recipes:
+            super().read_recipe(file)
+
+    # Process method of RecipeFlagsParser
+    def process(self):
+
+        for content in self.plugin_to_content.values():
+
+            current_data_smart = bb.data.init()
+            bb.parse.siggen = bb.siggen.init(current_data_smart)
+
+            my_temp_file = self._parse_helper(content)
+
+            bb_parsed = bb.parse.handle(
+                my_temp_file.name, current_data_smart)['']
+
+            bb_parsed.setVar("OVERRIDES", self.platform)
+
+            extra_oecmake_string = bb_parsed.getVar("EXTRA_OECMAKE")
+
+            if extra_oecmake_string is None:
+                continue
+
+            extra_oecmake_string = extra_oecmake_string.replace(
+                '${PACKAGECONFIG_CONFARGS}', '')
+
+            splited_string = list(str())
+            splited_string = extra_oecmake_string.split(' -D')
+
+            string = str()
+
+            flag_to_value = dict()
+
+            for string in splited_string:
+
+                # Skip NON translated variables
+                # like ${SOME_VARIABLE}
+                found_non_translated_variable = string.find("${")
+
+                if found_non_translated_variable != -1:
+                    continue
+
+                # Skip GST_VERSION_REQUIRED
+                found_gst_version_required = string.find(
+                    "GST_VERSION_REQUIRED")
+
+                if found_gst_version_required != -1:
+                    continue
+
+                pair_flag_to_value = string.split("=")
+
+                if (len(pair_flag_to_value) > 1):
+
+                    flag_to_value.update({
+                        pair_flag_to_value[0] : pair_flag_to_value[1]
+                    })
+
+
+            S_string = bb_parsed.getVar("S")
+
+            # Remove prefix from S variable to get plugin name
+            plugin = S_string[len("${WORKDIR}/"):]
+            plugin = plugin.replace("-", "_")
+            if plugin.endswith('/') :
+                plugin = plugin[:-1]
+
+            self.plugin_to_flags.update({
+                plugin : flag_to_value
+            })
+
+    # Export to json method of RecipeFlagsParser
+    # Export it to json file ("plugin" : { "member" : "flags" })
+    def export(self, path_to_tmp: pathlib.Path):
+
+        soc = self.platform_to_soc[self.platform]
+
+        path_to_json = os.path.join(
+            path_to_tmp, f"{soc}_runtime_flags.json"
+        )
+
+        with open(path_to_json, "w") as runtime_flags_json:
+            json_buffer = json.dumps(self.plugin_to_flags, indent=4)
+            runtime_flags_json.write(json_buffer)
+
+
 # Parse arguments function
 # Parses input arguments
 def parse_arguments() -> str:
@@ -518,8 +618,8 @@ def parse_arguments() -> str:
                         help="Path to tmp directory of the current project")
 
     parser.add_argument("action",
-                        choices=['BuildCodeGenerator', 'BBPatchParser'],
-                        help="<BuildCodeGenerator/BBPatchParser>")
+                        choices=['BuildCodeGenerator', 'BBPatchParser', 'RuntimeFlagsGenerator'],
+                        help="<BuildCodeGenerator/BBPatchParser/RuntimeFlagsGenerator>")
 
     return parser.parse_args()
 
@@ -529,7 +629,8 @@ def main():
 
     parser_map = {
         "BBPatchParser"         : BBPatchParser,
-        "BuildCodeGenerator"    : BuildCodeGenerator
+        "BuildCodeGenerator"    : BuildCodeGenerator,
+        "RuntimeFlagsGenerator" : RuntimeFlagsGenerator
     }
 
     parser = parser_map[args.action](

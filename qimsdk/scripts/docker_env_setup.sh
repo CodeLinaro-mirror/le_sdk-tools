@@ -56,7 +56,7 @@ function qimsdk-docker-parse-json() {
             [ -d "${OUT_QIMSDK_GST_SOURCES}/gst-plugin-base" ]                                  || {
         print-red "Please provide path to gst-plugins-qti-oss directory in config json!!!"
         print-red "Directory currently provided: ${OUT_QIMSDK_GST_SOURCES}"
-        return -3
+        return -2
     }
 
     OUT_QIMSDK_GST_META=$(echo ${JSON_CONTENT} | jq '.IM_SDK_Meta_Dir' | tr -d '"')
@@ -66,7 +66,7 @@ function qimsdk-docker-parse-json() {
             [ -d "${OUT_QIMSDK_GST_META}/recipes-gst/gstreamer" ]                               || {
         print-red "Please provide path to meta-qti-gst directory in config json!!!"
         print-red "Directory currently provided: ${IM_SDK_Meta_Dir}"
-        return -4
+        return -3
     }
 
     OUT_QIMSDK_PATH_MICROSERVICES=$(
@@ -104,7 +104,7 @@ function qimsdk-docker-parse-json() {
 
     [ ${#OUT_QIMSDK_SUPPORTED_TARGETS[@]} -eq 0 ]                                               && {
         print-red "Supported_targets attribute is empty in config json !!!"
-        return -5
+        return -6
     }
 
     return 0
@@ -201,7 +201,7 @@ function qimsdk-dev-docker-build-image() {
     [ ! -d ${PATH_TO_GSTD_PATCHES} ] && {
         print-red "gstd's patches NOT found !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -1
+        return -4
     }
 
     local TARGET=$(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-armv8-2a-qcom-linux |          \
@@ -209,7 +209,7 @@ function qimsdk-dev-docker-build-image() {
     pushd ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots/${TARGET}/ 1>/dev/null || {
         print-red "FAILED: pushd to Path_to_eSDK_dir"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -4
+        return -5
     }
 
         mkdir -p "${QIMSDK_TMP_FOLDER}/`
@@ -232,7 +232,7 @@ function qimsdk-dev-docker-build-image() {
             echo "Cannot get headers from eSDK !!!"
             popd 1>/dev/null
             rm -rf ${QIMSDK_TMP_FOLDER}
-            return -5
+            return -6
         }
 
     popd 1>/dev/null                                                                            && \
@@ -263,7 +263,7 @@ function qimsdk-dev-docker-build-image() {
             ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                  || {
         print-red "Cannot get patches from eSDK !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -6
+        return -7
     }
 
     local PLATFORM=$(basename -- $(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-* | grep -m 1 -o SDKTARGETSYSROOT.*))
@@ -276,7 +276,7 @@ function qimsdk-dev-docker-build-image() {
             BuildCodeGenerator                                                                  || {
         print-red "Python Parser returns error, mode BuildCodeGenerator !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -7
+        return -8
     }
 
     local QIMSDK_SUPPORTED_TARGETS_COUNT=${#QIMSDK_SUPPORTED_TARGETS[@]}
@@ -288,10 +288,21 @@ function qimsdk-dev-docker-build-image() {
                 -m ${QIMSDK_GST_META}                                                              \
                 -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
                 -t ${QIMSDK_TMP_FOLDER}                                                            \
+                RuntimeFlagsGenerator                                                           || {
+            print-red "Python Parser Crashed, mode RuntimeFlagsGenerator !!!"
+            rm -rf ${QIMSDK_TMP_FOLDER}
+            return -9
+        }
+
+        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
+                -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
+                -m ${QIMSDK_GST_META}                                                              \
+                -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
+                -t ${QIMSDK_TMP_FOLDER}                                                            \
                 BBPatchParser                                                                   || {
             print-red "Python Parser returns error, mode BBPatchParser !!!"
             rm -rf ${QIMSDK_TMP_FOLDER}
-            return -8
+            return -10
         }
 
         # Skipping a comparison with index zero
@@ -304,7 +315,7 @@ function qimsdk-dev-docker-build-image() {
             [ -z ${QIMSDK_DEFAULT_TARGET} ]                                                     && {
                 print-red "Patches of supported targets differ !!!"
                 rm -rf ${QIMSDK_TMP_FOLDER}
-                return -9
+                return -11
             } || {
                 print-yellow "Patches of supported targets differ !!!"
             }
@@ -414,7 +425,7 @@ function qimsdk-docker-build-image() {
     [ ! -d ${PATH_TO_GSTD_PATCHES} ] && {
         print-red "gstd's patches NOT found !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -1
+        return -4
     }
 
     local TARGET=$(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-armv8-2a-qcom-linux |          \
@@ -422,7 +433,7 @@ function qimsdk-docker-build-image() {
     pushd ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots/${TARGET}/ 1>/dev/null || {
         print-red "FAILED: pushd to Path_to_eSDK_dir"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -4
+        return -5
     }
 
         mkdir -p "${QIMSDK_TMP_FOLDER}/`
@@ -445,7 +456,7 @@ function qimsdk-docker-build-image() {
             echo "Cannot get headers from eSDK !!!"
             popd 1>/dev/null
             rm -rf ${QIMSDK_TMP_FOLDER}
-            return -5
+            return -6
         }
 
     popd 1>/dev/null                                                                            && \
@@ -480,7 +491,7 @@ function qimsdk-docker-build-image() {
             ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                  || {
         print-red "Cannot get patches from eSDK !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -6
+        return -7
     }
 
     local PLATFORM=$(basename -- $(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-* | grep -m 1 -o SDKTARGETSYSROOT.*))
@@ -493,7 +504,7 @@ function qimsdk-docker-build-image() {
             BuildCodeGenerator                                                                  || {
         print-red "Python Parser Crashed, mode BuildCodeGenerator !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -7
+        return -8
     }
 
     local QIMSDK_SUPPORTED_TARGETS_COUNT=${#QIMSDK_SUPPORTED_TARGETS[@]}
@@ -505,10 +516,21 @@ function qimsdk-docker-build-image() {
                 -m ${QIMSDK_GST_META}                                                              \
                 -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
                 -t ${QIMSDK_TMP_FOLDER}                                                            \
+                RuntimeFlagsGenerator                                                           || {
+            print-red "Python Parser Crashed, mode RuntimeFlagsGenerator !!!"
+            rm -rf ${QIMSDK_TMP_FOLDER}
+            return -9
+        }
+
+        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
+                -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
+                -m ${QIMSDK_GST_META}                                                              \
+                -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
+                -t ${QIMSDK_TMP_FOLDER}                                                            \
                 BBPatchParser                                                                   || {
             print-red "Python Parser Crashed, mode BBPatchParser !!!"
             rm -rf ${QIMSDK_TMP_FOLDER}
-            return -8
+            return -10
         }
 
         # Skipping a comparison with index zero
@@ -521,7 +543,7 @@ function qimsdk-docker-build-image() {
             [ -z ${QIMSDK_DEFAULT_TARGET} ]                                                     && {
                 print-red "Patches of supported targets differ !!!"
                 rm -rf ${QIMSDK_TMP_FOLDER}
-                return -9
+                return -11
             } || {
                 print-yellow "Patches of supported targets differ !!!"
             }
