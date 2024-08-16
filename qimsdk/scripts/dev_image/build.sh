@@ -41,6 +41,13 @@ function qimsdk-cmake-configure() {
     local SOURCE_PATH=${1}
     local TARGET=${2}
 
+    [ ! -d ${SOURCE_PATH} ]                                                                     && {
+        print-yellow "No such source: ${SOURCE_PATH}"
+        print-yellow "Configuration will be skipped !"
+
+        return 0
+    }
+
     shift;shift
 
     local CMAKE_CUSTOM_CONFIG_FLAGS=$@
@@ -99,6 +106,14 @@ function qimsdk-meson-compile() {
 #    ${1} - TARGET - CMake Target
 function qimsdk-cmake-compile() {
     local TARGET=${1}
+
+    [ ! -d ${QIMSDK_BUILD_DIR}/${TARGET} ]                                                      && {
+        print-yellow "No such build dir: ${QIMSDK_BUILD_DIR}/${TARGET}"
+        print-yellow "Compilation will be skipped !"
+
+        return 0
+    }
+
     (
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
@@ -145,6 +160,13 @@ function qimsdk-cmake-install() {
 
     local DATE=$(date "+%Y_%m_%d-%H_%M_%S")
     local LOG_FILE_NAME=${QIMSDK_LOGS_DIR}/do_install_${TARGET}_${DATE}.log
+
+    [ ! -d ${QIMSDK_BUILD_DIR}/${TARGET} ]                                                      && {
+        print-yellow "No such build dir: ${QIMSDK_BUILD_DIR}/${TARGET}"
+        print-yellow "Installation will be skipped !"
+
+        return 0
+    }
 
     (
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
@@ -485,6 +507,15 @@ function qimsdk-cmake-build-gst-plugin-redissink() {
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-redissink ${CONFIG_FLAGS}
 }
 
+# CMake Build gst-plugin-mlmetaparser
+function qimsdk-cmake-build-gst-plugin-mlmetaparser() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mlmetaparser')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlmetaparser"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlmetaparser ${CONFIG_FLAGS}
+}
+
 # CMake Build gst-plugin-rtspbin
 function qimsdk-cmake-build-gst-plugin-rtspbin() {
     local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_rtspbin')
@@ -511,6 +542,15 @@ function qimsdk-cmake-build-gst-plugin-overlay() {
     local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-overlay"
 
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-overlay ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-plugin-voverlay
+function qimsdk-cmake-build-gst-plugin-voverlay() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_voverlay')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-voverlay"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-voverlay ${CONFIG_FLAGS}
 }
 
 # Clean meson wayland-protocols build directory
@@ -674,6 +714,13 @@ function qimsdk-cmake-clean-gst-plugin-redissink() {
     print-green "${FUNCNAME} completed succesfully!"
 }
 
+# Clean CMake gst-plugin-mlmetaparser build directory
+function qimsdk-cmake-clean-gst-plugin-mlmetaparser() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugin-mlmetaparser
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
 # Clean CMake gst-plugin-rtspbin build directory
 function qimsdk-cmake-clean-gst-plugin-rtspbin() {
     rm -rf ${QIMSDK_BUILD_DIR}/gst-plugin-rtspbin
@@ -691,6 +738,13 @@ function qimsdk-cmake-clean-gst-sample-apps() {
 # Clean CMake gst-plugin-overlay build directory
 function qimsdk-cmake-clean-gst-plugin-overlay() {
     rm -rf ${QIMSDK_BUILD_DIR}/gst-plugin-overlay
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-plugin-voverlay build directory
+function qimsdk-cmake-clean-gst-plugin-voverlay() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugin-voverlay
 
     print-green "${FUNCNAME} completed succesfully!"
 }
@@ -720,8 +774,10 @@ function qimsdk-incremental-build() {
             qimsdk-cmake-build-gst-plugin-vsplit                                                && \
             qimsdk-cmake-build-gst-plugin-vtransform                                            && \
             qimsdk-cmake-build-gst-plugin-redissink                                             && \
+            qimsdk-cmake-build-gst-plugin-mlmetaparser                                          && \
             qimsdk-cmake-build-gst-plugin-rtspbin                                               && \
             qimsdk-cmake-build-gst-plugin-overlay                                               && \
+            qimsdk-cmake-build-gst-plugin-voverlay                                              && \
             qimsdk-cmake-build-gst-sample-apps                                                  && \
             print-green "QIMSDK GStreamer targets built successfully !!!"
 }

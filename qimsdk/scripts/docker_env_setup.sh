@@ -5,22 +5,20 @@
 
 # Parse json configuraiton
 #   $1 - (mandatory) path to target config json
-#   $2 - (mandatory) variable to take base image value
-#   $3 - (mandatory) variable to take container name value
-#   $4 - (mandatory) variable to take image name value
-#   $5 - (mandatory) variable to take Gstreamer sources of SP
-#   $6 - (mandatory) variable to take qnp sdk download link
-#   $7 - (mandatory) variable to take path to tflite dev package
-#   $8 - (mandatory) variable to take path to eSDK
+#   $2 - (mandatory) variable to take container name value
+#   $3 - (mandatory) variable to take image name value
+#   $4 - (mandatory) variable to take Gstreamer sources of SP
+#   $5 - (mandatory) variable to take qnp sdk download link
+#   $6 - (mandatory) variable to take path to tflite dev package
+#   $7 - (mandatory) variable to take path to eSDK
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
-    local -n OUT_QIMSDK_BASE_IMAGE=${2}
-    local -n OUT_QIMSDK_CONTAINER_NAME=${3}
-    local -n OUT_QIMSDK_IMAGE_NAME=${4}
-    local -n OUT_QIMSDK_GST_SOURCES=${5}
-    local -n OUT_QIMSDK_QNP_SDK_DOWNLOAD_LINK=${6}
-    local -n OUT_QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE=${7}
-    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${8}
+    local -n OUT_QIMSDK_CONTAINER_NAME=${2}
+    local -n OUT_QIMSDK_IMAGE_NAME=${3}
+    local -n OUT_QIMSDK_GST_SOURCES=${4}
+    local -n OUT_QIMSDK_QNP_SDK_DOWNLOAD_LINK=${5}
+    local -n OUT_QIMSDK_PATH_TO_TFLITE_DEV_PACKAGE=${6}
+    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${7}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -28,13 +26,6 @@ function qimsdk-docker-parse-json() {
     }
 
     local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
-
-    OUT_QIMSDK_BASE_IMAGE=$(echo ${JSON_CONTENT} | jq '.Base_Image' | tr -d '"')
-
-    [ -z "${QIMSDK_BASE_IMAGE}" ] && {
-        print-red "Base_Image tag in json file must be set !!!"
-        return -2
-    }
 
     local ADDITIONAL_TAG_CONTAINER=$(
         echo ${JSON_CONTENT} |  jq '.Additional_tag_container' | tr -d '"'
@@ -96,7 +87,6 @@ function qimsdk-docker-parse-json() {
 #   $1 - (mandatory) path to target config json
 function qimsdk-dev-docker-build-image() {
     local PATH_TO_CONFIG_JSON=${1}
-    local QIMSDK_BASE_IMAGE
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_GST_SOURCES
@@ -106,7 +96,6 @@ function qimsdk-dev-docker-build-image() {
     local DOCKER_IMAGE_PATH
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
-            QIMSDK_BASE_IMAGE                                                                      \
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_GST_SOURCES                                                                     \
@@ -236,11 +225,11 @@ function qimsdk-dev-docker-build-image() {
         return -6
     }
 
-    local ABSOLUTE_PATH_TO_CONFIG_JSON=$(readlink -f ${PATH_TO_CONFIG_JSON})
+    local PLATFORM=$(basename -- $(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-* | grep -m 1 -o SDKTARGETSYSROOT.*))
 
     python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                     \
             -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                  \
-            -j ${ABSOLUTE_PATH_TO_CONFIG_JSON}                                                     \
+            -p ${PLATFORM}                                                                         \
             -t ${QIMSDK_TMP_FOLDER}                                                                \
             RecipeParser
 
@@ -251,7 +240,7 @@ function qimsdk-dev-docker-build-image() {
 
     rc=$?
 
-    [ ${rc} -ne 0 ]                                                                             && {
+    [ ${rc} -ne 0 ] && {
         print-red "Python Parser Crashed !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
         return ${rc}
@@ -260,7 +249,6 @@ function qimsdk-dev-docker-build-image() {
     local QIMSDK_BASE_DIR="/mnt/work"
 
     DOCKER_BUILDKIT=1 docker build                                                                 \
-            --build-arg QIMSDK_ARG_BASE_IMAGE=${QIMSDK_BASE_IMAGE}                                 \
             --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_BASE_DIR}                                     \
             --build-arg QIMSDK_ARG_DOCKER_IMAGE_PATH=${DOCKER_IMAGE_PATH}                          \
             --build-arg QIMSDK_ARG_QNP_SDK_DOWNLOAD_LINK=${QIMSDK_QNP_SDK_DOWNLOAD_LINK}           \
@@ -285,7 +273,6 @@ function qimsdk-dev-docker-build-image() {
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-build-image() {
     local PATH_TO_CONFIG_JSON=${1}
-    local QIMSDK_BASE_IMAGE
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_GST_SOURCES
@@ -294,7 +281,6 @@ function qimsdk-docker-build-image() {
     local QIMSDK_PATH_TO_eSDK_DIR
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
-            QIMSDK_BASE_IMAGE                                                                      \
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_GST_SOURCES                                                                     \
@@ -417,11 +403,11 @@ function qimsdk-docker-build-image() {
         return -6
     }
 
-    local ABSOLUTE_PATH_TO_CONFIG_JSON=$(readlink -f ${PATH_TO_CONFIG_JSON})
+    local PLATFORM=$(basename -- $(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-* | grep -m 1 -o SDKTARGETSYSROOT.*))
 
     python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                     \
             -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                  \
-            -j ${ABSOLUTE_PATH_TO_CONFIG_JSON}                                                     \
+            -p ${PLATFORM}                                                                         \
             -t ${QIMSDK_TMP_FOLDER}                                                                \
             RecipeParser
 
@@ -441,7 +427,6 @@ function qimsdk-docker-build-image() {
     local QIMSDK_BASE_DIR="/mnt/work"
 
     DOCKER_BUILDKIT=1 docker build                                                                 \
-            --build-arg QIMSDK_ARG_BASE_IMAGE=${QIMSDK_BASE_IMAGE}                                 \
             --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_BASE_DIR}                                     \
             --build-arg QIMSDK_ARG_QNP_SDK_DOWNLOAD_LINK=${QIMSDK_QNP_SDK_DOWNLOAD_LINK}           \
             --progress=plain --target QIMSDK_device_image                                          \

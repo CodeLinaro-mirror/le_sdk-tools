@@ -1,10 +1,8 @@
 # Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
-ARG QIMSDK_ARG_BASE_IMAGE
-
 # QIMSDK Development Image
-FROM --platform=arm64 ${QIMSDK_ARG_BASE_IMAGE} AS qimsdk_dev_image
+FROM --platform=arm64 ubuntu:22.04 AS qimsdk_dev_image
 
 # Enable color prompt
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc
@@ -157,7 +155,7 @@ ENV DOCKER_IMAGE_PATH=${QIMSDK_ARG_DOCKER_IMAGE_PATH}
 # # # # # # # # # # # # # # #
 
 # QIMSDK Device Image
-FROM --platform=arm64 ${QIMSDK_ARG_BASE_IMAGE} AS qimsdk_device_image
+FROM --platform=arm64 ubuntu:22.04 AS qimsdk_device_image
 
 # Enable color prompt
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc
@@ -171,7 +169,7 @@ RUN apt-get update                                                              
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
         gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools libhiredis0.14       \
         libudev1 libgstrtspserver-1.0-0 bash-completion libsoup2.4 gstreamer1.0-nice               \
-        libjsoncpp25                                                                            && \
+        libjsoncpp25 libopencv-imgproc4.5d                                                      && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
