@@ -5,7 +5,7 @@
 
 # git am wrapper function
 #   $1 - Path to patch file
-function qimsdk-aplly-patch() {
+function qimsdk-apply-patch() {
     local PATCH_FILE=${1}
 
     git am ${PATCH_FILE} || {
@@ -14,10 +14,11 @@ function qimsdk-aplly-patch() {
 }
 
 # Wrapper function to apply qti patches to all needed opensource libs
-function qimsdk-aplly-patches() {
+function qimsdk-apply-patches() {
     qimsdk-apply-patches-wayland-protocols-1-25                                                 && \
             qimsdk-apply-patches-gst-plugins-good-1-20-7                                        && \
-            qimsdk-apply-patches-gst-plugins-bad-1-20-7
+            qimsdk-apply-patches-gst-plugins-bad-1-20-7                                         && \
+            qimsdk-apply-patches-gstd
 }
 
 # Apply patches to wayland-protocols-1.25
@@ -29,7 +30,7 @@ function qimsdk-apply-patches-wayland-protocols-1-25() {
         cd ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25
 
         for PATCH in ${WAYLAND_PATCHES}; do
-            qimsdk-aplly-patch ${PATH_TO_PATCHES}/${PATCH}
+            qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
         done
     ) || {
         echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25 !"
@@ -49,7 +50,7 @@ function qimsdk-apply-patches-gst-plugins-good-1-20-7() {
         cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7
 
         for PATCH in ${PLUGINS_GOOD_PATCHES}; do
-            qimsdk-aplly-patch ${PATH_TO_PATCHES}/${PATCH}
+            qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
         done
     ) || {
         echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7 !"
@@ -69,10 +70,30 @@ function qimsdk-apply-patches-gst-plugins-bad-1-20-7() {
         cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7
 
         for PATCH in ${PLUGINS_BAD_PATCHES}; do
-            qimsdk-aplly-patch ${PATH_TO_PATCHES}/${PATCH}
+            qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
         done
     ) || {
         echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7 !"
+        return -1
+    }
+}
+
+# Apply patches to gstd
+function qimsdk-apply-patches-gstd() {
+    [ -d "${QIMSDK_DOWNLOAD_DIR}/gstd-1.x" ] && (
+        local PATH_TO_PATCHES="${QIMSDK_PATCHES_DIR}/gstd"
+
+        local GSTD_PATCHES=$(
+            cat ${QIMSDK_RECIPES_JSON} | jq '.gstd[]' | tr -d '"'
+        )
+
+        cd ${QIMSDK_DOWNLOAD_DIR}/gstd-1.x
+
+        for PATCH in ${GSTD_PATCHES}; do
+            qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
+        done
+    ) || {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gstd-1.x !"
         return -1
     }
 }

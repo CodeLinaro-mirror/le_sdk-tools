@@ -151,6 +151,19 @@ function qimsdk-dev-docker-build-image() {
         return -3
     }
 
+    local PATH_TO_GSTD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
+            `meta-qti-gst/recipes-gst/gstreamer/gstd/"
+
+    [ ! -d ${PATH_TO_GSTD_PATCHES} ]                                                            && \
+            PATH_TO_GSTD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
+            `meta-qcom-qim-product-sdk/recipes-gst/gstreamer/gstd/"
+
+    [ ! -d ${PATH_TO_GSTD_PATCHES} ] && {
+        print-red "gstd's patches NOT found !!!"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+        return -1
+    }
+
     local TARGET=$(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-armv8-2a-qcom-linux |          \
             grep "SDKTARGETSYSROOT=" | rev | cut -d '/' -f 1 | rev)
     pushd ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots/${TARGET}/ 1>/dev/null || {
@@ -187,6 +200,7 @@ function qimsdk-dev-docker-build-image() {
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.20.7/                               && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.20.7/                              && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.25/                               && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                 && \
 
     rsync -a ${QIMSDK_PATH_TO_eSDK_DIR}/layers/poky/meta/recipes-multimedia/gstreamer/`
             `gstreamer1.0-plugins-bad/*.patch                                                      \
@@ -203,7 +217,10 @@ function qimsdk-dev-docker-build-image() {
             ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.20.7/                               && \
 
     rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
-            ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.25/                                || {
+            ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.25/                                && \
+
+    rsync -a ${PATH_TO_GSTD_PATCHES}/*.patch                                                       \
+            ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                  || {
         print-red "Cannot get patches from eSDK !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -6
@@ -322,6 +339,19 @@ function qimsdk-docker-build-image() {
         return -3
     }
 
+    local PATH_TO_GSTD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
+            `meta-qti-gst/recipes-gst/gstreamer/gstd/"
+
+    [ ! -d ${PATH_TO_GSTD_PATCHES} ]                                                            && \
+            PATH_TO_GSTD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
+            `meta-qcom-qim-product-sdk/recipes-gst/gstreamer/gstd/"
+
+    [ ! -d ${PATH_TO_GSTD_PATCHES} ] && {
+        print-red "gstd's patches NOT found !!!"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+        return -1
+    }
+
     local TARGET=$(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-armv8-2a-qcom-linux |          \
             grep "SDKTARGETSYSROOT=" | rev | cut -d '/' -f 1 | rev)
     pushd ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots/${TARGET}/ 1>/dev/null || {
@@ -358,6 +388,7 @@ function qimsdk-docker-build-image() {
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.20.7/                               && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.20.7/                              && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.25/                               && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                 && \
 
     rsync -a ${QIMSDK_PATH_TO_eSDK_DIR}/layers/poky/meta/recipes-multimedia/gstreamer/`
             `gstreamer1.0-plugins-bad/*.patch                                                      \
@@ -374,7 +405,14 @@ function qimsdk-docker-build-image() {
             ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.20.7/                               && \
 
     rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
-            ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.25/                                || {
+            ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.25/                                && \
+
+    rsync -a ${QIMSDK_PATH_TO_eSDK_DIR}/layers/meta-openembedded/meta-multimedia/`
+            `recipes-multimedia/gstreamer-1.0/gstd/*.patch                                         \
+            ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                  && \
+
+    rsync -a ${PATH_TO_GSTD_PATCHES}/*.patch                                                       \
+            ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                  || {
         print-red "Cannot get patches from eSDK !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -6

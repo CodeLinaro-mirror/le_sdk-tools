@@ -236,6 +236,14 @@ qimsdk-meson-build-wayland-protocols() {
     qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
+# Meson build gstd
+qimsdk-meson-build-gstd() {
+    local CONFIG_FLAGS="--prefix /usr --libdir lib/aarch64-linux-gnu -D with-gstd-logstatedir=/var/log/gstd/"
+    local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
+
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gstd-1.x ${DESTINATION_DIR} ${CONFIG_FLAGS}
+}
+
 # Meson build gst-plugins-good-1.20.7
 qimsdk-meson-build-gst-plugins-good() {
     local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
@@ -581,6 +589,13 @@ function qimsdk-meson-clean-gst-plugins-bad() {
     print-green "${FUNCNAME} completed succesfully!"
 }
 
+# Clean meson gstd build directory
+function qimsdk-meson-clean-gstd() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gstd-1.x
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
 # Clean CMake gst-ml-metadata build directory
 function qimsdk-cmake-clean-gst-ml-metadata() {
     rm -rf ${QIMSDK_BUILD_DIR}/gst-ml-metadata
@@ -765,7 +780,8 @@ function qimsdk-cmake-clean-gst-plugin-voverlay() {
 
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
-    qimsdk-meson-build-wayland-protocols                                                        && \
+    qimsdk-meson-build-gstd                                                                     && \
+            qimsdk-meson-build-wayland-protocols                                                && \
             qimsdk-meson-build-gst-plugins-good                                                 && \
             qimsdk-meson-build-gst-plugins-bad                                                  && \
             qimsdk-cmake-build-gst-ml-metadata                                                  && \

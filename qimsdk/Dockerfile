@@ -16,7 +16,7 @@ RUN apt-get update                                                              
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
         git tar unzip ssh rsync bash-completion jq cmake                                           \
         libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev       \
-        gettext                                                                                    \
+        gettext libdaemon-dev libjansson-dev libreadline-dev                                       \
         libcairo2-dev                                                                              \
         libgstrtspserver-1.0-dev                                                                   \
         libgirepository1.0-dev                                                                     \
@@ -72,6 +72,10 @@ RUN [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ] || (                        
           /usr/include/                                                                         && \
     rm -rf ${QIMSDK_DOWNLOAD_DIR}/qairt                                                            \
     )
+
+# gstd: fetch and install
+RUN cd ${QIMSDK_DOWNLOAD_DIR} && git clone https://github.com/RidgeRun/gstd-1.x.git             && \
+    cd gstd-1.x && git checkout v0.11.3
 
 # Add bash aliases file
 COPY .bash_aliases /root/.bash_aliases
@@ -146,7 +150,7 @@ ENV QIMSDK_RECIPES_JSON=${QIMSDK_RECIPES_PATCHES_DIR}/recipes_patches.json
 WORKDIR ${QIMSDK_BASE_DIR}
 
 # Call wrapper function to apply all patches
-RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-aplly-patches
+RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-apply-patches
 
 # Call wrapper build function to compile and install gst plugins
 RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-incremental-build
@@ -172,7 +176,7 @@ RUN apt-get update                                                              
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
         gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools libhiredis0.14       \
         libudev1 libgstrtspserver-1.0-0 bash-completion libsoup2.4 gstreamer1.0-nice               \
-        libjsoncpp25 libopencv-imgproc4.5d                                                      && \
+        libjsoncpp25 libopencv-imgproc4.5d libdaemon0                                           && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
