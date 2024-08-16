@@ -92,7 +92,9 @@
         "/usr/lib/rfsa/adsp/libfastcvdsp_skel.so",
         "/usr/lib/rfsa/adsp/libfastcvadsp.so",
         "/usr/lib/libfastcvdsp_stub.so",
-        "/usr/lib/libdmabufheap.so.0.0.0"
+        "/usr/lib/libdmabufheap.so.0.0.0",
+        "/usr/lib/dsp/cdsp/libc++.so.1",
+        "/usr/lib/dsp/cdsp/libc++abi.so.1"
     ],
 
     "Platform_Specific_Mappings" : [
