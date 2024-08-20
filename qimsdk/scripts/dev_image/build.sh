@@ -62,6 +62,7 @@ function qimsdk-cmake-configure() {
             -DGST_PLUGINS_QTI_OSS_INSTALL_INCDIR=/usr/include
             -DGST_PLUGINS_QTI_OSS_INSTALL_BINDIR=/usr/bin
             -DGST_PLUGINS_QTI_OSS_INSTALL_LIBDIR=/usr/lib/aarch64-linux-gnu
+            -DCMAKE_BUILD_TYPE=Debug
             ${CMAKE_CUSTOM_CONFIG_FLAGS}
         "
 
@@ -141,6 +142,9 @@ function qimsdk-meson-install() {
 
         set -o pipefail
 
+        meson install --destdir ${QIMSDK_INSTALL_DEBUG_DIR}                                       |&
+                tee "${QIMSDK_LOGS_DIR}/meson_install_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S")`
+                `_dbg.log"                                                                      && \
         meson install --destdir ${DESTINATION} --strip                                            |&
                 tee "${QIMSDK_LOGS_DIR}/meson_install_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
     ) || {
@@ -160,6 +164,7 @@ function qimsdk-cmake-install() {
 
     local DATE=$(date "+%Y_%m_%d-%H_%M_%S")
     local LOG_FILE_NAME=${QIMSDK_LOGS_DIR}/do_install_${TARGET}_${DATE}.log
+    local LOG_FILE_NAME_DBG=${QIMSDK_LOGS_DIR}/do_install_${TARGET}_dbg_${DATE}.log
 
     [ ! -d ${QIMSDK_BUILD_DIR}/${TARGET} ]                                                      && {
         print-yellow "No such build dir: ${QIMSDK_BUILD_DIR}/${TARGET}"
@@ -173,6 +178,9 @@ function qimsdk-cmake-install() {
 
         set -o pipefail
 
+
+        cmake --install . --prefix ${QIMSDK_INSTALL_DEBUG_DIR}                                    |&
+                tee ${LOG_FILE_NAME_DBG}                                                        && \
         cmake --install . --prefix /usr --strip                                                   |&
                 tee ${LOG_FILE_NAME}                                                              |\
                 grep -E 'Up-to-date:|Installing:|configuration:' | tail -n +2                     |\

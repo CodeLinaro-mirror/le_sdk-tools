@@ -36,6 +36,9 @@ RUN apt-get update                                                              
 # Add qimsdk install directory
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 
+# Add qimsdk debug install directory
+ENV QIMSDK_INSTALL_DEBUG_DIR=${QIMSDK_BASE_DIR}/deploy_dbg
+
 # Add qimsdk build directory and logs directory
 ENV QIMSDK_BUILD_DIR=${QIMSDK_BASE_DIR}/build
 ENV QIMSDK_LOGS_DIR=${QIMSDK_BASE_DIR}/logs

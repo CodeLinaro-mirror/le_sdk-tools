@@ -278,12 +278,15 @@ source scripts/docker_env_setup.sh
  - qimsdk-dev-docker-run-container     \<path-to-config-json> - Run development container
  - qimsdk-dev-send-artifacts-to-device \<path-to-config-json> - Extract artifacts from Development container and send them to the device
  - qimsdk-dev-save-artifacts           \<path-to-config-json> - Save artifacts to specified Docker_image_path in configuration json file
+ - qimsdk-dev-save-artifacts-dbg       \<path-to-config-json> - Save debug artifacts to specified Docker_image_path in configuration json file
  - qimsdk-dev-load-artifacts           \<path-to-config-json> - Load artifacts from specified Docker_image_path in configuration json file and install them to the device. They are installed in a shared directory between device and device container
+ - qimsdk-dev-load-artifacts-dbg       \<path-to-config-json> - Load debug artifacts from specified Docker_image_path in configuration json file and install them to the device. They are installed in a shared directory between device and device container
 
 These functions are available immediately inside development container:
 
  - qimsdk-incremental-build - Incremental build of gst plugins
  - qimsdk-dev-save-artifacts - Save artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment.
+ - qimsdk-dev-save-artifacts-dbg - Save artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment.
 
 <div id="Development_Workflow">
 

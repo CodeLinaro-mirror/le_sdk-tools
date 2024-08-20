@@ -1357,11 +1357,23 @@ function qimsdk-dev-send-artifacts-to-device() {
 
 # Save artifacts to Docker_image_path provided in config json file.
 #   $1 - (mandatory) path to target config json
-function qimsdk-dev-save-artifacts() {
+#   $2 - (mandatory) artifacts variant - release or debug
+function qimsdk-dev-save-artifacts-variant() {
     local PATH_TO_CONFIG_JSON=${1}
+    local VARIANT=${2}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local DOCKER_IMAGE_PATH
+
+    [ "${VARIANT}" == "release" ] || [ "${VARIANT}" == "debug" ] || {
+        print-red "Failed to load ${VARIANT} packages !!!"
+        print-red "Wrong variant provided: supported variants: release, debug !!!"
+        return -1
+    }
+
+    local PACKAGES_DIRECTORY=""
+    [ "${VARIANT}" == "release" ] && PACKAGES_DIRECTORY="deploy"
+    [ "${VARIANT}" == "debug" ]   && PACKAGES_DIRECTORY="deploy_dbg"
 
     qimsdk-get-docker-image-path ${PATH_TO_CONFIG_JSON} DOCKER_IMAGE_PATH
 
@@ -1381,29 +1393,55 @@ function qimsdk-dev-save-artifacts() {
         return ${rc}
     }
 
-    docker cp ${QIMSDK_CONTAINER_NAME}_dev:/mnt/work/deploy /tmp/.
+    docker cp ${QIMSDK_CONTAINER_NAME}_dev:/mnt/work/${PACKAGES_DIRECTORY} /tmp/. || {
+        print-red "Failed to copy artifacts from dev container !!!"
+        return -2
+    }
 
-    pushd /tmp/deploy/ > /dev/null
-        tar cf qimsdk_dev_artifacts.tar ./*                                                     && \
-                rsync -aP qimsdk_dev_artifacts.tar ${DOCKER_IMAGE_PATH} || {
-                    echo "rsync -a qimsdk_dev_artifacts.tar ${DOCKER_IMAGE_PATH} failed !!!"
+    pushd /tmp/${PACKAGES_DIRECTORY}/ > /dev/null
+        tar cf qimsdk_dev_artifacts_${VARIANT}.tar ./*                                          && \
+                rsync -aP qimsdk_dev_artifacts_${VARIANT}.tar ${DOCKER_IMAGE_PATH} || {
+                    echo "rsync -a qimsdk_dev_artifacts_${VARIANT}.tar`
+                        `${DOCKER_IMAGE_PATH} failed !!!"
                     popd > /dev/null
-                    return -1
+                    return -3
                 }
-        rm -f qimsdk_dev_artifacts.tar
+        rm -f qimsdk_dev_artifacts_${VARIANT}.tar
     popd > /dev/null
 
-    echo "Dev artifacts saved to ${DOCKER_IMAGE_PATH}"
+    echo "Dev ${VARIANT} artifacts saved to ${DOCKER_IMAGE_PATH}"
+}
+
+# Save release artifacts to Docker_image_path provided in config json file.
+#   $1 - (mandatory) path to target config json
+function qimsdk-dev-save-artifacts() {
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-dev-save-artifacts-variant "${PATH_TO_CONFIG_JSON}" release
+}
+
+# Save debug artifacts to Docker_image_path provided in config json file.
+#   $1 - (mandatory) path to target config json
+function qimsdk-dev-save-artifacts-dbg() {
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-dev-save-artifacts-variant "${PATH_TO_CONFIG_JSON}" debug
 }
 
 # Load artifacts from Docker_image_path provided in config json file.
 #   $1 - (mandatory) path to target config json
-function qimsdk-dev-load-artifacts() {
+#   $2 - (mandatory) artifacts variant - release or debug
+function qimsdk-dev-load-artifacts-variant() {
     local PATH_TO_CONFIG_JSON=${1}
+    local VARIANT=${2}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_DEVICE_ID
     local DOCKER_IMAGE_PATH
+
+    [ "${VARIANT}" == "release" ] || [ "${VARIANT}" == "debug" ] || {
+        print-red "Failed to load ${VARIANT} packages !!!"
+        print-red "Wrong variant provided: supported variants: release, debug !!!"
+        return -1
+    }
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -1426,32 +1464,46 @@ function qimsdk-dev-load-artifacts() {
             print-red "Android serial is not set !!!"
             rm ${FILE_NAME}
 
-            return -1
+            return -2
         }
 
-        rsync -aP ${DOCKER_IMAGE_PATH}/qimsdk_dev_artifacts.tar .                               && \
+        rsync -aP ${DOCKER_IMAGE_PATH}/qimsdk_dev_artifacts_${VARIANT}.tar .                    && \
                 qimsdk-device-command "mkdir -p /opt/qti/development" ${QIMSDK_DEVICE_ID}       && \
-                adb push qimsdk_dev_artifacts.tar /opt/qti/development/                         && \
+                adb push qimsdk_dev_artifacts_${VARIANT}.tar /opt/qti/development/              && \
                 qimsdk-device-command "cd /opt/qti/development                                  && \
-                        tar -xf /opt/qti/development/qimsdk_dev_artifacts.tar                   && \
+                        tar -xf /opt/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar        && \
                         docker cp usr ${QIMSDK_CONTAINER_NAME}:/" ${QIMSDK_DEVICE_ID}           && \
                 qimsdk-device-command "rm -rf /opt/qti/development/usr"                            \
                         ${QIMSDK_DEVICE_ID}                                                     || {
             print-red "Artifacts load failed !!!"
 
             qimsdk-device-command "rm -rf /opt/qti/development/usr"
-            qimsdk-device-command "rm -f /opt/qti/development/qimsdk_dev_artifacts.tar"
+            qimsdk-device-command "rm -f /opt/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
 
-            rm -f qimsdk_dev_artifacts.tar
+            rm -f qimsdk_dev_artifacts_${VARIANT}.tar
 
-            return -2
+            return -3
         }
 
-        qimsdk-device-command "rm -f /opt/qti/development/qimsdk_dev_artifacts.tar"
-        rm -f qimsdk_dev_artifacts.tar
+        qimsdk-device-command "rm -f /opt/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
+        rm -f qimsdk_dev_artifacts_${VARIANT}.tar
     )
 
-    echo "Dev artifacts loaded from ${DOCKER_IMAGE_PATH}"
+    echo "Dev ${VARIANT} artifacts loaded from ${DOCKER_IMAGE_PATH}"
+}
+
+# Load release artifacts from Docker_image_path provided in config json file.
+#   $1 - (mandatory) path to target config json
+function qimsdk-dev-load-artifacts() {
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-dev-load-artifacts-variant ${PATH_TO_CONFIG_JSON} release
+}
+
+# Load debug artifacts from Docker_image_path provided in config json file.
+#   $1 - (mandatory) path to target config json
+function qimsdk-dev-load-artifacts-dbg() {
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-dev-load-artifacts-variant ${PATH_TO_CONFIG_JSON} debug
 }
 
 QIMSDK_DOCKER_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/.. && pwd )"
@@ -1497,5 +1549,9 @@ print-blue "qimsdk-dev-send-artifacts-to-device                                 
 echo "    Copy artifacts directly to /opt/qti/development/ path in device"
 print-blue "qimsdk-dev-save-artifacts                                               <path-to-config-json>"
 echo "    Save artifacts to Docker_image_path provided in config json file."
+print-blue "qimsdk-dev-save-artifacts-dbg                                           <path-to-config-json>"
+echo "    Save debug artifacts to Docker_image_path provided in config json file."
 print-blue "qimsdk-dev-load-artifacts                                               <path-to-config-json>"
 echo "    Load artifacts from Docker_image_path provided in config json file."
+print-blue "qimsdk-dev-load-artifacts-dbg                                           <path-to-config-json>"
+echo "    Load debug artifacts from Docker_image_path provided in config json file."
