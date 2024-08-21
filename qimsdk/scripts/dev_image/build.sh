@@ -829,5 +829,60 @@ function qimsdk-incremental-build() {
             print-green "QIMSDK GStreamer targets built successfully !!!"
 }
 
+# Helper prints
+#    ${1} - ACTION - can be build or clean
+#    ${2} - COLOR - can be red, green, yellow or blue
+function helper-prints() {
+    local ACTION=${1}
+    local COLOR=${2}
+
+    local MESON_PLUGINS=(
+        "wayland-protocols"
+        "gst-plugins-good"
+        "gst-plugins-bad"
+    )
+
+    for MESON_PLUGIN in ${MESON_PLUGINS[@]}; do
+        print-${COLOR} -e "qimsdk-meson-${ACTION}-${MESON_PLUGIN}"
+        echo -e "    Meson ${ACTION} ${MESON_PLUGIN}"
+    done
+
+    local CMAKE_PLUGINS=(
+        "gst-ml-metadata"
+        "gst-plugin-base"
+        "gst-plugin-batch"
+        "gst-plugin-metamux"
+        "gst-plugin-mldemux"
+        "gst-plugin-mlvclassification"
+        "gst-plugin-mlvconverter"
+        "gst-plugin-mlvdetection"
+        "gst-plugin-mlvsuperresolution"
+        "gst-plugin-mlvpose"
+        "gst-plugin-mlvsegmentation"
+        "gst-plugin-mlsnpe"
+        "gst-plugin-mltflite"
+        "gst-plugin-mlqnn"
+        "gst-plugin-socket"
+        "gst-plugin-tools"
+        "gst-plugin-vcomposer"
+        "gst-plugin-vsplit"
+        "gst-plugin-vtransform"
+        "gst-plugin-redissink"
+        "gst-plugin-mlmetaparser"
+        "gst-plugin-rtspbin"
+        "gst-plugin-overlay"
+        "gst-plugin-voverlay"
+        "gst-sample-apps"
+    )
+
+    for CMAKE_PLUGIN in ${CMAKE_PLUGINS[@]}; do
+        print-${COLOR} -e "qimsdk-cmake-${ACTION}-${CMAKE_PLUGIN}"
+        echo -e "    CMake ${ACTION} ${CMAKE_PLUGIN}"
+    done
+}
+
+helper-prints "build" "green"
+helper-prints "clean" "red"
+
 print-green "qimsdk-incremental-build"
 echo "    Incremental build of gst plugins"
