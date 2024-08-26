@@ -177,7 +177,17 @@ class BBPatchParser(Parsable):
 
         bb_parsed.setVar("OVERRIDES", "SRC_URI:append:qcom")
 
-        patch = str(bb_parsed.getVar("SRC_URI")).replace('file://', '')
+        patch = bb_parsed.getVar("SRC_URI")
+
+        if patch is None:
+            bb_parsed.setVar("OVERRIDES", "SRC_URI:append:qcom-custom-bsp")
+            patch = bb_parsed.getVar("SRC_URI")
+
+        if patch is None:
+            raise Exception(f"SRC_URI couldn't be get from:                                        \
+                {recipe.bb_append.path}/{recipe.bb_append.name}")
+
+        patch = str(patch).replace('file://', '')
 
         recipe.patches += patch.strip().split()
 
