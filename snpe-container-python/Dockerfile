@@ -11,13 +11,13 @@ RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc
 
 # Installing required apt packages
 RUN apt-get update                                                                              && \
-    apt-get install -y python3 python3-pip                                                      && \
+    apt-get install -y python3 python3-pip wget unzip                                           && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
     rm -rf /var/lib/apt/lists* /tmp/* /var/tmp/*
 
 # Installing required python packages
-RUN pip3 install numpy==1.24.4
+RUN pip3 install numpy==1.24.4 opencv-python-headless==4.10.0.84 pillow==10.4.0
 
 # Set base directory
 ARG QML_ARG_BASE_DIR
@@ -45,3 +45,7 @@ RUN mkdir -p /usr/lib/rfsa/adsp/
 
 # Copy Acceleration engine libraries and binaries to /usr/lib/ and /usr/bin/
 RUN bash ${QML_BASE_DIR}/scripts/all_scripts.sh qml-update-libraries
+
+# Download AI models
+RUN wget https://github.com/quic/sample-apps-for-qualcomm-linux/releases/download/v0.1.0/v0.1.0.zip && \
+	unzip v0.1.0 && cp v0.1.0/deeplabv3_resnet50.dlc /opt
