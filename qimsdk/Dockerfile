@@ -26,7 +26,7 @@ RUN apt-get update                                                              
         libhiredis-dev                                                                             \
         libjsoncpp-dev                                                                             \
         libeigen3-dev                                                                              \
-        python3 python3-pip python3-setuptools                                                     \
+        python3 python3-pip python3-setuptools python3-gst-1.0                                     \
         python3-wheel ninja-build                                                               && \
         pip3 install meson                                                                      && \
         apt-get autoremove -y                                                                   && \
@@ -206,7 +206,7 @@ RUN apt-get update                                                              
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
         gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools libhiredis0.14       \
         libudev1 libgstrtspserver-1.0-0 bash-completion libsoup2.4 gstreamer1.0-nice               \
-        libjsoncpp25 libopencv-imgproc4.5d libdaemon0                                           && \
+        libjsoncpp25 libopencv-imgproc4.5d libdaemon0 python3 python3-gst-1.0                   && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
@@ -214,3 +214,6 @@ RUN apt-get update                                                              
 # Copy installed binaries to device image
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/usr /usr
+
+# Copy python examples
+COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-python-examples /usr/bin
