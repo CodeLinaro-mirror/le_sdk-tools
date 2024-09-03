@@ -540,16 +540,6 @@ function qimsdk-cmake-build-gst-plugin-rtspbin() {
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-rtspbin ${CONFIG_FLAGS}
 }
 
-# CMake Build gst-sample-apps
-function qimsdk-cmake-build-gst-sample-apps() {
-    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_sample_apps')
-
-    # QMMF is not yet decoupled, that is why camera is disabled in the sample apps
-    local CONFIG_FLAGS="${RECIPE_FLAGS} -DENABLE_CAMERA=FALSE"
-
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps ${CONFIG_FLAGS}
-}
-
 # CMake Build gst-plugin-overlay
 function qimsdk-cmake-build-gst-plugin-overlay() {
     local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_overlay')
@@ -757,13 +747,6 @@ function qimsdk-cmake-clean-gst-plugin-rtspbin() {
     print-green "${FUNCNAME} completed succesfully!"
 }
 
-# Clean CMake gst-sample-apps build directory
-function qimsdk-cmake-clean-gst-sample-apps() {
-    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps
-
-    print-green "${FUNCNAME} completed succesfully!"
-}
-
 # Clean CMake gst-plugin-overlay build directory
 function qimsdk-cmake-clean-gst-plugin-overlay() {
     rm -rf ${QIMSDK_BUILD_DIR}/gst-plugin-overlay
@@ -780,7 +763,7 @@ function qimsdk-cmake-clean-gst-plugin-voverlay() {
 
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
-    qimsdk-meson-build-gstd                                                                     && \
+            qimsdk-meson-build-gstd                                                             && \
             qimsdk-meson-build-wayland-protocols                                                && \
             qimsdk-meson-build-gst-plugins-good                                                 && \
             qimsdk-meson-build-gst-plugins-bad                                                  && \
@@ -809,7 +792,6 @@ function qimsdk-incremental-build() {
             qimsdk-cmake-build-gst-plugin-rtspbin                                               && \
             qimsdk-cmake-build-gst-plugin-overlay                                               && \
             qimsdk-cmake-build-gst-plugin-voverlay                                              && \
-            qimsdk-cmake-build-gst-sample-apps                                                  && \
             print-green "QIMSDK GStreamer targets built successfully !!!"
 }
 
