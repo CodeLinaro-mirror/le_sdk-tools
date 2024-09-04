@@ -6,16 +6,14 @@
 echo "Docker build environment setup"
 echo "=============================="
 
-
 # Parse json configuraiton
 function qml-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=$1
     local -n OUT_QML_BASE_IMAGE=$2
-    local -n OUT_QML_ACCELERATION_ENGINE_NAMES_STRING=$3
+    local -n OUT_QML_SDK_VERSION=$3
     local -n OUT_QML_TARGET_PLATFORM=$4
-    local -n OUT_QML_ACCELERATION_ENGINE_TMP_DIR=$5
-    local -n OUT_QML_CONTAINER_NAME=$6
-    local -n OUT_QML_IMAGE_NAME=$7
+    local -n OUT_QML_CONTAINER_NAME=$5
+    local -n OUT_QML_IMAGE_NAME=$6
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -30,50 +28,18 @@ function qml-docker-parse-json() {
         return -2
     }
 
-    local QML_ACCELERATION_ENGINE_NAMES=( $(echo ${JSON_CONTENT} | jq '.Acceleration_engines[] | .Acceleration_engine' | tr -d '"') )
-    local QML_ACCELERATION_ENGINE_PATHS=( $(echo ${JSON_CONTENT} | jq '.Acceleration_engines[] | .Acceleration_engine_path' | tr -d '"') )
-
-    local QML_ACCELERATION_ENGINE_COUNT=${#QML_ACCELERATION_ENGINE_NAMES[@]}
-
-    OUT_QML_ACCELERATION_ENGINE_TMP_DIR="${QML_DOCKER_DIR}/tmp/acceleration_engines"
-
-    mkdir -p ${OUT_QML_ACCELERATION_ENGINE_TMP_DIR}
-
-    for ((i=0 ; i<${QML_ACCELERATION_ENGINE_COUNT} ; i++)); do
-
-        local ACCELERATION_ENGINE=${QML_ACCELERATION_ENGINE_NAMES[${i}]}
-        local ACCELERATION_ENGINE_DIR=${QML_ACCELERATION_ENGINE_PATHS[${i}]}
-
-        OUT_QML_ACCELERATION_ENGINE_NAMES_STRING+="${ACCELERATION_ENGINE},"
-
-        [ ! -d "${ACCELERATION_ENGINE_DIR}" ] && {
-            print-red "No such directory: ${ACCELERATION_ENGINE_DIR}"
-
-            [ ! -z "${OUT_QML_ACCELERATION_ENGINE_TMP_DIR}" ] && {
-                rm -r ${OUT_QML_ACCELERATION_ENGINE_TMP_DIR}
-            }
-
-            return -3
-        }
-
-        rsync -a ${ACCELERATION_ENGINE_DIR}/* ${OUT_QML_ACCELERATION_ENGINE_TMP_DIR}/${ACCELERATION_ENGINE}/ || {
-            print-red "Cannot add ${ACCELERATION_ENGINE} dir to tmp folder !!!"
-
-            [ ! -z "${OUT_QML_ACCELERATION_ENGINE_TMP_DIR}" ] && {
-                rm -r ${OUT_QML_ACCELERATION_ENGINE_TMP_DIR}
-            }
-
-            return -4
-        }
-    done
+    OUT_QML_SDK_VERSION=$(echo ${JSON_CONTENT} | jq '.SNPE_version' | tr -d '"')
+    [ -z "${QML_SDK_VERSION}" ] && {
+        print-red "SNPE_version tag in json file must be set !!!"
+        return -3
+    }
 
     OUT_QML_TARGET_PLATFORM=$(echo ${JSON_CONTENT} | jq '.Target_platform' | tr -d '"')
-
-    [ -z "${OUT_QML_TARGET_PLATFORM}" ] && {
+    [ -z "${QML_TARGET_PLATFORM}" ] && {
         print-red "Target_platform attribute is not set in json file !!!"
-        print-yellow "Target_platform attribute can be: kalama or qcs6490 or qrb5165."
+        print-yellow "Target_platform attribute can be any of these: kalama, qcm6490, qcs6490, qrb5165 or qcs9100."
 
-        return -5
+        return -4
     }
 
     local ADDITIONAL_TAG_CONTAINER=$(echo ${JSON_CONTENT} |  jq '.Additional_tag_container' | tr -d '"')
@@ -100,17 +66,15 @@ function qml-docker-parse-json() {
 function qml-docker-build-image() {
     local PATH_TO_CONFIG_JSON=$1
     local QML_BASE_IMAGE
-    local QML_ACCELERATION_ENGINE_NAMES_STRING
+    local QML_SDK_VERSION
     local QML_TARGET_PLATFORM
-    local QML_ACCELERATION_ENGINE_TMP_DIR
     local QML_CONTAINER_NAME
     local QML_IMAGE_NAME
 
     qml-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                   \
         QML_BASE_IMAGE                                                                             \
-        QML_ACCELERATION_ENGINE_NAMES_STRING                                                       \
+        QML_SDK_VERSION                                                                            \
         QML_TARGET_PLATFORM                                                                        \
-        QML_ACCELERATION_ENGINE_TMP_DIR                                                            \
         QML_CONTAINER_NAME                                                                         \
         QML_IMAGE_NAME
 
@@ -118,23 +82,15 @@ function qml-docker-build-image() {
     [ $rc -ne 0 ] && {
         print-red "FAILED: qml-docker-parse-json !!!"
 
-        [ ! -z "${QML_ACCELERATION_ENGINE_TMP_DIR}" ] && {
-            rm -r ${QML_ACCELERATION_ENGINE_TMP_DIR}
-        }
-
         return $rc
     }
-
-    local QML_TMP_FOLDER=${QML_DOCKER_DIR}/tmp
-
-    mkdir -p ${QML_TMP_FOLDER}
 
     local QML_ARG_BASE_DIR=/mnt/qml
 
     DOCKER_BUILDKIT=1 docker build                                                                 \
         --build-arg QML_ARG_BASE_IMAGE=${QML_BASE_IMAGE}                                           \
         --build-arg QML_ARG_BASE_DIR=${QML_ARG_BASE_DIR}                                           \
-        --build-arg QML_ARG_ACCELERATION_ENGINE_NAMES=${QML_ACCELERATION_ENGINE_NAMES_STRING}      \
+        --build-arg QML_ARG_SDK_VERSION=${QML_SDK_VERSION}                                         \
         --build-arg QML_ARG_TARGET_PLATFORM=${QML_TARGET_PLATFORM}                                 \
         --progress=plain --target QML ${QML_DOCKER_DIR} -t ${QML_IMAGE_NAME}
 
@@ -142,15 +98,7 @@ function qml-docker-build-image() {
     [ $rc -ne 0 ] && {
         print-red "Build image failed !!!"
 
-        [ ! -z "${QML_TMP_FOLDER}" ] && {
-            rm -r ${QML_TMP_FOLDER}
-        }
-
         return $rc
-    }
-
-    [ ! -z "${QML_TMP_FOLDER}" ] && {
-        rm -r ${QML_TMP_FOLDER}
     }
 
     print-green "Build image completed successfully !!!"

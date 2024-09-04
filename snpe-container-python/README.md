@@ -171,13 +171,16 @@ service docker start
 
 ## Docker Images
 
-Only one docker image QML is build for device
+Only one docker image QML is build for device.
 
 <div id="QML_Image">
 
 ### QML Image
-1. Start from specified base image
-2. Add required libs and tools for simplified usage of Qualcomm hardware accelerators
+1. The multi-stage build approach in Docker helps create smaller, more efficient docker image by separating the build environment from the final runtime environment in separate images. After build is done in the builder image, only the necessary files are copied to the final image and the builder image is discarded.
+2. To make use of multi-stage build approach, build a QML_builder image first, download SNPE SDK and models.
+3. Now for the final image QML, start from specified base image.
+4. Add required libs and tools for simplified usage of Qualcomm hardware accelerators.
+5. Copy the SDK, model files and python wrappers from the builder image to final image.
 
 <div id="Host_Side_Helper_Scripts_And_Configuration">
 
@@ -192,11 +195,7 @@ Directory /targets contains config.json and dev_config.json.
 
 The json file must contain certain data :
 
- 1. ***OPTIONAL*** - **Acceleration_engines** - An array of Acceleration engines to be used in QML environment. If not needed, leave as is in the example config json. ***Every Acceleration engine from the array must contain:***
-
-    1.1. ***OPTIONAL*** - **Acceleration_engine** - Acceleration engine to be used. If not needed, leave this field and the "Acceleration_engine_path" field with "-" value
-
-    1.2. ***OPTIONAL*** - **Acceleration_engine_path** - path to unzipped acceleration engine archive directory with unzipped files for the AI engine specified in the "Acceleration_engine" field ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
+ 1. ***MANDATORY*** - **SNPE_version** - SDK Version for SNPE to be downloaded and installed. Example Value `"v2.25.0.240728"`
  2. ***MANDATORY*** - **Base_Image** - Base docker image to be used on the device
  ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
  3. ***MANDATORY*** - **Target_platform** - Target device platform, which can be kalama or qcs6490 or qrb5165

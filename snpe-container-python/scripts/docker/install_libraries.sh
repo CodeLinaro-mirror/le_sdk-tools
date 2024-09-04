@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+function qml-install-libraries-snpe() {
+    local SDK_VER=${QML_SDK_VERSION}
+    local VER_PREFIX="v"
+    declare -A MAP_TARGET_TO_LIB
+
+    MAP_TARGET_TO_LIB["kalama"]="aarch64-oe-linux-gcc11.2"
+    MAP_TARGET_TO_LIB["qcm6490"]="aarch64-oe-linux-gcc11.2"
+    MAP_TARGET_TO_LIB["qcs6490"]="aarch64-ubuntu-gcc9.4"
+    MAP_TARGET_TO_LIB["qrb5165"]="aarch64-oe-linux-gcc9.3"
+    MAP_TARGET_TO_LIB["qcs9100"]="aarch64-oe-linux-gcc11.2"
+
+    TARGET_ACCELERATION_ENGINE_LIBRARY=${MAP_TARGET_TO_LIB[${QML_TARGET_PLATFORM}]}
+
+    [ -z "${TARGET_ACCELERATION_ENGINE_LIBRARY}" ] && {
+        echo "FAILED: Mapping target engine library unsuccessful for target ${QML_TARGET_PLATFORM} !!!"
+        return -1
+    }
+
+    local rc=$?
+    rc=$(curl -iL --write-out "%{http_code}\n" --output ${SDK_VER}.zip "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/${SDK_VER}.zip")
+    [ $rc -ne 200 ] && {
+        echo "FAILED: to download SNPE SDK ${SDK_VER}"
+        return -2
+    }
+
+    rc=$(unzip -q ${SDK_VER}.zip -d ${QML_BASE_DIR}/downloads/)
+    [ $rc -ne 200 ] && {
+        echo "FAILED: to unzip v0.1.0.zip"
+        return $rc
+    }
+
+    local ACCELERATION_ENGINE_PATH="${QML_BASE_DIR}/downloads/qairt/${SDK_VER#${VER_PREFIX}}"
+
+    cp ${ACCELERATION_ENGINE_PATH}/lib/${TARGET_ACCELERATION_ENGINE_LIBRARY}/* /deploy/snpe/usr/lib/
+
+    cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v66/unsigned/lib* /deploy/snpe/usr/lib/rfsa/adsp/
+    cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v68/unsigned/lib* /deploy/snpe/usr/lib/rfsa/adsp/
+    cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v69/unsigned/lib* /deploy/snpe/usr/lib/rfsa/adsp/
+    cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v73/unsigned/lib* /deploy/snpe/usr/lib/rfsa/adsp/
+
+    cp ${ACCELERATION_ENGINE_PATH}/bin/${TARGET_ACCELERATION_ENGINE_LIBRARY}/* /deploy/snpe/usr/bin/
+
+    return 0
+}
+
+function qml-download-models-snpe() {
+    local rc=$?
+    rc=$(curl -iL --write-out "%{http_code}\n" --output v0.1.0.zip "https://github.com/quic/sample-apps-for-qualcomm-linux/releases/download/v0.1.0/v0.1.0.zip")
+    [ $rc -ne 200 ] && {
+        echo "FAILED: to download models"
+        return $rc
+    }
+
+    rc=$(unzip -q v0.1.0.zip -d ${QML_BASE_DIR}/downloads/)
+    [ $rc -ne 200 ] && {
+        echo "FAILED: to unzip v0.1.0.zip"
+        return $rc
+    }
+    cp ${QML_BASE_DIR}/downloads/v0.1.0/deeplabv3_resnet50.dlc /deploy/snpe/opt
+
+    return 0
+}
