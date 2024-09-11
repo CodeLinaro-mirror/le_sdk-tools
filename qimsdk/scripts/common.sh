@@ -288,13 +288,13 @@ function qimsdk-get-variables-to-export() {
 
     local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
 
-    EXPORTS=$(
+    local EXPORTS_LOCAL=$(
         echo ${JSON_CONTENT} | jq -r '.Exports[]'
     )
 
     declare -a EXPORT_TEMP=""
 
-    for EXPORT in ${EXPORTS[@]}; do
+    for EXPORT in ${EXPORTS_LOCAL[@]}; do
         EXPORT_TEMP+="-e ${EXPORT} "
     done
 
