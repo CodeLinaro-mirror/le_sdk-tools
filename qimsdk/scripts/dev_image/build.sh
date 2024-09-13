@@ -558,6 +558,15 @@ function qimsdk-cmake-build-gst-plugin-voverlay() {
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-voverlay ${CONFIG_FLAGS}
 }
 
+# CMake Build gst-plugin-objtracker
+function qimsdk-cmake-build-gst-plugin-objtracker() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_objtracker')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-objtracker"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-objtracker ${CONFIG_FLAGS}
+}
+
 # Clean meson wayland-protocols build directory
 function qimsdk-meson-clean-wayland-protocols() {
     rm -rf ${QIMSDK_BUILD_DIR}/wayland-protocols-1.25
@@ -761,6 +770,13 @@ function qimsdk-cmake-clean-gst-plugin-voverlay() {
     print-green "${FUNCNAME} completed succesfully!"
 }
 
+# Clean CMake gst-plugin-objtracker build directory
+function qimsdk-cmake-clean-gst-plugin-objtracker() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugin-objtracker
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
             qimsdk-meson-build-gstd                                                             && \
@@ -792,6 +808,7 @@ function qimsdk-incremental-build() {
             qimsdk-cmake-build-gst-plugin-rtspbin                                               && \
             qimsdk-cmake-build-gst-plugin-overlay                                               && \
             qimsdk-cmake-build-gst-plugin-voverlay                                              && \
+            qimsdk-cmake-build-gst-plugin-objtracker                                            && \
             print-green "QIMSDK GStreamer targets built successfully !!!"
 }
 

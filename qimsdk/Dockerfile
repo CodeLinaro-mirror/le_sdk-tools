@@ -25,6 +25,7 @@ RUN apt-get update                                                              
         libsoup2.4-dev                                                                             \
         libhiredis-dev                                                                             \
         libjsoncpp-dev                                                                             \
+        libeigen3-dev                                                                              \
         python3 python3-pip python3-setuptools                                                     \
         python3-wheel ninja-build                                                               && \
         pip3 install meson                                                                      && \
