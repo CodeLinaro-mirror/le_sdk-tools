@@ -106,7 +106,7 @@ function qimsdk-copy-tf-lite-headers-to-sysroot() {
     local PENDING_LIST_INIT=""
 
     local ML_TFLITE_ENGINE_CC="${QIMSDK_SRC_DIR}/`
-        `gst-plugins-qti-oss/gst-plugin-mltflite/ml-tflite-engine.cc"
+        `gst-plugins-qti-oss/gst-plugin-mltflite/ml-tflite-engine-c-api.cc"
     local ML_TFLITE_ENGINE_H="${QIMSDK_SRC_DIR}/`
         `gst-plugins-qti-oss/gst-plugin-mltflite/ml-tflite-engine.h"
 

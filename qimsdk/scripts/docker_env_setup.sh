@@ -130,7 +130,7 @@ function qimsdk-dev-docker-build-image() {
 
     [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ]                                                 && \
             PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qcom-qim-product-sdk/recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20/"
+            `meta-qcom-qim-product-sdk/recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20.4/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ] && {
         print-red "gstreamer-plugins-bad's patches NOT found !!!"
@@ -318,7 +318,7 @@ function qimsdk-docker-build-image() {
 
     [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ]                                                 && \
             PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qcom-qim-product-sdk/recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20/"
+            `meta-qcom-qim-product-sdk/recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20.4/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ] && {
         print-red "gstreamer-plugins-bad's patches NOT found !!!"
