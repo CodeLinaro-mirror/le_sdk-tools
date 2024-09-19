@@ -197,12 +197,12 @@ class BBPatchParser(Parsable):
         bb_parsed = bb.parse.handle(
             my_temp_file.name, current_data_smart, include=True)
 
-        bb_parsed.setVar("OVERRIDES", "SRC_URI:append:qcom")
+        bb_parsed.setVar("OVERRIDES", "SRC_URI:append:qcom-custom-bsp")
 
         patch = bb_parsed.getVar("SRC_URI")
 
         if patch is None:
-            bb_parsed.setVar("OVERRIDES", "SRC_URI:append:qcom-custom-bsp")
+            bb_parsed.setVar("OVERRIDES", "SRC_URI:append:qcom")
             patch = bb_parsed.getVar("SRC_URI")
 
         if patch is None:
