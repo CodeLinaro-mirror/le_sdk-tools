@@ -46,6 +46,8 @@ def parse_arguments():
                         help="Enable init caching to accelerate the initialization process of SNPE. Defaults to disable")
     parser.add_argument("-x", "--cpuFixedPointMode", dest="cpuFixedPointMode", default="false", type=str,
                         required=False, help="Enable the fixed point execution on CPU runtime for SNPE. Defaults to disable")
+    parser.add_argument("-l", "--profiling_level", dest="profiling_level", default="moderate", type=str,
+                        required=False, help="Profiling level to be set [off, basic, detailed, moderate]")
 
     args = parser.parse_args()
 
@@ -59,6 +61,17 @@ def parse_arguments():
         args.runtime = "SNPE_RUNTIME_CPU_FLOAT32"
     else:
         raise RuntimeError("The provided runtime option is not valid.")
+
+    if (args.profiling_level == "off"):
+        args.profiling_level = "SNPE_PROFILING_LEVEL_OFF"
+    elif (args.profiling_level == "basic"):
+        args.profiling_level = "SNPE_PROFILING_LEVEL_BASIC"
+    elif (args.profiling_level == "detailed"):
+        args.profiling_level = "SNPE_PROFILING_LEVEL_DETAILED"
+    elif (args.profiling_level == "moderate"):
+        args.profiling_level = "SNPE_PROFILING_LEVEL_MODERATE"
+    else:
+        raise RuntimeError("The provided profiling level option is not valid.")
 
     return args
 

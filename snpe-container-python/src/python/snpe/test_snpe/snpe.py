@@ -158,6 +158,11 @@ class SNPEInterface:
         self.snpe_library.Snpe_SNPEBuilder_SetDebugMode(
             snpeBuilderHandle.resource, False)
 
+        self.snpe_library.Snpe_SNPEBuilder_SetProfilingLevel(
+            snpeBuilderHandle.resource,
+            self.snpe_library.SNPE_PROFILING_LEVEL[self.settings.profiling_level]
+        )
+
         self.snpe_library.Snpe_SNPEBuilder_SetOutputLayers(
             snpeBuilderHandle.resource, None)
         self.snpe_library.Snpe_SNPEBuilder_SetRuntimeProcessorOrder(
@@ -176,6 +181,13 @@ class SNPEInterface:
             self.snpe_library.Snpe_SNPE_Delete,
             snpeBuilderHandle.resource
         )
+
+        self.diagLogHandle = ResourceManager(
+            self.snpe_library.Snpe_SNPE_GetDiagLogInterface_Ref,
+            self.snpe_library.Snpe_IDiagLog_Stop,
+            self.snpeHandle.resource
+        )
+        self.snpe_library.Snpe_IDiagLog_Start(self.diagLogHandle.resource)
 
         snpeBuilderHandle.__del__()
 
@@ -461,6 +473,7 @@ class SNPEInterface:
 
                 i = i + 1
 
+        self.diagLogHandle.__del__()
         return 0
 
     def LoadInputUserBufferTfN(self, fileLines):

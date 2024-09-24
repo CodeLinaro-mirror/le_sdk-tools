@@ -305,6 +305,27 @@ class SNPE:
         4: "SNPE_LOG_LEVEL_VERBOSE",
     })
 
+    # Enumeration that lists the supported profiling levels that can be set
+    SNPE_PROFILING_LEVEL = MappingProxyType({
+        # No profiling. Collects no runtime stats in the DiagLog.
+        "SNPE_PROFILING_LEVEL_OFF": 0,
+        0: "SNPE_PROFILING_LEVEL_OFF",
+
+        # Basic profiling. Collects some runtime stats in the DiagLog.
+        "SNPE_PROFILING_LEVEL_BASIC": 1,
+        1: "SNPE_PROFILING_LEVEL_BASIC",
+
+        # Detailed profiling. Collects more runtime stats in the DiagLog,
+        # including per-layer statistics. Performance may be impacted.
+        "SNPE_PROFILING_LEVEL_DETAILED": 2,
+        2: "SNPE_PROFILING_LEVEL_DETAILED",
+
+        # Moderate profiling. Collects more runtime stats in the DiagLog,
+        # no per-layer statistics.
+        "SNPE_PROFILING_LEVEL_MODERATE": 3,
+        3: "SNPE_PROFILING_LEVEL_MODERATE",
+    })
+
     # Enumeration of various performance profiles that can be requested
     SNPE_PERFORMANCE_PROFILE = MappingProxyType({
             # Run in a standard mode.
@@ -368,6 +389,7 @@ class SNPE:
         self.__Snpe_UserBufferEncoding_Handle_t                                           = c_void_p
         self.__Snpe_TensorShape_Handle_t                                                  = c_void_p
         self.__Snpe_StringList_Handle_t                                                   = c_void_p
+        self.__Snpe_IDiagLog_Handle_t                                                     = c_void_p
 
         self.__Snpe_ErrorCode_t                                                              = c_int
         self.__Snpe_UserBufferEncoding_ElementType_t                                         = c_int
@@ -423,6 +445,7 @@ class SNPE:
         self.__Snpe_SNPEBuilder_SetInitCacheMode                  = self.__library.Snpe_SNPEBuilder_SetInitCacheMode
         self.__Snpe_SNPEBuilder_SetCpuFixedPointMode              = self.__library.Snpe_SNPEBuilder_SetCpuFixedPointMode
         self.__Snpe_SNPEBuilder_SetPerformanceProfile             = self.__library.Snpe_SNPEBuilder_SetPerformanceProfile
+        self.__Snpe_SNPEBuilder_SetProfilingLevel                 = self.__library.Snpe_SNPEBuilder_SetProfilingLevel
         self.__Snpe_SNPEBuilder_SetDebugMode                      = self.__library.Snpe_SNPEBuilder_SetDebugMode
         self.__Snpe_SNPEBuilder_Delete                            = self.__library.Snpe_SNPEBuilder_Delete
 
@@ -482,6 +505,11 @@ class SNPE:
         self.__Snpe_UserBufferEncodingTfN_SetQuantizedStepSize    = self.__library.Snpe_UserBufferEncodingTfN_SetQuantizedStepSize
         self.__Snpe_UserBufferEncodingTfN_Delete                  = self.__library.Snpe_UserBufferEncodingTfN_Delete
 
+        # Snpe_IDiagLog_Handle_t
+        self.__Snpe_SNPE_GetDiagLogInterface_Ref                  = self.__library.Snpe_SNPE_GetDiagLogInterface_Ref
+        self.__Snpe_IDiagLog_Start                                = self.__library.Snpe_IDiagLog_Start
+        self.__Snpe_IDiagLog_Stop                                 = self.__library.Snpe_IDiagLog_Stop
+
     def __ResolveResType(self):
         # Snpe_DlVersion_Handle_t
         self.__Snpe_Util_GetLibraryVersion.restype                        = c_void_p
@@ -523,6 +551,7 @@ class SNPE:
         self.__Snpe_SNPEBuilder_SetInitCacheMode.restype                  = self.__Snpe_ErrorCode_t
         self.__Snpe_SNPEBuilder_SetCpuFixedPointMode.restype              = self.__Snpe_ErrorCode_t
         self.__Snpe_SNPEBuilder_SetPerformanceProfile.restype             = self.__Snpe_ErrorCode_t
+        self.__Snpe_SNPEBuilder_SetProfilingLevel.restype                 = self.__Snpe_ErrorCode_t
         self.__Snpe_SNPEBuilder_SetDebugMode.restype                      = self.__Snpe_ErrorCode_t
         self.__Snpe_SNPEBuilder_Delete.restype                            = self.__Snpe_ErrorCode_t
 
@@ -581,6 +610,11 @@ class SNPE:
         self.__Snpe_UserBufferEncodingTfN_SetStepExactly0.restype         = None
         self.__Snpe_UserBufferEncodingTfN_SetQuantizedStepSize.restype    = None
         self.__Snpe_UserBufferEncodingTfN_Delete.restype                  = self.__Snpe_ErrorCode_t
+
+        # Snpe_IDiagLog_Handle_t
+        self.__Snpe_SNPE_GetDiagLogInterface_Ref.restype                  = self.__Snpe_IDiagLog_Handle_t
+        self.__Snpe_IDiagLog_Start.restype                                = self.__Snpe_ErrorCode_t
+        self.__Snpe_IDiagLog_Stop.restype                                 = self.__Snpe_ErrorCode_t
 
     # Snpe_DlVersion_Handle_t
     def Snpe_Util_GetLibraryVersion(self) -> int:
@@ -708,6 +742,10 @@ class SNPE:
     def Snpe_SNPEBuilder_SetPerformanceProfile(self, snpeBuilderHandle: int, performanceProfile: int) -> int:
 
         return int(self.__Snpe_SNPEBuilder_SetPerformanceProfile(c_void_p(snpeBuilderHandle), c_int(performanceProfile)))
+
+    def Snpe_SNPEBuilder_SetProfilingLevel(self, snpeBuilderHandle: int, level: int) -> int:
+
+        return int(self.__Snpe_SNPEBuilder_SetProfilingLevel(c_void_p(snpeBuilderHandle), c_int(level)))
 
     def Snpe_SNPEBuilder_SetDebugMode(self, snpeBuilderHandle: int, debugMode: int) -> int:
 
@@ -914,3 +952,16 @@ class SNPE:
     def Snpe_UserBufferEncodingTfN_Delete(self, userBufferEncodingHandle: int) -> int:
 
         return int(self.__Snpe_UserBufferEncodingTfN_Delete(c_void_p(userBufferEncodingHandle)))
+
+    # Snpe_IDiagLog_Handle_t
+    def Snpe_SNPE_GetDiagLogInterface_Ref(self, snpeHandle: int) -> int:
+
+        return int(self.__Snpe_SNPE_GetDiagLogInterface_Ref(c_void_p(snpeHandle)))
+
+    def Snpe_IDiagLog_Start(self, diagLogHandle: int) -> int :
+
+        return int(self.__Snpe_IDiagLog_Start(c_void_p(diagLogHandle)))
+
+    def Snpe_IDiagLog_Stop(self, diagLogHandle: int) -> int :
+
+        return int(self.__Snpe_IDiagLog_Stop(c_void_p(diagLogHandle)))
