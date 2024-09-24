@@ -85,13 +85,18 @@
         "/usr/lib/libQnnTFLiteDelegate.so",
         "/usr/lib/libadsprpc.so",
         "/usr/lib/libcdsprpc.so",
+        "/usr/lib/libadsp_default_listener.so",
+        "/usr/lib/libcdsp_default_listener.so",
         "/usr/lib/libfastcvopt.so",
         "/usr/lib/rfsa/adsp/libfastcvdsp_skel.so",
         "/usr/lib/rfsa/adsp/libfastcvadsp.so",
         "/usr/lib/libfastcvdsp_stub.so",
         "/usr/lib/libdmabufheap.so.0.0.0",
         "/usr/lib/dsp/cdsp/libc++.so.1",
-        "/usr/lib/dsp/cdsp/libc++abi.so.1"
+        "/usr/lib/dsp/cdsp/libc++abi.so.1",
+        "/usr/lib/dsp/cdsp1/libc++.so.1",
+        "/usr/lib/dsp/cdsp1/libc++abi.so.1",
+        "/usr/lib/dsp/cdsp1/fastrpc_shell_unsigned_4"
     ],
 
     "Platform_Specific_Mappings" : [
@@ -102,6 +107,7 @@
         "/dev/video33",
         "/dev/dma_heap/system",
         "/dev/dma_heap/qcom,system",
-        "/dev/fastrpc-cdsp"
+        "/dev/fastrpc-cdsp",
+        "/dev/fastrpc-cdsp1"
     ]
 }
