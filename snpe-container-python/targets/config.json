@@ -1,14 +1,5 @@
 {
-    "Acceleration_engines": [
-        {
-            "Acceleration_engine":"snpe",
-            "Acceleration_engine_path":"<sdk-path>"
-        },
-        {
-            "Acceleration_engine":"",
-            "Acceleration_engine_path":"-"
-        }
-    ],
+    "SNPE_version":"v2.25.0.240728",
     "Base_Image": "ubuntu:22.04",
     "Target_platform": "qcm6490",
 

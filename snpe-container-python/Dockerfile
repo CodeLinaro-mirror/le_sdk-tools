@@ -4,30 +4,18 @@
 ARG QML_ARG_BASE_IMAGE
 
 # QML Image
-FROM --platform=linux/arm64 ${QML_ARG_BASE_IMAGE} as QML
-
-# Enable color prompt
-RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc
+FROM --platform=linux/arm64 ${QML_ARG_BASE_IMAGE} as QML_builder
 
 # Installing required apt packages
 RUN apt-get update                                                                              && \
-    apt-get install -y python3 python3-pip wget unzip                                           && \
+    apt-get install -y curl unzip                                                               && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
     rm -rf /var/lib/apt/lists* /tmp/* /var/tmp/*
 
-# Installing required python packages
-RUN pip3 install numpy==1.24.4 opencv-python-headless==4.10.0.84 pillow==10.4.0
-
 # Set base directory
 ARG QML_ARG_BASE_DIR
 ENV QML_BASE_DIR=${QML_ARG_BASE_DIR}
-
-# Add acceleration engines
-ADD tmp/acceleration_engines ${QML_BASE_DIR}/downloads/
-
-# Add python wrapper code
-COPY src/python ${QML_BASE_DIR}/src/python
 
 # Add scripts
 ADD scripts/docker/ ${QML_BASE_DIR}/scripts
@@ -35,17 +23,43 @@ ADD scripts/docker/ ${QML_BASE_DIR}/scripts
 # Set workdir
 WORKDIR "${QML_BASE_DIR}"
 
+# Set base directory
+ARG QML_ARG_SDK_VERSION
+ENV QML_SDK_VERSION=${QML_ARG_SDK_VERSION}
+
 ARG QML_ARG_TARGET_PLATFORM
 ENV QML_TARGET_PLATFORM=${QML_ARG_TARGET_PLATFORM}
 
-ARG QML_ARG_ACCELERATION_ENGINE_NAMES
-ENV QML_ACCELERATION_ENGINE_NAMES=${QML_ARG_ACCELERATION_ENGINE_NAMES}
+# Copy SNPE libraries and binaries to /usr/lib/ and /usr/bin/ and models to /opt
+RUN mkdir -p /deploy/snpe/usr/lib/rfsa/adsp/                                                    && \
+    mkdir -p /deploy/snpe/usr/bin/                                                              && \
+    mkdir -p /deploy/snpe/opt/                                                                  && \
+    bash ${QML_BASE_DIR}/scripts/all_scripts.sh qml-install-libraries-snpe                      && \
+    bash ${QML_BASE_DIR}/scripts/all_scripts.sh qml-download-models-snpe
 
-RUN mkdir -p /usr/lib/rfsa/adsp/
+# QML Image
+FROM --platform=linux/arm64 ${QML_ARG_BASE_IMAGE} as QML
 
-# Copy Acceleration engine libraries and binaries to /usr/lib/ and /usr/bin/
-RUN bash ${QML_BASE_DIR}/scripts/all_scripts.sh qml-update-libraries
+# Set base directory
+ARG QML_ARG_BASE_DIR
+ENV QML_BASE_DIR=${QML_ARG_BASE_DIR}
 
-# Download AI models
-RUN wget https://github.com/quic/sample-apps-for-qualcomm-linux/releases/download/v0.1.0/v0.1.0.zip && \
-	unzip v0.1.0 && cp v0.1.0/deeplabv3_resnet50.dlc /opt
+# Enable color prompt
+# Install required apt and python packages
+RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc                   && \
+    apt-get update                                                                              && \
+    apt-get install -y --no-install-recommends python3 python3-pip                              && \
+    apt-get autoremove -y                                                                       && \
+    apt-get clean                                                                               && \
+    rm -rf /var/lib/apt/lists* /tmp/* /var/tmp/*                                                && \
+    pip3 install --no-cache-dir numpy==1.24.4 opencv-python-headless==4.10.0.84 pillow==10.4.0
+
+# Set workdir
+WORKDIR "${QML_BASE_DIR}"
+
+# Add python wrapper code
+COPY src/python ${QML_BASE_DIR}/src/python
+
+COPY --from=QML_builder /deploy/snpe/usr/lib/ /usr/lib
+COPY --from=QML_builder /deploy/snpe/usr/bin/ /usr/bin
+COPY --from=QML_builder /deploy/snpe/opt/ /opt
