@@ -705,9 +705,9 @@ docker-compose up -d -f <docker-compose.yml>
       </ul>
 
       <ul>
-      <div style="color:#90EE90">RecipeParser</div>
+      <div style="color:#90EE90">BuildCodeGenerator</div>
       <div style="color:#6495ED">
-        Generates a json file with content of cmake flags for every gstreamer plugin.
+        Automatically add build and clean functions for qti plugins.
       </div>
 
         python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
@@ -715,7 +715,7 @@ docker-compose up -d -f <docker-compose.yml>
                 -m <path/to/unarchived/eSDK/directory>/layers/meta-qti-gst                         \
                 -p <target>                                                                        \
                 -t <current/docker/dir>/tmp/                                                       \
-                RecipeParser
+                BuildCodeGenerator
       </ul>
 
     </div>

@@ -13,7 +13,8 @@ from abc import ABC, abstractmethod
 
 
 class Parsable(ABC):
-    def __init__(self, path_to_layers: pathlib.Path, path_to_meta: pathlib.Path) -> None:
+    def __init__(self, path_to_layers: pathlib.Path, path_to_meta: pathlib.Path,
+                platform: str) -> None:
         # Append bitbake library path to the system path
         # to be able to import Non-standart modules
         # aka bb modules from eSDK
@@ -41,6 +42,8 @@ class Parsable(ABC):
         if not os.path.exists(self.path_to_gstreamer_sample_apps_recipes):
             self.path_to_gstreamer_sample_apps_recipes = self.path_to_gstreamer_recipes
 
+        self.platform = platform
+
     def _parse_helper(self, content, suffix=".bb"):
 
         temp_file = tempfile.NamedTemporaryFile(suffix=suffix)
@@ -55,7 +58,7 @@ class Parsable(ABC):
         pass
 
     @abstractmethod
-    def export_to_json(self, path_to_tmp: pathlib.Path):
+    def export(self, path_to_tmp: pathlib.Path):
         pass
 
 
@@ -76,11 +79,9 @@ class BBPatchParser(Parsable):
             self.title = str()
 
     def __init__(self, path_to_layers: pathlib.Path, path_to_meta: pathlib.Path,
-                platform: pathlib.Path) -> None:
+                platform: str) -> None:
 
-        super().__init__(path_to_layers, path_to_meta)
-
-        self.platform = platform
+        super().__init__(path_to_layers, path_to_meta, platform)
 
         self.path_to_layers = path_to_layers
 
@@ -237,7 +238,7 @@ class BBPatchParser(Parsable):
                 recipe
             )
 
-    def export_to_json(self, path_to_tmp: pathlib.Path):
+    def export(self, path_to_tmp: pathlib.Path):
 
         title_to_patches = dict()
 
@@ -252,52 +253,128 @@ class BBPatchParser(Parsable):
             json_buffer = json.dumps(title_to_patches, indent=4)
             recipes_patches.write(json_buffer)
 
-
 class RecipeParser(Parsable):
 
     # Init of RecipeParser
     # Reads the recipes and buffers them in dictionary (plugin : content)
     def __init__(self, path_to_layers: pathlib.Path, path_to_meta: pathlib.Path,
-                platform: pathlib.Path) -> None:
-        super().__init__(path_to_layers, path_to_meta)
-
-        self.platform = platform
+                platform: str) -> None:
+        super().__init__(path_to_layers, path_to_meta, platform)
 
         self.plugin_to_content = dict()
+        self.path_to_layers = path_to_layers
 
         # Combine gstreamer and gstreamer-sample-apps recipes
-        path_to_recipes = [
-            self.path_to_gstreamer_recipes + "/" + filename
+        self.path_to_recipes = [
+            os.path.join(self.path_to_gstreamer_recipes, filename)
                 for filename in os.listdir(self.path_to_gstreamer_recipes)
                     if filename.endswith(".bb")
         ] + [
-            self.path_to_gstreamer_sample_apps_recipes + "/" + filename
+            os.path.join(self.path_to_gstreamer_sample_apps_recipes, filename)
                 for filename in os.listdir(self.path_to_gstreamer_sample_apps_recipes)
                     if filename.endswith(".bb")
         ]
 
-        for file in path_to_recipes:
+    def read_recipe(self, file: str):
+        # Read the recipe
+        with open(file) as bb_file_content:
+            self.plugin_to_content[os.path.basename(file)] = bb_file_content.read()
 
-            # Read the recipe
-            with open(file) as bb_file_content:
-                self.plugin_to_content[os.path.basename(file)] = bb_file_content.read()
+        # Set BBPATH as {path_to_layers}/poky/meta
+        # to be able to inherit cmake or pkgconfig
+        self.plugin_to_content[os.path.basename(file)] =                                           \
+            f"BBPATH = \"{self.path_to_layers}/poky/meta\"\n"                                      \
+            +                                                                                      \
+            self.plugin_to_content[os.path.basename(file)]
 
-            # Set BBPATH as {path_to_layers}/poky/meta
-            # to be able to inherit cmake or pkgconfig
-            self.plugin_to_content[os.path.basename(file)] =                                       \
-                f"BBPATH = \"{path_to_layers}/poky/meta\"\n"                                       \
-                +                                                                                  \
-                self.plugin_to_content[os.path.basename(file)]
+    @abstractmethod
+    def process(self):
+        pass
 
-        self.plugin_to_cmake_flags = dict()
+    @abstractmethod
+    def export(self, path_to_tmp: pathlib.Path):
+        pass
 
-    # Process method of RecipeParser
-    # Take the buffered content from dictionary (plugin : content)
-    # And parse it to dictionary (plugin : cmake flags)
 
+class BuildCodeGenerator(RecipeParser):
+
+    # Init of RecipeParser
+    # Reads the recipes and buffers them in dictionary (plugin : content)
+    def __init__(self, path_to_layers: pathlib.Path, path_to_meta: pathlib.Path,
+                platform: str) -> None:
+        super().__init__(path_to_layers, path_to_meta, platform)
+
+        files_to_be_parsed = [
+            "recipes-gst/packagegroups/packagegroup-qcom-gst.bb",
+            "recipes-qim-product-sdk/packagegroups/packagegroup-qcom-gst.bbappend",
+            "recipes-gst/packagegroups/packagegroup-qcom-gst-sample-apps.bb"
+        ]
+
+        plugins = str()
+
+        for file_name in files_to_be_parsed:
+            content = str()
+
+            file_to_open = str()
+
+            if file_name.endswith(".bb"):
+                file_to_open = os.path.join(path_to_meta, file_name)
+            elif file_name.endswith(".bbappend"):
+                file_name = os.path.join("meta-qti-qim-product-sdk", file_name)
+                file_to_open = os.path.join(path_to_layers, file_name)
+
+            with open(file_to_open) as file:
+                content += file.read()
+
+            current_data_smart = bb.data.init()
+            bb.parse.siggen = bb.siggen.init(current_data_smart)
+
+            # No need to parse package group class
+            content = content.replace("inherit packagegroup", "")
+            # Remove qcom-custom-bsp since OVERRIDES can select only by one criteria: target
+            content = content.replace(":qcom-custom-bsp", "")
+            # Replace hardcoded package name with variable
+            content = content.replace("RDEPENDS:packagegroup-qcom-gst", "RDEPENDS:${PN}")
+
+            temp_file = self._parse_helper(content)
+
+            bb_parsed = bb.parse.handle(
+                temp_file.name, current_data_smart)['']
+
+            bb.data.expandKeys(bb_parsed)
+
+            bb_parsed.setVar("OVERRIDES", self.platform)
+
+            plugins += bb_parsed.getVar("RDEPENDS:${PN}")
+
+        blacklisted = [
+            # TODO not yet enabled
+            "qcom-gstreamer1.0-plugins-oss-msgbroker",
+            "qcom-gstreamer1.0-plugins-oss-smartvencbin",
+            "qcom-gstreamer1.0-plugins-oss-qmmfsrc",
+            "qcom-gst-camera-burst-capture-example",
+            "qcom-gst-camera-metadata-example"
+        ]
+
+        self.plugins = [ x for x in plugins.split() if "qcom-gstreamer1.0" in x or "qcom-gst-" in x ]
+        self.plugins = [ x for x in self.plugins if x not in blacklisted ]
+
+        for file in self.path_to_recipes:
+
+            if (os.path.basename(file).replace(".bb","") not in self.plugins):
+                continue
+
+            super().read_recipe(file)
+
+        self.plugin_cmake_flags = dict()
+        self.plugin_src_uri = dict()
+
+    # Process method of BuildCodeGenerator
     def process(self):
 
-        for content in self.plugin_to_content.values():
+        for recipe,content in self.plugin_to_content.items():
+
+            plugin = recipe.replace('.bb', '')
 
             current_data_smart = bb.data.init()
             bb.parse.siggen = bb.siggen.init(current_data_smart)
@@ -309,10 +386,18 @@ class RecipeParser(Parsable):
 
             bb_parsed.setVar("OVERRIDES", self.platform)
 
+            files_path = bb_parsed.getVar("FILESPATH").replace("${WORKSPACE}/gst-plugins-qti-oss/", "").replace("/:", "").replace(":", "")
+            src_uri = bb_parsed.getVar("SRC_URI").replace("file://", "")
+            self.plugin_src_uri[plugin] = os.path.join(files_path, src_uri)
+
             extra_oecmake_string = bb_parsed.getVar("EXTRA_OECMAKE")
 
             if extra_oecmake_string is None:
+                self.plugin_cmake_flags[plugin] = ""
                 continue
+
+            extra_oecmake_string = extra_oecmake_string.replace(
+                '${PN}', recipe.replace('.bb', ''))
 
             extra_oecmake_string = extra_oecmake_string.replace(
                 '${PACKAGECONFIG_CONFARGS}', '')
@@ -325,19 +410,16 @@ class RecipeParser(Parsable):
             string = str()
 
             for string in splited_string:
-
-                # Skip NON translated variables
-                # like ${SOME_VARIABLE}
-                found_non_translated_variable = string.find("${")
-
-                if found_non_translated_variable != -1:
-                    continue
-
-                # Skip GST_VERSION_REQUIRED
-                found_gst_version_required = string.find(
-                    "GST_VERSION_REQUIRED")
-
-                if found_gst_version_required != -1:
+                # Skip sysroot variables and GST_VERSION_REQUIRED
+                if string.find("${STAGING_INCDIR}") != -1 or \
+                        string.find("${STAGING_KERNEL_BUILDDIR}") != -1 or \
+                        string.find("${STAGING_LIBDIR}") != -1 or \
+                        string.find("${PKG_CONFIG_SYSROOT_DIR}") != -1 or \
+                        string.find("${bindir}") != -1 or \
+                        string.find("${libdir}") != -1 or \
+                        string.find("${includedir}") != -1 or \
+                        string.find("${PV}") != -1 or \
+                        string.find("GST_VERSION_REQUIRED") != -1:
                     continue
 
                 filtred_extra_oecmake.append(string)
@@ -345,27 +427,78 @@ class RecipeParser(Parsable):
             cmake_flags = ' -D'.join(filtred_extra_oecmake)
             cmake_flags += ' '
 
-            S_string = bb_parsed.getVar("S")
+            self.plugin_cmake_flags[plugin] = cmake_flags
 
-            # Remove prefix from S variable to get plugin name
-            plugin = S_string[len("${WORKDIR}/"):]
-            plugin = plugin.replace("-", "_")
-            if plugin.endswith('/') :
-                plugin = plugin[:-1]
+    # Export to shell method of BuildCodeGenerator
+    def export(self, path_to_tmp: pathlib.Path):
 
-            self.plugin_to_cmake_flags[plugin] = cmake_flags
+        path_to_sh = os.path.join(path_to_tmp, "build_plugins.sh")
+        with open(path_to_sh, "w") as build_plugins_sh:
+            build_plugins_sh.write("""#!/bin/bash
 
-    # Export to json method of RecipeParser
-    # Take the buffered content from dictionary (plugin : cmake flags)
-    # Export it to json file ("plugin" : "cmake flags")
+# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
 
-    def export_to_json(self, path_to_tmp: pathlib.Path):
+# THIS CODE IS AUTOMATICALLY GENERATED. DO NOT MODIFY IT !!!
+""")
 
-        path_to_json = os.path.join(path_to_tmp, "cmake_flags.json")
+            for plugin in self.plugins:
+                src_uri = str(self.plugin_src_uri[plugin])
+                content="""
+# CMake Build ${plugin}
+function qimsdk-cmake-build-${plugin} () {
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/${dir} ${CONFIG_FLAGS} && \\
+            print-green "${FUNCNAME} completed successfully!"
+}
 
-        with open(path_to_json, "w") as cmake_flags_json:
-            json_buffer = json.dumps(self.plugin_to_cmake_flags, indent=4)
-            cmake_flags_json.write(json_buffer)
+# Clean CMake ${plugin} build directory
+function qimsdk-cmake-clean-${plugin}() {
+    rm -rf ${QIMSDK_BUILD_DIR}/${dir}
+
+    print-green "${FUNCNAME} completed successfully!"
+}
+"""
+                content = content.replace("${plugin}", plugin.replace("_", "-"))
+                content = content.replace("${dir}", src_uri.replace(" ", ""))
+                content = content.replace("${CONFIG_FLAGS}", self.plugin_cmake_flags[plugin])
+                build_plugins_sh.write(content)
+
+            build_plugins_sh.write("""
+function qimsdk-incremental-build-qti() {
+""")
+
+            for plugin in self.plugins:
+                if plugin == self.plugins[0]:
+                    content = ""
+                else:
+                    content = "    "
+                content += "    qimsdk-cmake-build-" + plugin + " && \\\n"
+                build_plugins_sh.write(content)
+
+            build_plugins_sh.write("""        echo "QTI build completed !!!"
+}
+""")
+
+            build_plugins_sh.write("""
+function qimsdk-help-build() {
+""")
+
+            for plugin in self.plugins:
+                content = "    print-green \"qimsdk-cmake-build-" + plugin + "\"\n"
+                content += "        echo \"Build " + plugin + "\"\n"
+                content += "    print-red \"qimsdk-cmake-clean-" + plugin + "\"\n"
+                content += "        echo \"Clean " + plugin + "\"\n"
+                build_plugins_sh.write(content)
+
+            build_plugins_sh.write("""}
+""")
+
+            build_plugins_sh.write("""
+print-green \"qimsdk-incremental-build-qti\"
+echo \"    Incremental build of QTI gst plugins\"
+print-yellow \"qimsdk-help-build\"
+echo \"    Print build and clean function of each gst plugins\"
+""")
 
 # Parse arguments function
 # Parses input arguments
@@ -385,8 +518,8 @@ def parse_arguments() -> str:
                         help="Path to tmp directory of the current project")
 
     parser.add_argument("action",
-                        choices=['RecipeParser', 'BBPatchParser'],
-                        help="<RecipeParser/BBPatchParser>")
+                        choices=['BuildCodeGenerator', 'BBPatchParser'],
+                        help="<BuildCodeGenerator/BBPatchParser>")
 
     return parser.parse_args()
 
@@ -395,8 +528,8 @@ def main():
     args = parse_arguments()
 
     parser_map = {
-        "BBPatchParser": BBPatchParser,
-        "RecipeParser": RecipeParser
+        "BBPatchParser"         : BBPatchParser,
+        "BuildCodeGenerator"    : BuildCodeGenerator
     }
 
     parser = parser_map[args.action](
@@ -406,7 +539,7 @@ def main():
     )
 
     parser.process()
-    parser.export_to_json(args.path_to_tmp)
+    parser.export(args.path_to_tmp)
 
     return 0
 

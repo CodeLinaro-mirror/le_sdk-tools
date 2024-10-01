@@ -163,14 +163,10 @@ COPY tmp/gst-plugins-qti-oss ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/tmp/scripts/
 COPY scripts/dev_image ${QIMSDK_SCRIPTS}
+COPY tmp/build_plugins.sh ${QIMSDK_SCRIPTS}
 
 # Copy the Tensorflow Lite's headers and dependent headers to the sysroot
 RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-copy-tf-lite-headers-to-sysroot
-
-# Add json file with content of cmake flags
-ENV QIMSDK_CMAKE_FLAGS_DIR=${QIMSDK_BASE_DIR}/tmp/cmake_flags/
-COPY tmp/cmake_flags.json ${QIMSDK_CMAKE_FLAGS_DIR}
-ENV QIMSDK_CMAKE_FLAGS_JSON=${QIMSDK_CMAKE_FLAGS_DIR}/cmake_flags.json
 
 # Add json file with content of cmake flags
 ENV QIMSDK_RECIPES_PATCHES_DIR=${QIMSDK_BASE_DIR}/tmp/recipes_patches/

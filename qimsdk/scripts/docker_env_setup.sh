@@ -273,8 +273,8 @@ function qimsdk-dev-docker-build-image() {
             -m ${QIMSDK_GST_META}                                                                  \
             -p ${PLATFORM}                                                                         \
             -t ${QIMSDK_TMP_FOLDER}                                                                \
-            RecipeParser                                                                        || {
-        print-red "Python Parser returns error, mode RecipeParser !!!"
+            BuildCodeGenerator                                                                  || {
+        print-red "Python Parser returns error, mode BuildCodeGenerator !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -7
     }
@@ -490,8 +490,8 @@ function qimsdk-docker-build-image() {
             -m ${QIMSDK_GST_META}                                                                  \
             -p ${PLATFORM}                                                                         \
             -t ${QIMSDK_TMP_FOLDER}                                                                \
-            RecipeParser                                                                        || {
-        print-red "Python Parser Crashed, mode RecipeParser !!!"
+            BuildCodeGenerator                                                                  || {
+        print-red "Python Parser Crashed, mode BuildCodeGenerator !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -7
     }
