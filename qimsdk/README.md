@@ -211,7 +211,7 @@ Two QIMSDK docker images are built. One for development. One for device target.
 ### QIMSDK Device Image
 1. Install runtime dependency Open Source packages to device image
 2. Copy built binaries from development Image
-3. Setup xml needed runtime by wayland
+3. Add qimsdk user
 
 <div id="Host_Side_Helper_Scripts_And_Configuration">
 
@@ -727,7 +727,7 @@ docker load -i /tmp/qimsdk.tar
 
 ```bash
 ### adb shell
-docker run -it -d                                                                                  \
+docker run -it -d --user qimsdk                                                                    \
 --device /dev/dri/card0                                                                            \
 --device /dev/dri/renderD128                                                                       \
 --device /dev/kgsl-3d0                                                                             \

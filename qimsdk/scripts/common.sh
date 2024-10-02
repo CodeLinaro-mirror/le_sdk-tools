@@ -406,6 +406,7 @@ function qimsdk-generate-docker-compose-yaml() {
                     ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
             yq -i ".services.qimsdk.hostname=\"${QIMSDK_CONTAINER_NAME}\""                         \
                     ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
+            yq -i ".services.qimsdk.user=\"qimsdk\"" ${PATH_TO_DOCKER_COMPOSE_YAML}             && \
             yq -i ".services.qimsdk.command=\"bash\"" ${PATH_TO_DOCKER_COMPOSE_YAML}            && \
             yq -i ".services.qimsdk.restart=\"always\"" ${PATH_TO_DOCKER_COMPOSE_YAML}          && \
             for I in ${EXPORTS_ARRAY[@]}; do

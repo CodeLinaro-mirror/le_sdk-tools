@@ -702,8 +702,8 @@ function qimsdk-docker-device-save-image() {
     local CONFIG_NAME=$(basename -- ${PATH_TO_CONFIG_JSON} | cut -d '.' -f 1)
 
     echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT}                     \
-                -h ${QIMSDK_CONTAINER_NAME} --name ${QIMSDK_CONTAINER_NAME} ${QIMSDK_IMAGE_NAME}   \
-                " > ${COMMON_PATH}/docker_run_${CONFIG_NAME}.sh
+                -h ${QIMSDK_CONTAINER_NAME} --user qimsdk --name ${QIMSDK_CONTAINER_NAME}          \
+                ${QIMSDK_IMAGE_NAME}" > ${COMMON_PATH}/docker_run_${CONFIG_NAME}.sh
 
     qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run_${CONFIG_NAME}.sh ${DOCKER_IMAGE_PATH}
 
@@ -944,7 +944,7 @@ function qimsdk-device-docker-run-container() {
         return ${rc}
     }
 
-    docker run -it -d -h ${QIMSDK_CONTAINER_NAME} --name ${QIMSDK_CONTAINER_NAME}                  \
+    docker run -it -d -h ${QIMSDK_CONTAINER_NAME} --user qimsdk --name ${QIMSDK_CONTAINER_NAME}    \
         ${QIMSDK_IMAGE_NAME} bash
 
     rc=$?
@@ -1036,8 +1036,8 @@ function qimsdk-docker-device-run-container() {
     (
 
         echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT} ${EXPORTS}      \
-                -h ${QIMSDK_CONTAINER_NAME} --name ${QIMSDK_CONTAINER_NAME} ${QIMSDK_IMAGE_NAME}   \
-                " > /tmp/docker_run.sh
+                -h ${QIMSDK_CONTAINER_NAME} --user qimsdk --name ${QIMSDK_CONTAINER_NAME}          \
+                ${QIMSDK_IMAGE_NAME}" > /tmp/docker_run.sh
         export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
         adb push /tmp/docker_run.sh /tmp/
         qimsdk-device-command "source /tmp/docker_run.sh" || {

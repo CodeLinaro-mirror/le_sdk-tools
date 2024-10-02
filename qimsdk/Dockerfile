@@ -194,9 +194,6 @@ ENV DOCKER_IMAGE_PATH=${QIMSDK_ARG_DOCKER_IMAGE_PATH}
 # QIMSDK Device Image
 FROM --platform=arm64 ubuntu:22.04 AS qimsdk_device_image
 
-# Enable color prompt
-RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc
-
 # Set base directory
 ARG QIMSDK_ARG_BASE_DIR
 ENV QIMSDK_BASE_DIR=${QIMSDK_ARG_BASE_DIR}
@@ -211,9 +208,24 @@ RUN apt-get update                                                              
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
 
+# Create USER and add to video group for accessing v4ls devices
+RUN addgroup qcom                                                                               && \
+    useradd -s /bin/bash -m -g qcom qimsdk                                                      && \
+    usermod -aG video qimsdk                                                                    && \
+    echo qimsdk:asd | chpasswd
+
+# Enable color prompt
+RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /home/qimsdk/.bashrc
+
 # Copy installed binaries to device image
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/usr /usr
 
 # Copy python examples
 COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-python-examples /usr/bin
+
+# Change user to qimsdk
+USER qimsdk
+
+# Change workdir to user home
+WORKDIR /home/qimsdk
