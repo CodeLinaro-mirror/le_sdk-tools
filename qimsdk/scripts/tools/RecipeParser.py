@@ -299,6 +299,9 @@ class RecipeParser(Parsable):
 
             extra_oecmake_string = bb_parsed.getVar("EXTRA_OECMAKE")
 
+            if extra_oecmake_string is None:
+                continue
+
             extra_oecmake_string = extra_oecmake_string.replace(
                 '${PACKAGECONFIG_CONFARGS}', '')
 

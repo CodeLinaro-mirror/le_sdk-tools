@@ -49,34 +49,31 @@ COPY tmp/headers/usr/ /usr/
 ENV QIMSDK_DOWNLOAD_DIR=${QIMSDK_BASE_DIR}/downloads
 RUN mkdir -p ${QIMSDK_DOWNLOAD_DIR}
 
-# Clone Tensorflow Lite
+# Clone Tensorflow Lite; checkout hash is for v2.15.1
 ENV QIMSDK_TF_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/tensorflow
-RUN mkdir -p ${QIMSDK_TF_SRC_DIR}
-
 RUN git clone --progress https://github.com/tensorflow/tensorflow.git                              \
-    --single-branch --branch master ${QIMSDK_TF_SRC_DIR}
-
-ARG QIMSDK_ARG_QNP_SDK_DOWNLOAD_LINK
+        --single-branch --branch r2.15 ${QIMSDK_TF_SRC_DIR}                                     && \
+    cd ${QIMSDK_TF_SRC_DIR}                                                                     && \
+    git checkout 63f5a65c7cd7b6241bede8d2e0082058566ea364
 
 # qnp-sdk: fetch and copy the needed headers
-RUN [ -n "${QIMSDK_ARG_QNP_SDK_DOWNLOAD_LINK}" ] || touch ${QIMSDK_BASE_DIR}/no-qnp-sdk-provided
-RUN [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ] || (                                           \
-    wget -t 2 -T 30 --passive-ftp -P ${QIMSDK_DOWNLOAD_DIR}                                        \
-    "${QIMSDK_ARG_QNP_SDK_DOWNLOAD_LINK}"                                                       && \
-    QIMSDK_ARG_QNP_SDK=$(basename -- ${QIMSDK_ARG_QNP_SDK_DOWNLOAD_LINK})                       && \
+ENV QIMSDK_QNP_SDK=v2.24.0.240626.zip
+RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
+        https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/${QIMSDK_QNP_SDK} && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    unzip ${QIMSDK_ARG_QNP_SDK}                                                                 && \
-    rm -f ${QIMSDK_ARG_QNP_SDK}                                                                 && \
+    unzip ${QIMSDK_QNP_SDK}                                                                     && \
+    rm -f ${QIMSDK_QNP_SDK}                                                                     && \
     QIMSDK_ARG_QNP_SDK_VERSION=$(ls qairt)                                                      && \
     cp -r ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/SNPE/*                \
-          ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QNN/*                 \
-          /usr/include/                                                                         && \
-    rm -rf ${QIMSDK_DOWNLOAD_DIR}/qairt                                                            \
-    )
+        ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QNN/*                   \
+        /usr/include/                                                                           && \
+    rm -rf ${QIMSDK_DOWNLOAD_DIR}/qairt
 
-# gstd: fetch and install
-RUN cd ${QIMSDK_DOWNLOAD_DIR} && git clone https://github.com/RidgeRun/gstd-1.x.git             && \
-    cd gstd-1.x && git checkout v0.11.3
+# gstd: fetch (hash is for v0.11.3) and install
+ENV QIMSDK_GSTD_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/gstd-1.x
+RUN git clone https://github.com/RidgeRun/gstd-1.x.git ${QIMSDK_GSTD_SRC_DIR}                   && \
+    cd ${QIMSDK_GSTD_SRC_DIR}                                                                   && \
+    git checkout d924fcbc2123dcfcb35242ecf5dc2fc3049004b3
 
 # Add bash aliases file
 COPY .bash_aliases /root/.bash_aliases
@@ -86,12 +83,21 @@ ENV QIMSDK_PATCHES_DIR=${QIMSDK_BASE_DIR}/tmp/patches
 COPY tmp/patches ${QIMSDK_PATCHES_DIR}
 
 # wayland-protocols: fetch and prepare git repo
-RUN wget -t 2 -T 30 --passive-ftp -P ${QIMSDK_DOWNLOAD_DIR}                                        \
-    'https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz'                    && \
-    cd ${QIMSDK_DOWNLOAD_DIR} && tar -xf wayland-protocols-1.25.tar.xz                          && \
-    rm -f wayland-protocols-1.25.tar.xz
-WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25
+RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
+        'https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz'                && \
+    wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
+        'https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz.sig'            && \
+    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
+        8307C0A224BABDA1BABD0EB9A6EEEC9E0136164A                                                && \
+    gpg --fingerprint 8307C0A224BABDA1BABD0EB9A6EEEC9E0136164A                                  && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25.tar.xz.sig                          \
+        ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25.tar.xz                                    && \
+    cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
+    tar -xf wayland-protocols-1.25.tar.xz                                                       && \
+    gpg --batch --delete-key 8307C0A224BABDA1BABD0EB9A6EEEC9E0136164A                           && \
+    rm -f wayland-protocols-1.25.tar.xz*
 
+WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25
 RUN git init                                                                                    && \
     git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25      && \
     git config --global user.name "username"                                                    && \
@@ -100,10 +106,20 @@ RUN git init                                                                    
     git commit -m "Initial wayland protocols Commit"
 
 # gst-plugins-bad: fetch and prepare git repo
-RUN wget -t 2 -T 30 --passive-ftp -P ${QIMSDK_DOWNLOAD_DIR}                                        \
-    'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz'       && \
-    cd ${QIMSDK_DOWNLOAD_DIR} && tar -xf gst-plugins-bad-1.20.7.tar.xz                          && \
-    rm -f gst-plugins-bad-1.20.7.tar.xz
+RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz'   && \
+    wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz.asc' && \
+    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
+        D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
+    gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7.tar.xz.asc                          \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7.tar.xz                                    && \
+    cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
+    tar -xf gst-plugins-bad-1.20.7.tar.xz                                                       && \
+    gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
+    rm -f gst-plugins-bad-1.20.7.tar.xz*
+
 WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7
 RUN git init                                                                                    && \
     git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7      && \
@@ -113,10 +129,20 @@ RUN git init                                                                    
     git commit -m "Initial Plugins Bad Commit"
 
 # gst-plugins-good: fetch and prepare git repo
-RUN wget -t 2 -T 30 --passive-ftp -P ${QIMSDK_DOWNLOAD_DIR}                                        \
-    'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz'     && \
-    cd ${QIMSDK_DOWNLOAD_DIR} && tar -xf gst-plugins-good-1.20.7.tar.xz                         && \
-    rm -f gst-plugins-good-1.20.7.tar.xz
+RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz' && \
+    wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz.asc' && \
+    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
+        D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
+    gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7.tar.xz.asc                         \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7.tar.xz                                   && \
+    cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
+    tar -xf gst-plugins-good-1.20.7.tar.xz                                                      && \
+    gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
+    rm -f gst-plugins-good-1.20.7.tar.xz*
+
 WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7
 RUN git init                                                                                    && \
     git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7     && \

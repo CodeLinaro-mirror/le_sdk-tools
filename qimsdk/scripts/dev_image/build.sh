@@ -433,17 +433,13 @@ function qimsdk-cmake-build-gst-plugin-mlvsegmentation() {
 
 # CMake Build gst-plugin-mlsnpe
 function qimsdk-cmake-build-gst-plugin-mlsnpe() {
-    [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ] && {
-            return 0
-    } || {
-        local RECIPE_FLAGS=$(
-            cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mlsnpe'
-        )
+    local RECIPE_FLAGS=$(
+        cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mlsnpe'
+    )
 
-        local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlsnpe"
+    local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlsnpe"
 
-        qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlsnpe ${CONFIG_FLAGS}
-    }
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlsnpe ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-mltflite
@@ -459,17 +455,13 @@ function qimsdk-cmake-build-gst-plugin-mltflite() {
 
 # CMake Build gst-plugin-mlqnn
 function qimsdk-cmake-build-gst-plugin-mlqnn() {
-    [ -f "${QIMSDK_BASE_DIR}/no-qnp-sdk-provided" ] && {
-        return 0
-    } || {
-        local RECIPE_FLAGS=$(
-            cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mlqnn'
-        )
+    local RECIPE_FLAGS=$(
+        cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_mlqnn'
+    )
 
-        local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlqnn"
+    local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-mlqnn"
 
-        qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlqnn ${CONFIG_FLAGS}
-    }
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-mlqnn ${CONFIG_FLAGS}
 }
 
 # CMake Build gst-plugin-socket
