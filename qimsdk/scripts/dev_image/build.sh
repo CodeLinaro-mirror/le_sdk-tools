@@ -558,6 +558,15 @@ function qimsdk-cmake-build-gst-plugin-voverlay() {
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-voverlay ${CONFIG_FLAGS}
 }
 
+# CMake Build gst-plugin-restricted-zone
+function qimsdk-cmake-build-gst-plugin-restricted-zone() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_restricted_zone')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS} -DGST_PLUGINS_QTI_OSS_PACKAGE=gstreamer1.0-plugins-qcom-oss-restricted-zone"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-restricted-zone ${CONFIG_FLAGS}
+}
+
 # CMake Build gst-plugin-objtracker
 function qimsdk-cmake-build-gst-plugin-objtracker() {
     local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_plugin_objtracker')
@@ -777,6 +786,13 @@ function qimsdk-cmake-clean-gst-plugin-objtracker() {
     print-green "${FUNCNAME} completed succesfully!"
 }
 
+# Clean CMake gst-plugin-restricted-zone build directory
+function qimsdk-cmake-clean-gst-plugin-restricted-zone() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugin-restricted-zone
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
             qimsdk-meson-build-gstd                                                             && \
@@ -809,6 +825,7 @@ function qimsdk-incremental-build() {
             qimsdk-cmake-build-gst-plugin-overlay                                               && \
             qimsdk-cmake-build-gst-plugin-voverlay                                              && \
             qimsdk-cmake-build-gst-plugin-objtracker                                            && \
+            qimsdk-cmake-build-gst-plugin-restricted-zone                                       && \
             print-green "QIMSDK GStreamer targets built successfully !!!"
 }
 
