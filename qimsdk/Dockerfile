@@ -287,11 +287,24 @@ RUN apt-get update                                                              
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
         gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools libhiredis0.14       \
         libudev1 libgstrtspserver-1.0-0 bash-completion libsoup2.4 gstreamer1.0-nice               \
-        libjsoncpp25 libopencv-imgproc4.5d libdaemon0 python3 python3-gst-1.0 libprotobuf23        \
-        mosquitto                                                                               && \
+        libjsoncpp25 libopencv-imgproc4.5d libdaemon0 python3 python3-gst-1.0 libjpeg62            \
+        libopencv-core4.5d libopencv-calib3d4.5d libopencv-imgcodecs4.5d libopencv-highgui4.5d     \
+        libopencv-flann4.5d libopencv-features2d4.5d libprotobuf23 mosquitto                    && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
+
+# Link needed versions of rdvsk dependencies
+RUN ln -s /usr/lib/aarch64-linux-gnu/libopencv_core.so.4.5d                                        \
+        /usr/lib/libopencv_core.so.405                                                          && \
+    ln -s /usr/lib/aarch64-linux-gnu/libopencv_imgproc.so.4.5d                                     \
+        /usr/lib/libopencv_imgproc.so.405                                                       && \
+    ln -s /usr/lib/aarch64-linux-gnu/libopencv_calib3d.so.4.5d                                     \
+            /usr/lib/libopencv_calib3d.so.405                                                   && \
+    ln -s /usr/lib/aarch64-linux-gnu/libopencv_imgcodecs.so.4.5d                                   \
+        /usr/lib/libopencv_imgcodecs.so.405                                                     && \
+    ln -s /usr/lib/aarch64-linux-gnu/libopencv_highgui.so.4.5.4d                                   \
+        /usr/lib/libopencv_highgui.so.405
 
 # Create USER and add to video group for accessing v4ls devices
 RUN addgroup qcom                                                                               && \

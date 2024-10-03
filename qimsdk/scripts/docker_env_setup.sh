@@ -302,6 +302,57 @@ function qimsdk-dev-docker-build-image() {
         }
     }
 
+    # Skip building dfs in case dependencies are not met
+    [ -f ./usr/include/dfs_factory.h ] && {
+        rsync -aR ./usr/include/dfs_factory.h                                                      \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/mv.h                                                               \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/mvSRW.h                                                            \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/mvVM.h                                                             \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/mvVSLAM.h                                                          \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rv.h                                                               \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvAE.h                                                             \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvCamera.h                                                         \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvDFS.h                                                            \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvGoalDetection.h                                                  \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvLog.h                                                            \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvNAVMAP.h                                                         \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvPLANNER.h                                                        \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvQueue.h                                                          \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvVIO.h                                                            \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvVM.h                                                             \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvVSLAM.h                                                          \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvVWSLAM.h                                                         \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvWOD.h                                                            \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rv_dfs_base.h                                                      \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rv_multi_dfs_base.h                                                \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   || {
+            echo "Cannot get headers from eSDK !!!"
+            popd 1>/dev/null
+            rm -rf ${QIMSDK_TMP_FOLDER}
+            return -1
+        }
+    }
+
     popd 1>/dev/null                                                                            && \
 
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.20.7/                               && \
@@ -580,6 +631,57 @@ function qimsdk-docker-build-image() {
         [ -d "${QIMSDK_PATH_TO_PULSEAUDIO_META}" ]                                              || {
             echo "Cannot find path to pulseaudio meta !!!"
             popd 1>/dev/null
+            return -1
+        }
+    }
+
+    # Skip building dfs in case dependencies are not met
+    [ -f ./usr/include/dfs_factory.h ] && {
+        rsync -aR ./usr/include/dfs_factory.h                                                      \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/mv.h                                                               \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/mvSRW.h                                                            \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/mvVM.h                                                             \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/mvVSLAM.h                                                          \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rv.h                                                               \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvAE.h                                                             \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvCamera.h                                                         \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvDFS.h                                                            \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvGoalDetection.h                                                  \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvLog.h                                                            \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvNAVMAP.h                                                         \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvPLANNER.h                                                        \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvQueue.h                                                          \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvVIO.h                                                            \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvVM.h                                                             \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvVSLAM.h                                                          \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvVWSLAM.h                                                         \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rvWOD.h                                                            \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rv_dfs_base.h                                                      \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/rv_multi_dfs_base.h                                                \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   || {
+            echo "Cannot get headers from eSDK !!!"
+            popd 1>/dev/null
+            rm -rf ${QIMSDK_TMP_FOLDER}
             return -1
         }
     }

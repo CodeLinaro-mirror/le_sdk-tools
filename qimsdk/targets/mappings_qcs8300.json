@@ -95,6 +95,9 @@
         "/var/run/pulse/native",
         "/usr/lib/libcamera_metadata.so",
         "/tmp/socket/cam_server/",
+        "/usr/lib/librv.so",
+        "/usr/lib/libmv1.so",
+        "/usr/lib/libmv3.so",
         "/opt/data"
     ],
 

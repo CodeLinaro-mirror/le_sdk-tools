@@ -380,8 +380,6 @@ class BuildCodeGenerator(RecipeParser):
 
         # Plugins that are not enabled yet should be append to the blacklist
         blacklisted = [
-            # Depends on eSDK
-            "qcom-gstreamer1.0-plugins-oss-dfs",
         ]
 
         self.plugins = [

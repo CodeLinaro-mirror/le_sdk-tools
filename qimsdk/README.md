@@ -721,7 +721,48 @@ docker-compose up -d -f <docker-compose.yml>
         rsync -aR ./usr/include/hardware/native_handle.h                                           \
             <current/docker/dir>/tmp/headers/                                                   && \
         rsync -aR ./usr/include/iot-core-algs/videoctrl.h                                          \
-            <current/docker/dir>/tmp/headers/
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/dfs_factory.h                                                      \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/mv.h                                                               \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/mvSRW.h                                                            \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/mvVM.h                                                             \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/mvVSLAM.h                                                          \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rv.h                                                               \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvAE.h                                                             \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvCamera.h                                                         \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvDFS.h                                                            \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvGoalDetection.h                                                  \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvLog.h                                                            \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvNAVMAP.h                                                         \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvPLANNER.h                                                        \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvQueue.h                                                          \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvVIO.h                                                            \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvVM.h                                                             \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvVSLAM.h                                                          \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvVWSLAM.h                                                         \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rvWOD.h                                                            \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rv_dfs_base.h                                                      \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/rv_multi_dfs_base.h
       ```
     </ul>
 
@@ -992,6 +1033,9 @@ docker run -it -d --user qimsdk                                                 
 -v /var/run/pulse/native:/var/run/pulse/native                                                     \
 -v /usr/lib/libcamera_metadata.so:/usr/lib/libcamera_metadata.so                                   \
 -v tmp/socket/cam_server/le_cam_socket:tmp/socket/cam_server/le_cam_socket                         \
+-v /usr/lib/librv.so:/usr/lib/librv.so                                                             \
+-v /usr/lib/libmv1.so:/usr/lib/libmv1.so                                                           \
+-v /usr/lib/libmv3.so:/usr/lib/libmv3.so                                                           \
 -v opt/data:opt/data                                                                               \
 -h qimsdk-<container-name> --name qimsdk-<container-name> qimsdk-<image-name>
 ```
