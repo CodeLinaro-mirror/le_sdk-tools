@@ -8,17 +8,19 @@
 #   $2 - (mandatory) variable to take container name value
 #   $3 - (mandatory) variable to take image name value
 #   $4 - (mandatory) variable to take Gstreamer sources of SP
-#   $5 - (mandatory) variable to take path to eSDK
-#   $6 - (mandatory) variable to take supported targets
-#   $7 - (mandatory) variable to take default target
+#   $5 - (mandatory) variable to take Gstreamer meta of SP
+#   $6 - (mandatory) variable to take path to eSDK
+#   $7 - (mandatory) variable to take supported targets
+#   $8 - (mandatory) variable to take default target
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
     local -n OUT_QIMSDK_IMAGE_NAME=${3}
     local -n OUT_QIMSDK_GST_SOURCES=${4}
-    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${5}
-    local -n OUT_QIMSDK_SUPPORTED_TARGETS=${6}
-    local -n OUT_QIMSDK_DEFAULT_TARGET=${7}
+    local -n OUT_QIMSDK_GST_META=${5}
+    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${6}
+    local -n OUT_QIMSDK_SUPPORTED_TARGETS=${7}
+    local -n OUT_QIMSDK_DEFAULT_TARGET=${8}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -55,6 +57,16 @@ function qimsdk-docker-parse-json() {
                 return -3
             }
 
+    OUT_QIMSDK_GST_META=$(echo ${JSON_CONTENT} | jq '.IM_SDK_Meta_Dir' | tr -d '"')
+    OUT_QIMSDK_GST_META=${OUT_QIMSDK_GST_META%/}
+
+    [ -d "${OUT_QIMSDK_GST_META}/.git" ]                                                        || \
+            [ -d "${OUT_QIMSDK_GST_META}/recipes-gst/gstreamer" ]                               || {
+                print-red "Please provide path to meta-qti-gst directory in config json!!!"
+                print-red "Directory currently provided: ${IM_SDK_Meta_Dir}"
+                return -4
+            }
+
     OUT_QIMSDK_PATH_TO_eSDK_DIR=$(
         echo ${JSON_CONTENT} | jq '.Path_to_eSDK_dir' | tr -d '"'
     )
@@ -65,7 +77,7 @@ function qimsdk-docker-parse-json() {
         print-yellow "The Path_to_eSDK_dir attribute is filled wrong in config json!"
         print-red "Please provide path to unarchived eSDK directory in config json!!!"
 
-        return -4
+        return -5
     }
 
     OUT_QIMSDK_SUPPORTED_TARGETS=( $(
@@ -91,6 +103,7 @@ function qimsdk-dev-docker-build-image() {
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_GST_SOURCES
+    local QIMSDK_GST_META
     local QIMSDK_PATH_TO_eSDK_DIR
     local QIMSDK_SUPPORTED_TARGETS
     local QIMSDK_DEFAULT_TARGET
@@ -100,6 +113,7 @@ function qimsdk-dev-docker-build-image() {
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_GST_SOURCES                                                                     \
+            QIMSDK_GST_META                                                                        \
             QIMSDK_PATH_TO_eSDK_DIR                                                                \
             QIMSDK_SUPPORTED_TARGETS                                                               \
             QIMSDK_DEFAULT_TARGET
@@ -125,12 +139,8 @@ function qimsdk-dev-docker-build-image() {
 
     QIMSDK_PATH_TO_eSDK_DIR=${QIMSDK_PATH_TO_eSDK_DIR%/}
 
-    local PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.20/"
-
-    [ ! -d ${PATH_TO_GST_PLUGINS_GOOD_PATCHES} ]                                                && \
-            PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qcom-qim-product-sdk/recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.20/"
+    local PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_GST_META}/`
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.20/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_GOOD_PATCHES} ] && {
         print-red "gstreamer-plugins-good's patches NOT found !!!"
@@ -138,12 +148,8 @@ function qimsdk-dev-docker-build-image() {
         return -1
     }
 
-    local PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20.4/"
-
-    [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ]                                                 && \
-            PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qcom-qim-product-sdk/recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20.4/"
+    local PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_GST_META}/`
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20.4/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ] && {
         print-red "gstreamer-plugins-bad's patches NOT found !!!"
@@ -164,12 +170,7 @@ function qimsdk-dev-docker-build-image() {
         return -3
     }
 
-    local PATH_TO_GSTD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qti-gst/recipes-gst/gstreamer/gstd/"
-
-    [ ! -d ${PATH_TO_GSTD_PATCHES} ]                                                            && \
-            PATH_TO_GSTD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qcom-qim-product-sdk/recipes-gst/gstreamer/gstd/"
+    local PATH_TO_GSTD_PATCHES="${QIMSDK_GST_META}/recipes-gst/gstreamer/gstd/"
 
     [ ! -d ${PATH_TO_GSTD_PATCHES} ] && {
         print-red "gstd's patches NOT found !!!"
@@ -243,6 +244,7 @@ function qimsdk-dev-docker-build-image() {
 
     python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                     \
             -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                  \
+            -m ${QIMSDK_GST_META}                                                                  \
             -p ${PLATFORM}                                                                         \
             -t ${QIMSDK_TMP_FOLDER}                                                                \
             RecipeParser                                                                        || {
@@ -257,6 +259,7 @@ function qimsdk-dev-docker-build-image() {
 
         python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
                 -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
+                -m ${QIMSDK_GST_META}                                                              \
                 -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
                 -t ${QIMSDK_TMP_FOLDER}                                                            \
                 BBPatchParser                                                                   || {
@@ -318,6 +321,7 @@ function qimsdk-docker-build-image() {
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_GST_SOURCES
+    local QIMSDK_GST_META
     local QIMSDK_SUPPORTED_TARGETS
     local QIMSDK_DEFAULT_TARGET
     local QIMSDK_PATH_TO_eSDK_DIR
@@ -326,6 +330,7 @@ function qimsdk-docker-build-image() {
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_GST_SOURCES                                                                     \
+            QIMSDK_GST_META                                                                        \
             QIMSDK_PATH_TO_eSDK_DIR                                                                \
             QIMSDK_SUPPORTED_TARGETS                                                               \
             QIMSDK_DEFAULT_TARGET
@@ -343,12 +348,8 @@ function qimsdk-docker-build-image() {
 
     QIMSDK_PATH_TO_eSDK_DIR=${QIMSDK_PATH_TO_eSDK_DIR%/}
 
-    local PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-        `meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.20/"
-
-    [ ! -d ${PATH_TO_GST_PLUGINS_GOOD_PATCHES} ]                                                && \
-            PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qcom-qim-product-sdk/recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.20/"
+    local PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_GST_META}/`
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.20/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_GOOD_PATCHES} ] && {
         print-red "gstreamer-plugins-good's patches NOT found !!!"
@@ -356,12 +357,8 @@ function qimsdk-docker-build-image() {
         return -1
     }
 
-    local PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20.4/"
-
-    [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ]                                                 && \
-            PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qcom-qim-product-sdk/recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20.4/"
+    local PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_GST_META}/`
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20.4/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ] && {
         print-red "gstreamer-plugins-bad's patches NOT found !!!"
@@ -382,12 +379,7 @@ function qimsdk-docker-build-image() {
         return -3
     }
 
-    local PATH_TO_GSTD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qti-gst/recipes-gst/gstreamer/gstd/"
-
-    [ ! -d ${PATH_TO_GSTD_PATCHES} ]                                                            && \
-            PATH_TO_GSTD_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qcom-qim-product-sdk/recipes-gst/gstreamer/gstd/"
+    local PATH_TO_GSTD_PATCHES="${QIMSDK_GST_META}/recipes-gst/gstreamer/gstd/"
 
     [ ! -d ${PATH_TO_GSTD_PATCHES} ] && {
         print-red "gstd's patches NOT found !!!"
@@ -465,6 +457,7 @@ function qimsdk-docker-build-image() {
 
     python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                     \
             -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                  \
+            -m ${QIMSDK_GST_META}                                                                  \
             -p ${PLATFORM}                                                                         \
             -t ${QIMSDK_TMP_FOLDER}                                                                \
             RecipeParser                                                                        || {
@@ -479,6 +472,7 @@ function qimsdk-docker-build-image() {
 
         python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
                 -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
+                -m ${QIMSDK_GST_META}                                                              \
                 -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
                 -t ${QIMSDK_TMP_FOLDER}                                                            \
                 BBPatchParser                                                                   || {

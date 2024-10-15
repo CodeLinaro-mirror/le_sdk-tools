@@ -9,6 +9,7 @@
     ],
     "Default_target" : "<target>",
     "IM_SDK_Source_Dir" : "<path-to-gst-plugins-qti-oss-dir>",
+    "IM_SDK_Meta_Dir" : "<path-to-meta-qti-gst>",
 
     "Path_to_eSDK_dir" : "<path-to-installed-eSDK-dir>",
 
