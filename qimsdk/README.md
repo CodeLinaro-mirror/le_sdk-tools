@@ -206,11 +206,10 @@ The json file must contain certain data :
  2. ***OPTIONAL*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose (to not set an additional tag just leave the value for this field empty)
  3. ***OPTIONAL*** - **Docker_image_path** - Remote ssh destination or local path to sync docker images or artifacts
  4. ***MANDATORY*** -  **Target_device_ID** - adb devices command ID of the device.
- 6. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
- 8. ***OPTIONAL*** - **"Qnp_sdk_download_link" : "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.22.10.240618.zip",** - Set qnp-sdk link to download from Internet. Leve it blank if unsure. ***Note: If left empty, gst-plugin-mlsnpe and gst-plugin-mlqnn will not be build***
- 9. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
- 11. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
- 12. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
+ 5. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
+ 6. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
+ 7. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
+ 8. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
 
 <div id="Docker_Host_Side_Helper_Scripts">
 
@@ -642,15 +641,10 @@ function qimsdk-meson-clean-<Project-Directory-Name>() {
       <div style="color:#90EE90">DIR: QNP directory</div>
 
       ```bash
-      wget https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.22.0.240425.zip
-      cd <path/to/unzipped/qnp/qairt/2.22.0.240425/include/>
+      wget https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.24.0.240626.zip
+      cd <path/to/unzipped/qnp/qairt/2.24.0.240626/include/>
       rsync -a QNN <current/docker/dir>/tmp/
       rsync -a SNPE <current/docker/dir>/tmp/
-      ```
-      <div style="color:#FF4500">OR</div>
-
-      ```bash
-      touch no-qnp-sdk-provided
       ```
       </ul>
     </div>
