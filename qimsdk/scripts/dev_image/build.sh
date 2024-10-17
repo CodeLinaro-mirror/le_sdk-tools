@@ -576,6 +576,348 @@ function qimsdk-cmake-build-gst-plugin-objtracker() {
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-plugin-objtracker ${CONFIG_FLAGS}
 }
 
+# CMake Build gst-activate-deactivate-streams-runtime
+function qimsdk-cmake-build-gst-activate-deactivate-streams-runtime() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_activate_deactivate_streams_runtime')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-activate-deactivate-streams-runtime ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-add-remove-streams-runtime
+function qimsdk-cmake-build-gst-add-remove-streams-runtime() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_add_remove_streams_runtime')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-add-remove-streams-runtime ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-add-streams-as-bundle-example
+function qimsdk-cmake-build-gst-add-streams-as-bundle-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_add_streams_as_bundle_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-add-streams-as-bundle-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-ai-classification
+function qimsdk-cmake-build-gst-ai-classification() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_ai_classification')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-ai-classification ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-ai-daisychain-detection-classification
+function qimsdk-cmake-build-gst-ai-daisychain-detection-classification() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_ai_daisychain_detection_classification')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-ai-daisychain-detection-classification ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-ai-daisychain-detection-pose
+function qimsdk-cmake-build-gst-ai-daisychain-detection-pose() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_ai_daisychain_detection_pose')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-ai-daisychain-detection-pose ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-ai-monodepth
+function qimsdk-cmake-build-gst-ai-monodepth() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_ai_monodepth')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-ai-monodepth ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-ai-multi-input-output-object-detection
+function qimsdk-cmake-build-gst-ai-multi-input-output-object-detection() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_ai_multi_input_output_object_detectio')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-ai-multi-input-output-object-detection ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-ai-multistream-batch-inference
+function qimsdk-cmake-build-gst-ai-multistream-batch-inference() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_ai_multistream_batch_inference')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-ai-multistream-batch-inference ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-ai-multistream-inference
+function qimsdk-cmake-build-gst-ai-multistream-inference() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_ai_multistream_inference')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-ai-multistream-inference ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-ai-object-detection
+function qimsdk-cmake-build-gst-ai-object-detection() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_ai_object_detection')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-ai-object-detection ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-ai-parallel-inference
+function qimsdk-cmake-build-gst-ai-parallel-inference() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_ai_parallel_inference')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-ai-parallel-inference ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-ai-pose-detection
+function qimsdk-cmake-build-gst-ai-pose-detection() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_ai_pose_detection')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-ai-pose-detection ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-ai-segmentation
+function qimsdk-cmake-build-gst-ai-segmentation() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_ai_segmentation')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-ai-segmentation ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-ai-superresolution
+function qimsdk-cmake-build-gst-ai-superresolution() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_ai_superresolution')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-ai-superresolution ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-appsink-example
+function qimsdk-cmake-build-gst-appsink-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_appsink_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-appsink-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-audio-decode-example
+function qimsdk-cmake-build-gst-audio-decode-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_audio_decode_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-audio-decode-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-audio-encode-example
+function qimsdk-cmake-build-gst-audio-encode-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_audio_encode_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-audio-encode-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-audio-video-encode
+function qimsdk-cmake-build-gst-audio-video-encode() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_audio_video_encode')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-audio-video-encode ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-audio-video-playback
+function qimsdk-cmake-build-gst-audio-video-playback() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_audio_video_playback')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-audio-video-playback ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-camera-burst-capture-example
+function qimsdk-cmake-build-gst-camera-burst-capture-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_camera_burst_capture_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-camera-burst-capture-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-camera-metadata-example
+function qimsdk-cmake-build-gst-camera-metadata-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_camera_metadata_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-camera-metadata-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-camera-shdr-ldc-eis-example
+function qimsdk-cmake-build-gst-camera-shdr-ldc-eis-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_camera_shdr_ldc_eis_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-camera-shdr-ldc-eis-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-camera-single-stream-example
+function qimsdk-cmake-build-gst-camera-single-stream-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_camera_single_stream_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-camera-single-stream-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-camera-switch-example
+function qimsdk-cmake-build-gst-camera-switch-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_camera_switch_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-camera-switch-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-concurrent-videoplay-composition
+function qimsdk-cmake-build-gst-concurrent-videoplay-composition() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_concurrent_videoplay_composition')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-concurrent-videoplay-composition ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-multi-camera-example
+function qimsdk-cmake-build-gst-multi-camera-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_multi_camera_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-multi-camera-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-multi-stream-example
+function qimsdk-cmake-build-gst-multi-stream-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_multi_stream_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-multi-stream-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-sample-apps-utils
+function qimsdk-cmake-build-gst-sample-apps-utils() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_sample_apps_utils')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-sample-apps-utils ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-smartcodec-example
+function qimsdk-cmake-build-gst-smartcodec-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_smartcodec_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-smartcodec-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-snapshot-stream-example
+function qimsdk-cmake-build-gst-snapshot-stream-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_snapshot_stream_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-snapshot-stream-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-transform-example
+function qimsdk-cmake-build-gst-transform-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_transform_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-transform-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-usb-single-camera-app
+function qimsdk-cmake-build-gst-usb-single-camera-app() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_usb_single_camera_app')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-usb-single-camera-app ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-videocodec-concurrent-playback
+function qimsdk-cmake-build-gst-videocodec-concurrent-playback() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_videocodec_concurrent_playback')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-videocodec-concurrent-playback ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-video-playback-example
+function qimsdk-cmake-build-gst-video-playback-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_video_playback_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-video-playback-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-video-transcode-example
+function qimsdk-cmake-build-gst-video-transcode-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_video_transcode_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-video-transcode-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-webrtc-sendrecv-example
+function qimsdk-cmake-build-gst-webrtc-sendrecv-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_webrtc_sendrecv_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-webrtc-sendrecv-example ${CONFIG_FLAGS}
+}
+
+# CMake Build gst-weston-composition-example
+function qimsdk-cmake-build-gst-weston-composition-example() {
+    local RECIPE_FLAGS=$(cat ${QIMSDK_CMAKE_FLAGS_JSON} | jq '.gst_weston_composition_example')
+
+    local CONFIG_FLAGS="${RECIPE_FLAGS}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/gst-sample-apps/gst-weston-composition-example ${CONFIG_FLAGS}
+}
+
 # Clean meson wayland-protocols build directory
 function qimsdk-meson-clean-wayland-protocols() {
     rm -rf ${QIMSDK_BUILD_DIR}/wayland-protocols-1.25
@@ -793,9 +1135,278 @@ function qimsdk-cmake-clean-gst-plugin-restricted-zone() {
     print-green "${FUNCNAME} completed succesfully!"
 }
 
+# Clean CMake gst-activate-deactivate-streams-runtime build directory
+function qimsdk-cmake-clean-gst-activate-deactivate-streams-runtime() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-activate-deactivate-streams-runtime
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-add-remove-streams-runtime build directory
+function qimsdk-cmake-clean-gst-add-remove-streams-runtime() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-add-remove-streams-runtime
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-add-streams-as-bundle-example build directory
+function qimsdk-cmake-clean-gst-add-streams-as-bundle-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-add-streams-as-bundle-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-ai-classification build directory
+function qimsdk-cmake-clean-gst-ai-classification() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-ai-classification
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-ai-daisychain-detection-classification build directory
+function qimsdk-cmake-clean-gst-ai-daisychain-detection-classification() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-ai-daisychain-detection-classification
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-ai-daisychain-detection-pose build directory
+function qimsdk-cmake-clean-gst-ai-daisychain-detection-pose() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-ai-daisychain-detection-pose
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-ai-monodepth build directory
+function qimsdk-cmake-clean-gst-ai-monodepth() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-ai-monodepth
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-ai-multi-input-output-object-detection build directory
+function qimsdk-cmake-clean-gst-ai-multi-input-output-object-detection() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-ai-multi-input-output-object-detection
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-ai-multistream-batch-inference build directory
+function qimsdk-cmake-clean-gst-ai-multistream-batch-inference() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-ai-multistream-batch-inference
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-ai-multistream-inference build directory
+function qimsdk-cmake-clean-gst-ai-multistream-inference() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-ai-multistream-inference
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-ai-object-detection build directory
+function qimsdk-cmake-clean-gst-ai-object-detection() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-ai-object-detection
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-ai-parallel-inference build directory
+function qimsdk-cmake-clean-gst-ai-parallel-inference() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-ai-parallel-inference
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-ai-pose-detection build directory
+function qimsdk-cmake-clean-gst-ai-pose-detection() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-ai-pose-detection
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-ai-segmentation build directory
+function qimsdk-cmake-clean-gst-ai-segmentation() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-ai-segmentation
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-ai-superresolution build directory
+function qimsdk-cmake-clean-gst-ai-superresolution() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-ai-superresolution
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-appsink-example build directory
+function qimsdk-cmake-clean-gst-appsink-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-appsink-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-audio-decode-example build directory
+function qimsdk-cmake-clean-gst-audio-decode-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-audio-decode-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-audio-encode-example build directory
+function qimsdk-cmake-clean-gst-audio-encode-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-audio-encode-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-audio-video-encode build directory
+function qimsdk-cmake-clean-gst-audio-video-encode() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-audio-video-encode
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-audio-video-playback build directory
+function qimsdk-cmake-clean-gst-audio-video-playback() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-audio-video-playback
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-camera-burst-capture-example build directory
+function qimsdk-cmake-clean-gst-camera-burst-capture-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-camera-burst-capture-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-camera-metadata-example build directory
+function qimsdk-cmake-clean-gst-camera-metadata-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-camera-metadata-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-camera-shdr-ldc-eis-example build directory
+function qimsdk-cmake-clean-gst-camera-shdr-ldc-eis-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-camera-shdr-ldc-eis-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-camera-single-stream-example build directory
+function qimsdk-cmake-clean-gst-camera-single-stream-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-camera-single-stream-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-camera-switch-example build directory
+function qimsdk-cmake-clean-gst-camera-switch-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-camera-switch-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-concurrent-videoplay-composition build directory
+function qimsdk-cmake-clean-gst-concurrent-videoplay-composition() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-concurrent-videoplay-composition
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-multi-camera-example build directory
+function qimsdk-cmake-clean-gst-multi-camera-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-multi-camera-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-multi-stream-example build directory
+function qimsdk-cmake-clean-gst-multi-stream-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-multi-stream-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-sample-apps-utils build directory
+function qimsdk-cmake-clean-gst-sample-apps-utils() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-sample-apps-utils
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-smartcodec-example build directory
+function qimsdk-cmake-clean-gst-smartcodec-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-smartcodec-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-snapshot-stream-example build directory
+function qimsdk-cmake-clean-gst-snapshot-stream-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-snapshot-stream-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-transform-example build directory
+function qimsdk-cmake-clean-gst-transform-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-transform-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-usb-single-camera-app build directory
+function qimsdk-cmake-clean-gst-usb-single-camera-app() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-usb-single-camera-app
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-videocodec-concurrent-playback build directory
+function qimsdk-cmake-clean-gst-videocodec-concurrent-playback() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-videocodec-concurrent-playback
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-video-playback-example build directory
+function qimsdk-cmake-clean-gst-video-playback-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-video-playback-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-video-transcode-example build directory
+function qimsdk-cmake-clean-gst-video-transcode-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-video-transcode-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-webrtc-sendrecv-example build directory
+function qimsdk-cmake-clean-gst-webrtc-sendrecv-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-webrtc-sendrecv-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
+# Clean CMake gst-weston-composition-example build directory
+function qimsdk-cmake-clean-gst-weston-composition-example() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-sample-apps/gst-weston-composition-example
+
+    print-green "${FUNCNAME} completed succesfully!"
+}
+
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
-            qimsdk-meson-build-gstd                                                             && \
+    # TODO:
+    # gst-camera-burst-capture-example and gst-camera-metadata-example
+    # are not added becuase they are depending on QMMF and there is no build flag to disable QMMF
+    qimsdk-meson-build-gstd                                                                     && \
             qimsdk-meson-build-wayland-protocols                                                && \
             qimsdk-meson-build-gst-plugins-good                                                 && \
             qimsdk-meson-build-gst-plugins-bad                                                  && \
@@ -826,6 +1437,42 @@ function qimsdk-incremental-build() {
             qimsdk-cmake-build-gst-plugin-voverlay                                              && \
             qimsdk-cmake-build-gst-plugin-objtracker                                            && \
             qimsdk-cmake-build-gst-plugin-restricted-zone                                       && \
+            qimsdk-cmake-build-gst-sample-apps-utils                                            && \
+            qimsdk-cmake-build-gst-activate-deactivate-streams-runtime                          && \
+            qimsdk-cmake-build-gst-add-remove-streams-runtime                                   && \
+            qimsdk-cmake-build-gst-add-streams-as-bundle-example                                && \
+            qimsdk-cmake-build-gst-ai-classification                                            && \
+            qimsdk-cmake-build-gst-ai-daisychain-detection-classification                       && \
+            qimsdk-cmake-build-gst-ai-daisychain-detection-pose                                 && \
+            qimsdk-cmake-build-gst-ai-monodepth                                                 && \
+            qimsdk-cmake-build-gst-ai-multi-input-output-object-detection                       && \
+            qimsdk-cmake-build-gst-ai-multistream-batch-inference                               && \
+            qimsdk-cmake-build-gst-ai-multistream-inference                                     && \
+            qimsdk-cmake-build-gst-ai-object-detection                                          && \
+            qimsdk-cmake-build-gst-ai-parallel-inference                                        && \
+            qimsdk-cmake-build-gst-ai-pose-detection                                            && \
+            qimsdk-cmake-build-gst-ai-segmentation                                              && \
+            qimsdk-cmake-build-gst-ai-superresolution                                           && \
+            qimsdk-cmake-build-gst-appsink-example                                              && \
+            qimsdk-cmake-build-gst-audio-decode-example                                         && \
+            qimsdk-cmake-build-gst-audio-encode-example                                         && \
+            qimsdk-cmake-build-gst-audio-video-encode                                           && \
+            qimsdk-cmake-build-gst-audio-video-playback                                         && \
+            qimsdk-cmake-build-gst-camera-shdr-ldc-eis-example                                  && \
+            qimsdk-cmake-build-gst-camera-single-stream-example                                 && \
+            qimsdk-cmake-build-gst-camera-switch-example                                        && \
+            qimsdk-cmake-build-gst-concurrent-videoplay-composition                             && \
+            qimsdk-cmake-build-gst-multi-camera-example                                         && \
+            qimsdk-cmake-build-gst-multi-stream-example                                         && \
+            qimsdk-cmake-build-gst-smartcodec-example                                           && \
+            qimsdk-cmake-build-gst-snapshot-stream-example                                      && \
+            qimsdk-cmake-build-gst-transform-example                                            && \
+            qimsdk-cmake-build-gst-usb-single-camera-app                                        && \
+            qimsdk-cmake-build-gst-videocodec-concurrent-playback                               && \
+            qimsdk-cmake-build-gst-video-playback-example                                       && \
+            qimsdk-cmake-build-gst-video-transcode-example                                      && \
+            qimsdk-cmake-build-gst-webrtc-sendrecv-example                                      && \
+            qimsdk-cmake-build-gst-weston-composition-example                                   && \
             print-green "QIMSDK GStreamer targets built successfully !!!"
 }
 

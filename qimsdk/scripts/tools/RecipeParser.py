@@ -39,6 +39,16 @@ class Parsable(ABC):
         if not os.path.exists(self.path_to_gstreamer_recipes):
             raise Exception("Gstreamer recipes path cannot be reached !!!")
 
+        self.path_to_gstreamer_sample_apps_recipes = os.path.join(
+            path_to_layers, "meta-qti-gst/recipes-gst/gstreamer-sample-apps")
+
+        if not os.path.exists(self.path_to_gstreamer_sample_apps_recipes):
+            self.path_to_gstreamer_sample_apps_recipes = os.path.join(
+                path_to_layers, "meta-qcom-qim-product-sdk/recipes-gst/gstreamer-sample-apps")
+
+        if not os.path.exists(self.path_to_gstreamer_sample_apps_recipes):
+            self.path_to_gstreamer_sample_apps_recipes = self.path_to_gstreamer_recipes
+
     def _parse_helper(self, content, suffix=".bb"):
 
         temp_file = tempfile.NamedTemporaryFile(suffix=suffix)
@@ -261,25 +271,29 @@ class RecipeParser(Parsable):
 
         self.plugin_to_content = dict()
 
-        for file in os.listdir(self.path_to_gstreamer_recipes):
+        # Combine gstreamer and gstreamer-sample-apps recipes
+        path_to_recipes = [
+            self.path_to_gstreamer_recipes + "/" + filename
+                for filename in os.listdir(self.path_to_gstreamer_recipes)
+                    if filename.endswith(".bb")
+        ] + [
+            self.path_to_gstreamer_sample_apps_recipes + "/" + filename
+                for filename in os.listdir(self.path_to_gstreamer_sample_apps_recipes)
+                    if filename.endswith(".bb")
+        ]
 
-            # Skip NON bb files
-            if not file.endswith(".bb"):
-                continue
-
-            full_path_to_bb_file = os.path.join(
-                self.path_to_gstreamer_recipes, file)
+        for file in path_to_recipes:
 
             # Read the recipe
-            with open(full_path_to_bb_file) as bb_file_content:
-                self.plugin_to_content[file] = bb_file_content.read()
+            with open(file) as bb_file_content:
+                self.plugin_to_content[os.path.basename(file)] = bb_file_content.read()
 
             # Set BBPATH as {path_to_layers}/poky/meta
             # to be able to inherit cmake or pkgconfig
-            self.plugin_to_content[file] =                                                         \
+            self.plugin_to_content[os.path.basename(file)] =                                       \
                 f"BBPATH = \"{path_to_layers}/poky/meta\"\n"                                       \
                 +                                                                                  \
-                self.plugin_to_content[file]
+                self.plugin_to_content[os.path.basename(file)]
 
         self.plugin_to_cmake_flags = dict()
 
