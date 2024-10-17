@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 
 
 class Parsable(ABC):
-    def __init__(self, path_to_layers: pathlib.Path) -> None:
+    def __init__(self, path_to_layers: pathlib.Path, path_to_meta: pathlib.Path) -> None:
         # Append bitbake library path to the system path
         # to be able to import Non-standart modules
         # aka bb modules from eSDK
@@ -30,21 +30,13 @@ class Parsable(ABC):
         import bb.parse
 
         self.path_to_gstreamer_recipes = os.path.join(
-            path_to_layers, "meta-qti-gst/recipes-gst/gstreamer")
-
-        if not os.path.exists(self.path_to_gstreamer_recipes):
-            self.path_to_gstreamer_recipes = os.path.join(
-                path_to_layers, "meta-qcom-qim-product-sdk/recipes-gst/gstreamer")
+            path_to_meta, "recipes-gst/gstreamer")
 
         if not os.path.exists(self.path_to_gstreamer_recipes):
             raise Exception("Gstreamer recipes path cannot be reached !!!")
 
         self.path_to_gstreamer_sample_apps_recipes = os.path.join(
-            path_to_layers, "meta-qti-gst/recipes-gst/gstreamer-sample-apps")
-
-        if not os.path.exists(self.path_to_gstreamer_sample_apps_recipes):
-            self.path_to_gstreamer_sample_apps_recipes = os.path.join(
-                path_to_layers, "meta-qcom-qim-product-sdk/recipes-gst/gstreamer-sample-apps")
+            path_to_meta, "recipes-gst/gstreamer-sample-apps")
 
         if not os.path.exists(self.path_to_gstreamer_sample_apps_recipes):
             self.path_to_gstreamer_sample_apps_recipes = self.path_to_gstreamer_recipes
@@ -83,9 +75,10 @@ class BBPatchParser(Parsable):
 
             self.title = str()
 
-    def __init__(self, path_to_layers: pathlib.Path, platform: str) -> None:
+    def __init__(self, path_to_layers: pathlib.Path, path_to_meta: pathlib.Path,
+                platform: pathlib.Path) -> None:
 
-        super().__init__(path_to_layers)
+        super().__init__(path_to_layers, path_to_meta)
 
         self.platform = platform
 
@@ -264,8 +257,9 @@ class RecipeParser(Parsable):
 
     # Init of RecipeParser
     # Reads the recipes and buffers them in dictionary (plugin : content)
-    def __init__(self, path_to_layers: pathlib.Path, platform: str) -> None:
-        super().__init__(path_to_layers)
+    def __init__(self, path_to_layers: pathlib.Path, path_to_meta: pathlib.Path,
+                platform: pathlib.Path) -> None:
+        super().__init__(path_to_layers, path_to_meta)
 
         self.platform = platform
 
@@ -381,6 +375,9 @@ def parse_arguments() -> str:
     parser.add_argument("-l", "--layers", dest="path_to_layers", required=True,
                         help="Path to layers directory of eSDK")
 
+    parser.add_argument("-m", "--meta", dest="path_to_meta", required=True,
+                        help="Path to meta layer of qimsdk")
+
     parser.add_argument("-p", "--platform", dest="platform", required=False,
                         help="Platform e.g. qcm6490, qcs9100")
 
@@ -404,6 +401,7 @@ def main():
 
     parser = parser_map[args.action](
         args.path_to_layers,
+        args.path_to_meta,
         args.platform
     )
 
