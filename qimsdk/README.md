@@ -44,7 +44,27 @@ Prerequisite packages must be installed on the host (one time)
 
 ```bash
 sudo apt install -y jq tofrodos qemu-user-static qemu-system-arm
+sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+sudo chmod +x /usr/bin/yq
 ```
+
+<h3 style="color:red">
+  <b>Do NOT install yq via snap</b>
+</h3>
+
+If this happened then remove it:
+
+```bash
+sudo snap remove yq
+```
+
+And then stop the snapd service
+```bash
+sudo systemctl stop snapd
+```
+
+Goto [Ubuntu Packages](#Ubuntu_Packages) and try to install yq with the instructions mentioned in Ubuntu Packages
+
 
 <div id="Max_user_watches">
 
@@ -210,8 +230,9 @@ The json file must contain certain data :
  6. ***OPTIONAL*** -  **Default_target** - Default platform
  7. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
  8. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
- 7. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
- 9. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
+ 9. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
+ 10. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
+ 11. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
 
 <div id="Docker_Host_Side_Helper_Scripts">
 
@@ -257,12 +278,15 @@ source scripts/docker_env_setup.sh
  - qimsdk-dev-docker-run-container     \<path-to-config-json> - Run development container
  - qimsdk-dev-send-artifacts-to-device \<path-to-config-json> - Extract artifacts from Development container and send them to the device
  - qimsdk-dev-save-artifacts           \<path-to-config-json> - Save artifacts to specified Docker_image_path in configuration json file
+ - qimsdk-dev-save-artifacts-dbg       \<path-to-config-json> - Save debug artifacts to specified Docker_image_path in configuration json file
  - qimsdk-dev-load-artifacts           \<path-to-config-json> - Load artifacts from specified Docker_image_path in configuration json file and install them to the device. They are installed in a shared directory between device and device container
+ - qimsdk-dev-load-artifacts-dbg       \<path-to-config-json> - Load debug artifacts from specified Docker_image_path in configuration json file and install them to the device. They are installed in a shared directory between device and device container
 
 These functions are available immediately inside development container:
 
  - qimsdk-incremental-build - Incremental build of gst plugins
  - qimsdk-dev-save-artifacts - Save artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment.
+ - qimsdk-dev-save-artifacts-dbg - Save artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment.
 
 <div id="Development_Workflow">
 
