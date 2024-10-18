@@ -664,30 +664,63 @@ function qimsdk-meson-clean-<Project-Directory-Name>() {
       ```
     </ul>
 
-    <div name="qnp"> QNP
-      <ul>
-      <div style="color:#90EE90">DIR: QNP directory</div>
+    <div name="python">RecipeParser
+      <div style="color:#6495ED">Take advantage of RecipeParser.py</div>
+      <div style="color:#6495ED">Please note that supported targets are qcm6490 and qcs9100</div>
 
-      ```bash
-      wget https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/v2.24.0.240626.zip
-      cd <path/to/unzipped/qnp/qairt/2.24.0.240626/include/>
-      rsync -a QNN <current/docker/dir>/tmp/
-      rsync -a SNPE <current/docker/dir>/tmp/
-      ```
+      <ul>
+      <div style="color:#90EE90">BBPatchParser</div>
+      <div style="color:#6495ED">
+        Generates a json file with content of patches for every open source project.
+        List of git changes that need to be applied is generated in corresponding correct sequence.
+      </div>
+
+        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
+                -l <path/to/unarchived/eSDK/directory>/layers                                      \
+                -m <path/to/unarchived/eSDK/directory>/layers/meta-qti-gst                         \
+                -p <target>                                                                        \
+                -t <current/docker/dir>/tmp/                                                       \
+                BBPatchParser
+
+        mv <current/docker/dir>/tmp/<target>_recipes_patches.json <current/docker/dir>/tmp/recipes_patches.json
       </ul>
+
+      <ul>
+      <div style="color:#90EE90">RecipeParser</div>
+      <div style="color:#6495ED">
+        Generates a json file with content of cmake flags for every gstreamer plugin.
+      </div>
+
+        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
+                -l <path/to/unarchived/eSDK/directory>/layers/                                     \
+                -m <path/to/unarchived/eSDK/directory>/layers/meta-qti-gst                         \
+                -p <target>                                                                        \
+                -t <current/docker/dir>/tmp/                                                       \
+                RecipeParser
+      </ul>
+
     </div>
 
 ### Docker Build
 
+  <div name="qnp"> QNP
+  <ul>
+  <div style="color:#90EE90">QNP version</div>
+    QNP Version is set in Dockerfile as
+
+    ENV QIMSDK_QNP_SDK=v2.24.0.240626.zip
+
+  but it can be modified as
+
+    ENV QIMSDK_QNP_SDK=v<major version>.<minor version>.<patch version>.<YY><MM><DD>.zip
+
+  in Dockerfile
+
+  </ul>
+  </div>
+
   <div name="docker_build">Dockerfile arguments have default values, but they can be customised using **--build-arg** flag in docker build command, like so:</div>
   <ul>
-  <div style="color:#00FF7F">Variant GitLab</div>
-
-  ```bash
-  DOCKER_BUILDKIT=1 docker build                                                                   \
-      --build-arg QIMSDK_ARG_BASE_DIR=/mnt/work                                                    \
-      --progress=plain --target QIMSDK_device_image <path/to/Dockerfile/directory> -t <generated-image-name>
-  ```
   <div style="color:#FF4500">Variant Host</div>
 
   ```bash
