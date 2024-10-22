@@ -887,6 +887,7 @@ docker run -it -d --user qimsdk                                                 
 -v /usr/lib/rfsa/adsp/libfastcvadsp.so:/usr/lib/rfsa/adsp/libfastcvadsp.so                         \
 -v /usr/lib/libfastcvdsp_stub.so:/usr/lib/libfastcvdsp_stub.so                                     \
 -v /usr/lib/libdmabufheap.so.0.0.0:/usr/lib/libdmabufheap.so.0.0.0                                 \
+-v /var/run/pulse/native:/var/run/pulse/native                                                     \
 -h qimsdk-<container-name> --name qimsdk-<container-name> qimsdk-<image-name>
 ```
 

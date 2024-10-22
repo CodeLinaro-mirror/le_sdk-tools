@@ -110,6 +110,7 @@
         "/usr/lib/dsp/cdsp1/libc++.so.1",
         "/usr/lib/dsp/cdsp1/libc++abi.so.1",
         "/usr/lib/dsp/cdsp1/fastrpc_shell_unsigned_4",
+        "/var/run/pulse/native",
         "/opt/data"
     ],
 

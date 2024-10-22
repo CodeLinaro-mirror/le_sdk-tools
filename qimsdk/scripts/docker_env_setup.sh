@@ -204,6 +204,15 @@ function qimsdk-dev-docker-build-image() {
         return -4
     }
 
+    local PATH_TO_PULSEAUDIO_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
+        `poky/meta/recipes-multimedia/pulseaudio/pulseaudio/"
+
+    [ ! -d ${PATH_TO_PULSEAUDIO_PATCHES} ] && {
+        print-red "pulseaudio's patches NOT found !!!"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+        return -1
+    }
+
     local TARGET=$(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-armv8-2a-qcom-linux |          \
             grep "SDKTARGETSYSROOT=" | rev | cut -d '/' -f 1 | rev)
     pushd ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots/${TARGET}/ 1>/dev/null || {
@@ -255,6 +264,13 @@ function qimsdk-dev-docker-build-image() {
 
     rsync -a ${PATH_TO_GST_PLUGINS_GOOD_PATCHES}/*.patch                                           \
             ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.20.7/                               && \
+
+    rsync -a ${QIMSDK_PATH_TO_eSDK_DIR}/layers/meta-qti-pulseaudio-plugins/recipes-multimedia/`
+            `audio/pulseaudio/*.patch                                                              \
+            ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                            && \
+
+    rsync -a ${PATH_TO_PULSEAUDIO_PATCHES}/*.patch                                                 \
+            ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                            && \
 
     rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
             ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.25/                                && \
@@ -428,6 +444,15 @@ function qimsdk-docker-build-image() {
         return -4
     }
 
+    local PATH_TO_PULSEAUDIO_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
+        `poky/meta/recipes-multimedia/pulseaudio/pulseaudio/"
+
+    [ ! -d ${PATH_TO_PULSEAUDIO_PATCHES} ] && {
+        print-red "pulseaudio's patches NOT found !!!"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+        return -1
+    }
+
     local TARGET=$(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-armv8-2a-qcom-linux |          \
             grep "SDKTARGETSYSROOT=" | rev | cut -d '/' -f 1 | rev)
     pushd ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots/${TARGET}/ 1>/dev/null || {
@@ -479,6 +504,13 @@ function qimsdk-docker-build-image() {
 
     rsync -a ${PATH_TO_GST_PLUGINS_GOOD_PATCHES}/*.patch                                           \
             ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.20.7/                               && \
+
+    rsync -a ${QIMSDK_PATH_TO_eSDK_DIR}/layers/meta-qti-pulseaudio-plugins/recipes-multimedia/`
+            `audio/pulseaudio/*.patch                                                              \
+            ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                            && \
+
+    rsync -a ${PATH_TO_PULSEAUDIO_PATCHES}/*.patch                                                 \
+            ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                            && \
 
     rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
             ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.25/                                && \

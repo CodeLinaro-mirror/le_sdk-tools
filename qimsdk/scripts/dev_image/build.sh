@@ -147,6 +147,9 @@ function qimsdk-meson-install() {
                 tee "${QIMSDK_LOGS_DIR}/meson_install_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S")`
                 `_dbg.log"                                                                      && \
         meson install --destdir ${DESTINATION} --strip                                            |&
+                tee "${QIMSDK_LOGS_DIR}/meson_install_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"  \
+                                                                                                && \
+        meson install --destdir "/" --strip                                                       |&
                 tee "${QIMSDK_LOGS_DIR}/meson_install_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
     ) || {
         print-red "FAILED: qimsdk-meson-install-${TARGET}: meson install failed !!!"
@@ -253,6 +256,28 @@ qimsdk-meson-build-gstd() {
     qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gstd-1.x ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
+# Meson build pulseaudio
+qimsdk-meson-build-pulseaudio() {
+    local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
+            --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
+            --includedir include --mandir share/man --infodir share/info --sysconfdir /etc         \
+            --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                      \
+            -Dhal-compat=false                                                                     \
+            -Dorc=disabled                                                                         \
+            -Daccess_group=audio                                                                   \
+            -Dopenssl=disabled                                                                     \
+            -Ddatabase=simple                                                                      \
+            -Dzshcompletiondir=no                                                                  \
+            -Dudevrulesdir=`pkg-config --variable=udevdir udev`/rules.d                            \
+            -Dvalgrind=disabled                                                                    \
+            -Dtests=false                                                                          \
+            -Drunning-from-build-tree=false"
+
+    local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
+
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-15.0 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+}
+
 # Meson build gst-plugins-good-1.20.7
 qimsdk-meson-build-gst-plugins-good() {
     local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
@@ -342,9 +367,17 @@ function qimsdk-meson-clean-gstd() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
+# Clean meson pulseaudio build directory
+function qimsdk-meson-clean-pulseaudio() {
+    rm -rf ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-15.0
+
+    print-green "${FUNCNAME} completed successfully!"
+}
+
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
     qimsdk-meson-build-gstd                                                                     && \
+            qimsdk-meson-build-pulseaudio                                                       && \
             qimsdk-meson-build-wayland-protocols                                                && \
             qimsdk-meson-build-gst-plugins-good                                                 && \
             qimsdk-meson-build-gst-plugins-bad                                                  && \
