@@ -148,6 +148,16 @@ function qimsdk-dev-docker-build-image() {
         return ${rc}
     }
 
+    [[ "${DOCKER_IMAGE_PATH}" != *":"* ]] && [ ! -d "${DOCKER_IMAGE_PATH}" ]                    && {
+        mkdir -p ${DOCKER_IMAGE_PATH}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: mkdir -p ${DOCKER_IMAGE_PATH} !!!"
+            return ${rc}
+        }
+    }
+
     local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
     mkdir -p ${QIMSDK_TMP_FOLDER}
 
@@ -676,6 +686,16 @@ function qimsdk-docker-device-save-image() {
         return ${rc}
     }
 
+    [[ "${DOCKER_IMAGE_PATH}" != *":"* ]] && [ ! -d "${DOCKER_IMAGE_PATH}" ]                    && {
+        mkdir -p ${DOCKER_IMAGE_PATH}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: mkdir -p ${DOCKER_IMAGE_PATH} !!!"
+            return ${rc}
+        }
+    }
+
     qimsdk-get-platform-specific-mapping ${PATH_TO_CONFIG_JSON} PLATFORM_SPECIFIC_MAP
 
     rc=$?
@@ -796,6 +816,16 @@ function qimsdk-docker-device-load-image() {
     [ ${rc} -ne 0 ] && {
         print-red "FAILED: qimsdk-get-docker-image-path !!!"
         return ${rc}
+    }
+
+    [[ "${DOCKER_IMAGE_PATH}" != *":"* ]] && [ ! -d "${DOCKER_IMAGE_PATH}" ]                    && {
+        mkdir -p ${DOCKER_IMAGE_PATH}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: mkdir -p ${DOCKER_IMAGE_PATH} !!!"
+            return ${rc}
+        }
     }
 
     qimsdk-get-device-id ${PATH_TO_CONFIG_JSON} QIMSDK_DEVICE_ID
@@ -1409,6 +1439,16 @@ function qimsdk-dev-save-artifacts-variant() {
         return ${rc}
     }
 
+    [[ "${DOCKER_IMAGE_PATH}" != *":"* ]] && [ ! -d "${DOCKER_IMAGE_PATH}" ]                    && {
+        mkdir -p ${DOCKER_IMAGE_PATH}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: mkdir -p ${DOCKER_IMAGE_PATH} !!!"
+            return ${rc}
+        }
+    }
+
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME
@@ -1479,6 +1519,16 @@ function qimsdk-dev-load-artifacts-variant() {
     [ ${rc} -ne 0 ] && {
         print-red "FAILED: qimsdk-get-docker-image-path !!!"
         return ${rc}
+    }
+
+    [[ "${DOCKER_IMAGE_PATH}" != *":"* ]] && [ ! -d "${DOCKER_IMAGE_PATH}" ]                    && {
+        mkdir -p ${DOCKER_IMAGE_PATH}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: mkdir -p ${DOCKER_IMAGE_PATH} !!!"
+            return ${rc}
+        }
     }
 
     qimsdk-get-device-id ${PATH_TO_CONFIG_JSON} QIMSDK_DEVICE_ID
