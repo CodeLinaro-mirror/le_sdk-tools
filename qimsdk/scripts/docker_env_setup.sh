@@ -9,18 +9,20 @@
 #   $3 - (mandatory) variable to take image name value
 #   $4 - (mandatory) variable to take Gstreamer sources of SP
 #   $5 - (mandatory) variable to take Gstreamer meta of SP
-#   $6 - (mandatory) variable to take path to eSDK
-#   $7 - (mandatory) variable to take supported targets
-#   $8 - (mandatory) variable to take default target
+#   $6 - (mandatory) variable to take path to microservices
+#   $7 - (mandatory) variable to take path to eSDK
+#   $8 - (mandatory) variable to take supported targets
+#   $9 - (mandatory) variable to take default target
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
     local -n OUT_QIMSDK_IMAGE_NAME=${3}
     local -n OUT_QIMSDK_GST_SOURCES=${4}
     local -n OUT_QIMSDK_GST_META=${5}
-    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${6}
-    local -n OUT_QIMSDK_SUPPORTED_TARGETS=${7}
-    local -n OUT_QIMSDK_DEFAULT_TARGET=${8}
+    local -n OUT_QIMSDK_PATH_MICROSERVICES=${6}
+    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${7}
+    local -n OUT_QIMSDK_SUPPORTED_TARGETS=${8}
+    local -n OUT_QIMSDK_DEFAULT_TARGET=${9}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -52,20 +54,32 @@ function qimsdk-docker-parse-json() {
 
     [ -d "${OUT_QIMSDK_GST_SOURCES}/.git" ]                                                     || \
             [ -d "${OUT_QIMSDK_GST_SOURCES}/gst-plugin-base" ]                                  || {
-                print-red "Please provide path to gst-plugins-qti-oss directory in config json!!!"
-                print-red "Directory currently provided: ${OUT_QIMSDK_GST_SOURCES}"
-                return -3
-            }
+        print-red "Please provide path to gst-plugins-qti-oss directory in config json!!!"
+        print-red "Directory currently provided: ${OUT_QIMSDK_GST_SOURCES}"
+        return -3
+    }
 
     OUT_QIMSDK_GST_META=$(echo ${JSON_CONTENT} | jq '.IM_SDK_Meta_Dir' | tr -d '"')
     OUT_QIMSDK_GST_META=${OUT_QIMSDK_GST_META%/}
 
     [ -d "${OUT_QIMSDK_GST_META}/.git" ]                                                        || \
             [ -d "${OUT_QIMSDK_GST_META}/recipes-gst/gstreamer" ]                               || {
-                print-red "Please provide path to meta-qti-gst directory in config json!!!"
-                print-red "Directory currently provided: ${IM_SDK_Meta_Dir}"
-                return -4
-            }
+        print-red "Please provide path to meta-qti-gst directory in config json!!!"
+        print-red "Directory currently provided: ${IM_SDK_Meta_Dir}"
+        return -4
+    }
+
+    OUT_QIMSDK_PATH_MICROSERVICES=$(
+        echo ${JSON_CONTENT} | jq '.Solution_Microservices_Dir' | tr -d '"'
+    )
+    OUT_QIMSDK_PATH_MICROSERVICES=${OUT_QIMSDK_PATH_MICROSERVICES%/}
+
+    [ -d "${OUT_QIMSDK_PATH_MICROSERVICES}/.git" ]                                              || \
+            [ -d "${OUT_QIMSDK_PATH_MICROSERVICES}/ai" ]                                        || {
+        print-red "Please provide path to solutions-microservices directory in config json!!!"
+        print-red "Directory currently provided: ${Solution_Microservices_Dir}"
+        return -4
+    }
 
     OUT_QIMSDK_PATH_TO_eSDK_DIR=$(
         echo ${JSON_CONTENT} | jq '.Path_to_eSDK_dir' | tr -d '"'
@@ -104,6 +118,7 @@ function qimsdk-dev-docker-build-image() {
     local QIMSDK_IMAGE_NAME
     local QIMSDK_GST_SOURCES
     local QIMSDK_GST_META
+    local QIMSDK_PATH_MICROSERVICES
     local QIMSDK_PATH_TO_eSDK_DIR
     local QIMSDK_SUPPORTED_TARGETS
     local QIMSDK_DEFAULT_TARGET
@@ -114,6 +129,7 @@ function qimsdk-dev-docker-build-image() {
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_GST_SOURCES                                                                     \
             QIMSDK_GST_META                                                                        \
+            QIMSDK_PATH_MICROSERVICES                                                              \
             QIMSDK_PATH_TO_eSDK_DIR                                                                \
             QIMSDK_SUPPORTED_TARGETS                                                               \
             QIMSDK_DEFAULT_TARGET
@@ -292,6 +308,8 @@ function qimsdk-dev-docker-build-image() {
     mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_DEFAULT_TARGET}_recipes_patches.json                          \
         ${QIMSDK_TMP_FOLDER}/recipes_patches.json
 
+    rsync -a ${QIMSDK_PATH_MICROSERVICES} ${QIMSDK_TMP_FOLDER}/
+
     local QIMSDK_BASE_DIR="/mnt/work"
 
     DOCKER_BUILDKIT=1 docker build                                                                 \
@@ -322,6 +340,7 @@ function qimsdk-docker-build-image() {
     local QIMSDK_IMAGE_NAME
     local QIMSDK_GST_SOURCES
     local QIMSDK_GST_META
+    local QIMSDK_PATH_MICROSERVICES
     local QIMSDK_SUPPORTED_TARGETS
     local QIMSDK_DEFAULT_TARGET
     local QIMSDK_PATH_TO_eSDK_DIR
@@ -331,6 +350,7 @@ function qimsdk-docker-build-image() {
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_GST_SOURCES                                                                     \
             QIMSDK_GST_META                                                                        \
+            QIMSDK_PATH_MICROSERVICES                                                              \
             QIMSDK_PATH_TO_eSDK_DIR                                                                \
             QIMSDK_SUPPORTED_TARGETS                                                               \
             QIMSDK_DEFAULT_TARGET
@@ -505,6 +525,8 @@ function qimsdk-docker-build-image() {
     mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_DEFAULT_TARGET}_recipes_patches.json                          \
         ${QIMSDK_TMP_FOLDER}/recipes_patches.json
 
+    rsync -a ${QIMSDK_PATH_MICROSERVICES} ${QIMSDK_TMP_FOLDER}/
+
     local QIMSDK_BASE_DIR="/mnt/work"
 
     DOCKER_BUILDKIT=1 docker build                                                                 \
@@ -634,6 +656,7 @@ function qimsdk-docker-device-save-image() {
     local DOCKER_IMAGE_PATH
     local PLATFORM_SPECIFIC_MAP
     local PLATFORM_LIBS_TO_MOUNT
+    local EXPORTS
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -669,6 +692,15 @@ function qimsdk-docker-device-save-image() {
         return ${rc}
     }
 
+    qimsdk-get-variables-to-export ${PATH_TO_CONFIG_JSON}                                          \
+            EXPORTS
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-variables-to-export !!!"
+        return ${rc}
+    }
+
     local FILE_NAME="${QIMSDK_IMAGE_NAME}.tar"
 
     local COMMON_PATH=""
@@ -701,7 +733,7 @@ function qimsdk-docker-device-save-image() {
 
     local CONFIG_NAME=$(basename -- ${PATH_TO_CONFIG_JSON} | cut -d '.' -f 1)
 
-    echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT}                     \
+    echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT} ${EXPORTS}          \
                 -h ${QIMSDK_CONTAINER_NAME} --user qimsdk --name ${QIMSDK_CONTAINER_NAME}          \
                 ${QIMSDK_IMAGE_NAME}" > ${COMMON_PATH}/docker_run_${CONFIG_NAME}.sh
 

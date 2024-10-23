@@ -227,13 +227,14 @@ The json file must contain certain data :
  3. ***OPTIONAL*** - **Docker_image_path** - Remote ssh destination or local path to sync docker images or artifacts
  4. ***MANDATORY*** -  **Target_device_ID** - adb devices command ID of the device.
  5. ***MANDATORY;*** -  **Supported_targets** - Supported platforms
- 6. ***OPTIONAL*** -  **Default_target** - Default platform
+ 6. ***MANDATORY*** -  **Default_target** - Default platform
  7. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
  8. ***MANDATORY*** - **IM_SDK_Meta_Dir** - PATH to meta IM SDK directory, which contains recipes for all gst plugins. ***Note: Path provided must point to meta-qti-gst directory!***
- 9. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
- 10. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
- 11. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
- 12. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
+ 9. ***MANDATORY*** - **Solution_Microservices_Dir** - PATH to solutions-microservices directory, which contains all qimsdk microservices shell scripts. ***Note: Path provided must point to solutions-microservices directory!***
+ 10. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
+ 11. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
+ 12. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
+ 13. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
 
 <div id="Docker_Host_Side_Helper_Scripts">
 
