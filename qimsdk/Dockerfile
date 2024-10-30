@@ -485,6 +485,9 @@ COPY --from=qimsdk_dev_image --chmod=755                                        
 COPY --from=qimsdk_dev_image --chmod=755                                                           \
         ${QIMSDK_BASE_DIR}/src/solutions-microservices/pipelines/rz/qimsdk_restricted_zone.sh             \
         /usr/bin/
+COPY --from=qimsdk_dev_image --chmod=755                                                           \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/pipelines/fire-smoke-detect/qimsdk_fire_smoke_detect.sh  \
+        /usr/bin/
 
 # Add json file with content of runtime flags
 ENV QIMSDK_RUNTIME_FLAGS_DIR=/opt/qti/runtime_flags/
