@@ -718,9 +718,6 @@ function qimsdk-docker-device-save-image() {
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local DOCKER_IMAGE_PATH
-    local PLATFORM_SPECIFIC_MAP
-    local PLATFORM_LIBS_TO_MOUNT
-    local EXPORTS
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -748,31 +745,6 @@ function qimsdk-docker-device-save-image() {
             print-red "FAILED: mkdir -p ${DOCKER_IMAGE_PATH} !!!"
             return ${rc}
         }
-    }
-
-    qimsdk-get-platform-specific-mapping ${PATH_TO_CONFIG_JSON} PLATFORM_SPECIFIC_MAP
-
-    rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "FAILED: qimsdk-get-platform-specific-mapping  !!!"
-        return ${rc}
-    }
-
-    qimsdk-get-platform-libs-to-mount ${PATH_TO_CONFIG_JSON} PLATFORM_LIBS_TO_MOUNT
-
-    rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "FAILED: qimsdk-get-platform-specific-mapping  !!!"
-        return ${rc}
-    }
-
-    qimsdk-get-variables-to-export ${PATH_TO_CONFIG_JSON}                                          \
-            EXPORTS
-
-    rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "FAILED: qimsdk-get-variables-to-export !!!"
-        return ${rc}
     }
 
     local FILE_NAME="${QIMSDK_IMAGE_NAME}.tar"
@@ -805,42 +777,62 @@ function qimsdk-docker-device-save-image() {
         return ${rc}
     }
 
-    local CONFIG_NAME=$(basename -- ${PATH_TO_CONFIG_JSON} | cut -d '.' -f 1)
+    local PLATFORMS=(
+        $(cat ${PATH_TO_CONFIG_JSON} | jq '.Supported_targets[]' | tr -d '"')
+    )
 
-    echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT} ${EXPORTS}          \
-                -h ${QIMSDK_CONTAINER_NAME} --user qimsdk --name ${QIMSDK_CONTAINER_NAME}          \
-                ${QIMSDK_IMAGE_NAME}" > ${COMMON_PATH}/docker_run_${CONFIG_NAME}.sh
+    for SUFFIX_NAME in ${PLATFORMS[@]}; do
+        local CONFIG_JSON="${QIMSDK_DOCKER_DIR}/targets/config_${SUFFIX_NAME}.json"
 
-    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run_${CONFIG_NAME}.sh ${DOCKER_IMAGE_PATH}
+        qimsdk-generate-docker-run-cmd ${CONFIG_JSON}                                              \
+                ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                                        \
+                ${QIMSDK_CONTAINER_NAME}                                                           \
+                ${QIMSDK_IMAGE_NAME}
 
-    rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-        rm -f ${COMMON_PATH}/docker_run_${CONFIG_NAME}.sh
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "Generate ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh file failed !!!"
+            rm -f ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh
 
-        return ${rc}
-    }
+            return ${rc}
+        }
 
-    qimsdk-generate-docker-compose-yaml ${PATH_TO_CONFIG_JSON}                                     \
-            ${COMMON_PATH}/docker-compose-${CONFIG_NAME}.yml
-    rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "Generate qimsk docker compose file failed !!!"
-        rm -f ${COMMON_PATH}/docker-compose-${CONFIG_NAME}.yml
+        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                \
+                ${DOCKER_IMAGE_PATH}
 
-        return ${rc}
-    }
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+            rm -f ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh
 
-    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-compose-${CONFIG_NAME}.yml               \
+            return ${rc}
+        }
+
+        qimsdk-generate-docker-compose-yaml ${CONFIG_JSON}                                         \
+                ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml                                   \
+                ${QIMSDK_CONTAINER_NAME}                                                           \
+                ${QIMSDK_IMAGE_NAME}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "Generate qimsk docker compose file failed !!!"
+            rm -f ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml
+
+            return ${rc}
+        }
+
+        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml           \
             ${DOCKER_IMAGE_PATH}
 
-    rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-        rm -f ${COMMON_PATH}/docker-compose-${CONFIG_NAME}.yml
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+            rm -f ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml
 
-        return ${rc}
-    }
+            return ${rc}
+        }
+
+    done
 
     return 0
 }
@@ -1125,45 +1117,63 @@ function qimsdk-docker-device-run-container() {
         return ${rc}
     }
 
-    qimsdk-get-platform-specific-mapping ${PATH_TO_CONFIG_JSON} PLATFORM_SPECIFIC_MAP
-
-    rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "FAILED: qimsdk-get-platform-specific-mapping  !!!"
-        return ${rc}
-    }
-
-    qimsdk-get-platform-libs-to-mount ${PATH_TO_CONFIG_JSON} PLATFORM_LIBS_TO_MOUNT
-
-    rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "FAILED: qimsdk-get-platform-specific-mapping  !!!"
-        return ${rc}
-    }
-
-    qimsdk-get-variables-to-export ${PATH_TO_CONFIG_JSON}                                          \
-            EXPORTS
-
-    rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "FAILED: qimsdk-get-variables-to-export !!!"
-        return ${rc}
-    }
     (
+        local PLATFORMS=(
+            $(cat ${PATH_TO_CONFIG_JSON} | jq '.Supported_targets[]' | tr -d '"')
+        )
 
-        echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT} ${EXPORTS}      \
-                -h ${QIMSDK_CONTAINER_NAME} --user qimsdk --name ${QIMSDK_CONTAINER_NAME}          \
-                ${QIMSDK_IMAGE_NAME}" > /tmp/docker_run.sh
+        for SUFFIX_NAME in ${PLATFORMS[@]}; do
+            local CONFIG_JSON="${QIMSDK_DOCKER_DIR}/targets/config_${SUFFIX_NAME}.json"
+
+            qimsdk-generate-docker-run-cmd ${CONFIG_JSON}                                          \
+                    /tmp/docker_run_${SUFFIX_NAME}.sh                                              \
+                    ${QIMSDK_CONTAINER_NAME}                                                       \
+                    ${QIMSDK_IMAGE_NAME}
+
+            rc=$?
+            [ ${rc} -ne 0 ] && {
+                print-red "Generate /tmp/docker_run_${SUFFIX_NAME}.sh file failed !!!"
+                rm -f /tmp/docker_run_${SUFFIX_NAME}.sh
+
+                return ${rc}
+            }
+        done
+
         export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
-        adb push /tmp/docker_run.sh /tmp/
-        qimsdk-device-command "source /tmp/docker_run.sh" || {
-            rm -rf /tmp/docker_run.sh
-            qimsdk-device-command "rm -rf /tmp/docker_run.sh"
-            echo "qimsdk-docker-device-run-container failed !!!"
+
+        adb pull /sys/devices/soc0/machine /tmp/.
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: adb pull /sys/devices/soc0/machine  !!!"
+            return ${rc}
+        }
+
+        local MACHINE=$(cat /tmp/machine)
+
+        rm /tmp/machine
+
+        local TARGET_PLATFORM=""
+
+        [[ "${MACHINE}" == "SA8775P" ]] && {
+            TARGET_PLATFORM="qcs9100"
+        } || [[ "${MACHINE}" == "QCS6490" ]] && {
+            TARGET_PLATFORM="qcm6490"
+        } || {
+            print-red "Unsuported target ${MACHINE} !!!"
             return -1
         }
-        rm -rf /tmp/docker_run.sh
-        qimsdk-device-command "rm -rf /tmp/docker_run.sh"
+
+        adb push /tmp/docker_run_${TARGET_PLATFORM}.sh /tmp/
+        qimsdk-device-command "source /tmp/docker_run_${TARGET_PLATFORM}.sh"                    || {
+            rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh
+            qimsdk-device-command "rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh"
+            echo "qimsdk-docker-device-run-container failed !!!"
+            return -2
+        }
+
+        rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh
+        qimsdk-device-command "rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh"
     )
 
     rc=$?
