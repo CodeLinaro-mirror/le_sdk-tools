@@ -366,8 +366,6 @@ class BuildCodeGenerator(RecipeParser):
 
             bb.data.expandKeys(bb_parsed)
 
-            bb_parsed.setVar("OVERRIDES", self.platform)
-
             plugins += bb_parsed.getVar("RDEPENDS:${PN}")
 
         blacklisted = [
@@ -455,7 +453,10 @@ class BuildCodeGenerator(RecipeParser):
     # Export to shell method of BuildCodeGenerator
     def export(self, path_to_tmp: pathlib.Path):
 
-        path_to_sh = os.path.join(path_to_tmp, "build_plugins.sh")
+        path_to_sh = os.path.join(
+            path_to_tmp, f"{self.platform}_build_plugins.sh"
+        )
+
         with open(path_to_sh, "w") as build_plugins_sh:
             build_plugins_sh.write("""#!/bin/bash
 

@@ -202,15 +202,21 @@ function qimsdk-dev-docker-build-image() {
     [ ! -d ${PATH_TO_PULSEAUDIO_PATCHES} ] && {
         print-red "pulseaudio's patches NOT found !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -1
+        return -5
     }
 
-    local TARGET=$(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-armv8-2a-qcom-linux |          \
-            grep "SDKTARGETSYSROOT=" | rev | cut -d '/' -f 1 | rev)
-    pushd ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots/${TARGET}/ 1>/dev/null || {
+    local TARGET_SYSROOT=$(find ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots -name fastcv.h | head -n 1)
+    TARGET_SYSROOT=${TARGET_SYSROOT%"/usr/include/fastcv/fastcv.h"}
+
+    [ -d "${TARGET_SYSROOT}" ]                                                                  || {
+        print-red "Could not find target sysroot in ${QIMSDK_PATH_TO_eSDK_DIR}"
+        return -6
+    }
+
+    pushd ${TARGET_SYSROOT} 1>/dev/null || {
         print-red "FAILED: pushd to Path_to_eSDK_dir"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -5
+        return -7
     }
 
         mkdir -p "${QIMSDK_TMP_FOLDER}/`
@@ -233,7 +239,7 @@ function qimsdk-dev-docker-build-image() {
             echo "Cannot get headers from eSDK !!!"
             popd 1>/dev/null
             rm -rf ${QIMSDK_TMP_FOLDER}
-            return -6
+            return -8
         }
 
     popd 1>/dev/null                                                                            && \
@@ -271,20 +277,7 @@ function qimsdk-dev-docker-build-image() {
             ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                  || {
         print-red "Cannot get patches from eSDK !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -7
-    }
-
-    local PLATFORM=$(basename -- $(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-* | grep -m 1 -o SDKTARGETSYSROOT.*))
-
-    python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                     \
-            -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                  \
-            -m ${QIMSDK_GST_META}                                                                  \
-            -p ${PLATFORM}                                                                         \
-            -t ${QIMSDK_TMP_FOLDER}                                                                \
-            BuildCodeGenerator                                                                  || {
-        print-red "Python Parser returns error, mode BuildCodeGenerator !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER}
-        return -8
+        return -9
     }
 
     local QIMSDK_SUPPORTED_TARGETS_COUNT=${#QIMSDK_SUPPORTED_TARGETS[@]}
@@ -296,10 +289,21 @@ function qimsdk-dev-docker-build-image() {
                 -m ${QIMSDK_GST_META}                                                              \
                 -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
                 -t ${QIMSDK_TMP_FOLDER}                                                            \
+                BuildCodeGenerator                                                              || {
+            print-red "Python Parser returns error, mode BuildCodeGenerator !!!"
+            rm -rf ${QIMSDK_TMP_FOLDER}
+            return -10
+        }
+
+        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
+                -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
+                -m ${QIMSDK_GST_META}                                                              \
+                -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
+                -t ${QIMSDK_TMP_FOLDER}                                                            \
                 RuntimeFlagsGenerator                                                           || {
             print-red "Python Parser Crashed, mode RuntimeFlagsGenerator !!!"
             rm -rf ${QIMSDK_TMP_FOLDER}
-            return -9
+            return -11
         }
 
         python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
@@ -310,7 +314,7 @@ function qimsdk-dev-docker-build-image() {
                 BBPatchParser                                                                   || {
             print-red "Python Parser returns error, mode BBPatchParser !!!"
             rm -rf ${QIMSDK_TMP_FOLDER}
-            return -10
+            return -12
         }
 
         # Skipping a comparison with index zero
@@ -322,7 +326,15 @@ function qimsdk-dev-docker-build-image() {
             ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}_recipes_patches.json     || {
             print-yellow "Patches of supported targets differ !!!"
         }
+
+        diff ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[0]}_build_plugins.sh                  \
+            ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}_build_plugins.sh         || {
+            print-yellow "Build flags of supported targets differ !!!"
+        }
     done
+
+    mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[0]}_build_plugins.sh                        \
+        ${QIMSDK_TMP_FOLDER}/build_plugins.sh
 
     mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[0]}_recipes_patches.json                    \
         ${QIMSDK_TMP_FOLDER}/recipes_patches.json
@@ -430,15 +442,21 @@ function qimsdk-docker-build-image() {
     [ ! -d ${PATH_TO_PULSEAUDIO_PATCHES} ] && {
         print-red "pulseaudio's patches NOT found !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -1
+        return -5
     }
 
-    local TARGET=$(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-armv8-2a-qcom-linux |          \
-            grep "SDKTARGETSYSROOT=" | rev | cut -d '/' -f 1 | rev)
-    pushd ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots/${TARGET}/ 1>/dev/null || {
+    local TARGET_SYSROOT=$(find ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots -name fastcv.h | head -n 1)
+    TARGET_SYSROOT=${TARGET_SYSROOT%"/usr/include/fastcv/fastcv.h"}
+
+    [ -d "${TARGET_SYSROOT}" ]                                                                  || {
+        print-red "Could not find target sysroot in ${QIMSDK_PATH_TO_eSDK_DIR}"
+        return -6
+    }
+
+    pushd ${TARGET_SYSROOT} 1>/dev/null || {
         print-red "FAILED: pushd to Path_to_eSDK_dir"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -5
+        return -7
     }
 
         mkdir -p "${QIMSDK_TMP_FOLDER}/`
@@ -461,7 +479,7 @@ function qimsdk-docker-build-image() {
             echo "Cannot get headers from eSDK !!!"
             popd 1>/dev/null
             rm -rf ${QIMSDK_TMP_FOLDER}
-            return -6
+            return -8
         }
 
     popd 1>/dev/null                                                                            && \
@@ -503,20 +521,7 @@ function qimsdk-docker-build-image() {
             ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                  || {
         print-red "Cannot get patches from eSDK !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
-        return -7
-    }
-
-    local PLATFORM=$(basename -- $(cat ${QIMSDK_PATH_TO_eSDK_DIR}/environment-setup-* | grep -m 1 -o SDKTARGETSYSROOT.*))
-
-    python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                     \
-            -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                                  \
-            -m ${QIMSDK_GST_META}                                                                  \
-            -p ${PLATFORM}                                                                         \
-            -t ${QIMSDK_TMP_FOLDER}                                                                \
-            BuildCodeGenerator                                                                  || {
-        print-red "Python Parser Crashed, mode BuildCodeGenerator !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER}
-        return -8
+        return -9
     }
 
     local QIMSDK_SUPPORTED_TARGETS_COUNT=${#QIMSDK_SUPPORTED_TARGETS[@]}
@@ -528,10 +533,21 @@ function qimsdk-docker-build-image() {
                 -m ${QIMSDK_GST_META}                                                              \
                 -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
                 -t ${QIMSDK_TMP_FOLDER}                                                            \
+                BuildCodeGenerator                                                              || {
+            print-red "Python Parser Crashed, mode BuildCodeGenerator !!!"
+            rm -rf ${QIMSDK_TMP_FOLDER}
+            return -10
+        }
+
+        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
+                -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
+                -m ${QIMSDK_GST_META}                                                              \
+                -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
+                -t ${QIMSDK_TMP_FOLDER}                                                            \
                 RuntimeFlagsGenerator                                                           || {
             print-red "Python Parser Crashed, mode RuntimeFlagsGenerator !!!"
             rm -rf ${QIMSDK_TMP_FOLDER}
-            return -9
+            return -11
         }
 
         python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
@@ -542,7 +558,7 @@ function qimsdk-docker-build-image() {
                 BBPatchParser                                                                   || {
             print-red "Python Parser Crashed, mode BBPatchParser !!!"
             rm -rf ${QIMSDK_TMP_FOLDER}
-            return -10
+            return -12
         }
 
         # Skipping a comparison with index zero
@@ -554,7 +570,15 @@ function qimsdk-docker-build-image() {
             ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}_recipes_patches.json     || {
             print-yellow "Patches of supported targets differ !!!"
         }
+
+        diff ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[0]}_build_plugins.sh                  \
+            ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}_build_plugins.sh         || {
+            print-yellow "Build flags of supported targets differ !!!"
+        }
     done
+
+    mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[0]}_build_plugins.sh                        \
+        ${QIMSDK_TMP_FOLDER}/build_plugins.sh
 
     mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[0]}_recipes_patches.json                    \
         ${QIMSDK_TMP_FOLDER}/recipes_patches.json
