@@ -24,6 +24,7 @@
   * [Device Docker Clean Up](#Device_Docker_Clean_Up)
   * [Development when device is not connected to host build machine](#Development_when_device_is_not_connected_to_host_build_machine)
   * [Contributing to the GStreamer Project](#Contributing_to_the_GStreamer_Project)
+  * [Starting the container with docker-compose](#Starting_the_container_with_docker_compose)
 * [Manual Commands Instead Of Scripts](#Manual_Commands_Instead_Of_Scripts)
 
 <div id="Prerequisites">
@@ -562,6 +563,14 @@ function qimsdk-meson-clean-<Project-Directory-Name>() {
 
     print-green "${FUNCNAME} completed succesfully!"
 }
+```
+
+<div id="Starting_the_container_with_docker_compose">
+
+### Starting the container with docker-compose
+
+```bash
+docker-compose up -d -f <docker-compose.yml>
 ```
 
 <div id="Manual_Commands_Instead_Of_Scripts">
