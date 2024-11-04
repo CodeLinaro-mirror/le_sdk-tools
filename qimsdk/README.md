@@ -231,10 +231,11 @@ The json file must contain certain data :
  6. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory!***
  7. ***MANDATORY*** - **IM_SDK_Meta_Dir** - PATH to meta IM SDK directory, which contains recipes for all gst plugins. ***Note: Path provided must point to meta-qti-gst directory!***
  8. ***MANDATORY*** - **Solution_Microservices_Dir** - PATH to solutions-microservices directory, which contains all qimsdk microservices shell scripts. ***Note: Path provided must point to solutions-microservices directory!***
- 9. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
- 10. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
- 11. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
- 12. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
+ 9. ***MANDATORY*** - **LE_Services_Source_Dir** - PATH to le-services directory, which contains source code of camera recorder client and camera metadata libs compiled inside dev container. ***Note: Path provided must point to le-services directory!***
+ 10. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
+ 11. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
+ 12. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
+ 13. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
 
 <div id="Docker_Host_Side_Helper_Scripts">
 
@@ -587,15 +588,50 @@ docker-compose up -d -f <docker-compose.yml>
 
 <h3 style="color:orange">Prerequisites:</h3>
 
-  - Should be created tmp directory in the <current/docker/dir> with the content of:
+  - Instructions how to set up projects to be built inside QIMSDK Development container:
+    - The following open-source projects need to be downloaded by the user.
+    - Once synced, code for the following projects must be made available in <current/docker/dir>/tmp directory:
     <div name="gst-plugins-qti-oss"> gst-plugins-qti-oss</div>
     <ul>
-      <div style="color:#90EE90">DIR: gst-plugins-qti-oss</div>
+      <div style="color:#90EE90">DIR: tmp/gst-plugins-qti-oss</div>
+
+      ```bash
+      # Example line to send synced project to temporary directory to be used by dev container:
+      ln -s <path/to/sources>/gst-plugins-qti-oss <current/docker/dir>/tmp/gst-plugins-qti-oss
+      ```
     </ul>
 
     <div name="meta-qti-gst"> meta-qti-gst</div>
     <ul>
-      <div style="color:#90EE90">DIR: meta-qti-gst</div>
+      <div style="color:#90EE90">DIR: tmp/meta-qti-gst</div>
+
+      ```bash
+      # Example line to send synced project to temporary directory to be used by dev container:
+      ln -s <path/to/sources>/meta-qti-gst <current/docker/dir>/tmp/meta-qti-gst
+      ```
+
+    </ul>
+
+    <div name="solutions-microservices"> solutions-microservices</div>
+    <ul>
+      <div style="color:#90EE90">DIR: tmp/solutions-microservices</div>
+
+      ```bash
+      # Example line to send synced project to temporary directory to be used by dev container:
+      ln -s <path/to/sources>/solutions-microservices <current/docker/dir>/tmp/solutions-microservices
+      ```
+
+    </ul>
+
+    <div name="le-services"> le-services</div>
+    <ul>
+      <div style="color:#90EE90">DIR: tmp/le-services</div>
+
+      ```bash
+      # Example line to send synced project to temporary directory to be used by dev container:
+      ln -s <path/to/sources>/le-services <current/docker/dir>/tmp/le-services
+      ```
+
     </ul>
 
     <div name="headers"> HEADERS
@@ -618,6 +654,30 @@ docker-compose up -d -f <docker-compose.yml>
         rsync -aR ./usr/include/gbm_priv.h                                                         \
             <current/docker/dir>/tmp/headers/                                                   && \
         rsync -aR ./usr/include/CL/cl_ext_qcom.h                                                   \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/properties.h                                                       \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/properties_def.h                                                   \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/log.h                                                              \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/system/camera_metadata.h                                           \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/system/camera_metadata_tags.h                                      \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/system/camera_vendor_tags.h                                        \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/camera3.h                                                 \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/camera_common.h                                           \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/system/camera.h                                                    \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/camera_hardware.h                                         \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/graphics.h                                                \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/native_handle.h                                           \
             <current/docker/dir>/tmp/headers/
       ```
     </ul>
@@ -887,6 +947,9 @@ docker run -it -d --user qimsdk                                                 
 -v /usr/lib/libfastcvdsp_stub.so:/usr/lib/libfastcvdsp_stub.so                                     \
 -v /usr/lib/libdmabufheap.so.0.0.0:/usr/lib/libdmabufheap.so.0.0.0                                 \
 -v /var/run/pulse/native:/var/run/pulse/native                                                     \
+-v /usr/lib/libcamera_metadata.so:/usr/lib/libcamera_metadata.so                                   \
+-v tmp/socket/cam_server/le_cam_socket:tmp/socket/cam_server/le_cam_socket                         \
+-v opt/data:opt/data                                                                               \
 -h qimsdk-<container-name> --name qimsdk-<container-name> qimsdk-<image-name>
 ```
 

@@ -10,8 +10,9 @@
 #   $4 - (mandatory) variable to take Gstreamer sources of SP
 #   $5 - (mandatory) variable to take Gstreamer meta of SP
 #   $6 - (mandatory) variable to take path to microservices
-#   $7 - (mandatory) variable to take path to eSDK
-#   $8 - (mandatory) variable to take supported targets
+#   $7 - (mandatory) variable to take path to le services source
+#   $8 - (mandatory) variable to take path to eSDK
+#   $9 - (mandatory) variable to take supported targets
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
@@ -19,8 +20,9 @@ function qimsdk-docker-parse-json() {
     local -n OUT_QIMSDK_GST_SOURCES=${4}
     local -n OUT_QIMSDK_GST_META=${5}
     local -n OUT_QIMSDK_PATH_MICROSERVICES=${6}
-    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${7}
-    local -n OUT_QIMSDK_SUPPORTED_TARGETS=${8}
+    local -n OUT_QIMSDK_LE_SERVICES_SOURCES=${7}
+    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${8}
+    local -n OUT_QIMSDK_SUPPORTED_TARGETS=${9}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -79,6 +81,16 @@ function qimsdk-docker-parse-json() {
         return -4
     }
 
+    OUT_QIMSDK_LE_SERVICES_SOURCES=$(echo ${JSON_CONTENT} | jq '.LE_Services_Source_Dir' | tr -d '"')
+    OUT_QIMSDK_LE_SERVICES_SOURCES=${OUT_QIMSDK_LE_SERVICES_SOURCES%/}
+
+    [ -d "${OUT_QIMSDK_LE_SERVICES_SOURCES}/.git" ]                                             || \
+            [ -d "${OUT_QIMSDK_LE_SERVICES_SOURCES}/recorder" ]                                 || {
+        print-red "Please provide path to le-services directory in config json!!!"
+        print-red "Directory currently provided: ${OUT_QIMSDK_LE_SERVICES_SOURCES}"
+        return -5
+    }
+
     OUT_QIMSDK_PATH_TO_eSDK_DIR=$(
         echo ${JSON_CONTENT} | jq '.Path_to_eSDK_dir' | tr -d '"'
     )
@@ -89,7 +101,7 @@ function qimsdk-docker-parse-json() {
         print-yellow "The Path_to_eSDK_dir attribute is filled wrong in config json!"
         print-red "Please provide path to unarchived eSDK directory in config json!!!"
 
-        return -5
+        return -6
     }
 
     OUT_QIMSDK_SUPPORTED_TARGETS=( $(
@@ -98,7 +110,7 @@ function qimsdk-docker-parse-json() {
 
     [ ${#OUT_QIMSDK_SUPPORTED_TARGETS[@]} -eq 0 ]                                               && {
         print-red "Supported_targets attribute is empty in config json !!!"
-        return -6
+        return -7
     }
 
     return 0
@@ -113,6 +125,7 @@ function qimsdk-dev-docker-build-image() {
     local QIMSDK_GST_SOURCES
     local QIMSDK_GST_META
     local QIMSDK_PATH_MICROSERVICES
+    local QIMSDK_LE_SERVICES_SOURCES
     local QIMSDK_PATH_TO_eSDK_DIR
     local QIMSDK_SUPPORTED_TARGETS
     local DOCKER_IMAGE_PATH
@@ -123,6 +136,7 @@ function qimsdk-dev-docker-build-image() {
             QIMSDK_GST_SOURCES                                                                     \
             QIMSDK_GST_META                                                                        \
             QIMSDK_PATH_MICROSERVICES                                                              \
+            QIMSDK_LE_SERVICES_SOURCES                                                             \
             QIMSDK_PATH_TO_eSDK_DIR                                                                \
             QIMSDK_SUPPORTED_TARGETS
 
@@ -235,6 +249,30 @@ function qimsdk-dev-docker-build-image() {
         rsync -aR ./usr/include/gbm_priv.h                                                         \
                 ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
         rsync -aR ./usr/include/CL/cl_ext_qcom.h                                                   \
+            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
+        rsync -aR ./usr/include/properties.h                                                       \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/properties_def.h                                                   \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/log.h                                                              \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/system/camera_metadata.h                                           \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/system/camera_metadata_tags.h                                      \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/system/camera_vendor_tags.h                                        \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/camera3.h                                                 \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/camera_common.h                                           \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/system/camera.h                                                    \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/camera_hardware.h                                         \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/graphics.h                                                \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/native_handle.h                                           \
                 ${QIMSDK_TMP_FOLDER}/headers/                                                   || {
             echo "Cannot get headers from eSDK !!!"
             popd 1>/dev/null
@@ -341,6 +379,8 @@ function qimsdk-dev-docker-build-image() {
 
     rsync -a ${QIMSDK_PATH_MICROSERVICES}/ ${QIMSDK_TMP_FOLDER}/solutions-microservices
 
+    rsync -a ${QIMSDK_LE_SERVICES_SOURCES}/ ${QIMSDK_TMP_FOLDER}/le-services
+
     local QIMSDK_BASE_DIR="/mnt/work"
 
     DOCKER_BUILDKIT=1 docker build                                                                 \
@@ -372,6 +412,7 @@ function qimsdk-docker-build-image() {
     local QIMSDK_GST_SOURCES
     local QIMSDK_GST_META
     local QIMSDK_PATH_MICROSERVICES
+    local QIMSDK_LE_SERVICES_SOURCES
     local QIMSDK_SUPPORTED_TARGETS
     local QIMSDK_PATH_TO_eSDK_DIR
 
@@ -381,6 +422,7 @@ function qimsdk-docker-build-image() {
             QIMSDK_GST_SOURCES                                                                     \
             QIMSDK_GST_META                                                                        \
             QIMSDK_PATH_MICROSERVICES                                                              \
+            QIMSDK_LE_SERVICES_SOURCES                                                             \
             QIMSDK_PATH_TO_eSDK_DIR                                                                \
             QIMSDK_SUPPORTED_TARGETS
 
@@ -475,6 +517,30 @@ function qimsdk-docker-build-image() {
         rsync -aR ./usr/include/gbm_priv.h                                                         \
                 ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
         rsync -aR ./usr/include/CL/cl_ext_qcom.h                                                   \
+            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
+        rsync -aR ./usr/include/properties.h                                                       \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/properties_def.h                                                   \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/log.h                                                              \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/system/camera_metadata.h                                           \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/system/camera_metadata_tags.h                                      \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/system/camera_vendor_tags.h                                        \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/camera3.h                                                 \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/camera_common.h                                           \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/system/camera.h                                                    \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/camera_hardware.h                                         \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/graphics.h                                                \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/native_handle.h                                           \
                 ${QIMSDK_TMP_FOLDER}/headers/                                                   || {
             echo "Cannot get headers from eSDK !!!"
             popd 1>/dev/null
@@ -584,6 +650,8 @@ function qimsdk-docker-build-image() {
         ${QIMSDK_TMP_FOLDER}/recipes_patches.json
 
     rsync -a ${QIMSDK_PATH_MICROSERVICES}/ ${QIMSDK_TMP_FOLDER}/solutions-microservices
+
+    rsync -a ${QIMSDK_LE_SERVICES_SOURCES}/ ${QIMSDK_TMP_FOLDER}/le-services
 
     local QIMSDK_BASE_DIR="/mnt/work"
 
@@ -827,6 +895,8 @@ function qimsdk-docker-device-save-image() {
         }
 
     done
+
+    print-green "Device save image successful !!!"
 
     return 0
 }

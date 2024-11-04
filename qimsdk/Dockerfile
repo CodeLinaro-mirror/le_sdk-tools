@@ -16,7 +16,7 @@ RUN apt-get update                                                              
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
         git tar unzip ssh rsync bash-completion jq cmake                                           \
         libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev       \
-        gettext libdaemon-dev libjansson-dev libreadline-dev                                       \
+        gettext libdaemon-dev libjansson-dev libreadline-dev protobuf-compiler                     \
         libcairo2-dev                                                                              \
         libgstrtspserver-1.0-dev                                                                   \
         libgirepository1.0-dev                                                                     \
@@ -51,6 +51,9 @@ RUN mkdir -p ${QIMSDK_LOGS_DIR}
 
 # Add private headers needed compiletime from headers dir
 COPY tmp/headers/usr/ /usr/
+
+# Add soft link to woarkaround glibconfig.h file install path
+RUN ln -s /usr/lib/aarch64-linux-gnu/glib-2.0/include/glibconfig.h /usr/include/
 
 # Set up download directory
 ENV QIMSDK_DOWNLOAD_DIR=${QIMSDK_BASE_DIR}/downloads
@@ -179,6 +182,9 @@ ENV QIMSDK_SRC_DIR=${QIMSDK_BASE_DIR}/src
 RUN mkdir -p ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss
 COPY tmp/gst-plugins-qti-oss ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss
 
+RUN mkdir -p ${QIMSDK_SRC_DIR}/le-services
+COPY tmp/le-services ${QIMSDK_SRC_DIR}/le-services
+
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/tmp/scripts/
 COPY scripts/dev_image ${QIMSDK_SCRIPTS}
@@ -251,7 +257,7 @@ RUN apt-get update                                                              
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
         gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools libhiredis0.14       \
         libudev1 libgstrtspserver-1.0-0 bash-completion libsoup2.4 gstreamer1.0-nice               \
-        libjsoncpp25 libopencv-imgproc4.5d libdaemon0 python3 python3-gst-1.0                   && \
+        libjsoncpp25 libopencv-imgproc4.5d libdaemon0 python3 python3-gst-1.0 libprotobuf23     && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*

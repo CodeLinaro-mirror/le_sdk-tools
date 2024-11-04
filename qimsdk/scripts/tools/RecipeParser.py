@@ -366,15 +366,20 @@ class BuildCodeGenerator(RecipeParser):
 
             bb.data.expandKeys(bb_parsed)
 
+            if (file_name != "qcom-gstreamer1.0-plugins-oss-qmmfsrc.bb"):
+                bb_parsed.setVar("OVERRIDES", "")
+            else:
+                bb_parsed.setVar("OVERRIDES", self.platform)
+
             plugins += bb_parsed.getVar("RDEPENDS:${PN}")
 
         blacklisted = [
             # TODO not yet enabled
             "qcom-gstreamer1.0-plugins-oss-msgbroker",
             "qcom-gstreamer1.0-plugins-oss-smartvencbin",
-            "qcom-gstreamer1.0-plugins-oss-qmmfsrc",
-            "qcom-gst-camera-burst-capture-example",
-            "qcom-gst-camera-metadata-example"
+            # Depends on eSDK
+            "qcom-gstreamer1.0-plugins-oss-dfs",
+            "qcom-gst-python-examples",
         ]
 
         self.plugins = [ x for x in plugins.split() if "qcom-gstreamer1.0" in x or "qcom-gst-" in x ]
