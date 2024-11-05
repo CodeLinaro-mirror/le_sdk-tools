@@ -407,7 +407,8 @@ function qimsdk-generate-docker-compose-yaml() {
             yq -i ".services.qimsdk.hostname=\"${QIMSDK_CONTAINER_NAME}\""                         \
                     ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
             yq -i ".services.qimsdk.user=\"qimsdk\"" ${PATH_TO_DOCKER_COMPOSE_YAML}             && \
-            yq -i ".services.qimsdk.command=\"bash\"" ${PATH_TO_DOCKER_COMPOSE_YAML}            && \
+            yq -i ".services.qimsdk.stdin_open=true" ${PATH_TO_DOCKER_COMPOSE_YAML}             && \
+            yq -i ".services.qimsdk.tty=true" ${PATH_TO_DOCKER_COMPOSE_YAML}                    && \
             yq -i ".services.qimsdk.restart=\"always\"" ${PATH_TO_DOCKER_COMPOSE_YAML}          && \
             for I in ${EXPORTS_ARRAY[@]}; do
                 yq -i ".services.qimsdk.environment += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
@@ -416,7 +417,7 @@ function qimsdk-generate-docker-compose-yaml() {
                 yq -i ".services.qimsdk.devices += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
             done                                                                                && \
             for I in ${PLATFORM_SPECIFIC_LIBS_ARRAY[@]}; do
-                yq -i ".services.qimsdk.volumes += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
+                yq -i ".services.qimsdk.volumes += [\"${I}:${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
             done                                                                                || {
         print-red "Failed to generate docker compose yaml file failed !!!"
         rm -rf  ${PATH_TO_DOCKER_COMPOSE_YAML}
