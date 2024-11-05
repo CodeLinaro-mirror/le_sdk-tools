@@ -194,6 +194,17 @@ COPY --chmod=755                                                                
 COPY --chmod=755                                                                                   \
         tmp/solutions-microservices/ai/rz/qimsdk_restricted_zone.sh ${QIMSDK_INSTALL_DIR}/usr/bin/
 
+# Copy ppe, person-detect label files
+COPY --chmod=555                                                                                   \
+        tmp/solutions-microservices/ai/ppe/labels/foot_track_net.labels                            \
+        ${QIMSDK_INSTALL_DIR}/opt/ppe/foot_track_net.labels
+COPY --chmod=555                                                                                   \
+        tmp/solutions-microservices/ai/ppe/labels/gear_guard_net.labels                            \
+        ${QIMSDK_INSTALL_DIR}/opt/ppe/gear_guard_net.labels
+COPY --chmod=555                                                                                   \
+        tmp/solutions-microservices/ai/person-detect/labels/foot_track_net.labels                  \
+        ${QIMSDK_INSTALL_DIR}/opt/person-detect/foot_track_net.labels
+
 # Change workdir back to base dir from downloads dir
 WORKDIR ${QIMSDK_BASE_DIR}
 
@@ -238,6 +249,7 @@ RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /home/qimsdk/.ba
 # Copy installed binaries to device image
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/usr /usr
+COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/opt /opt
 
 # Copy python examples
 COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-python-examples /usr/bin
