@@ -54,7 +54,8 @@ RUN mkdir -p ${QIMSDK_DOWNLOAD_DIR}
 
 # Clone Tensorflow Lite; checkout hash is for v2.15.1
 ENV QIMSDK_TF_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/tensorflow
-RUN git clone --progress https://github.com/tensorflow/tensorflow.git                              \
+RUN git config --global http.postBuffer 157286400                                               && \
+    git clone --progress https://github.com/tensorflow/tensorflow.git                              \
         --single-branch --branch r2.15 ${QIMSDK_TF_SRC_DIR}                                     && \
     cd ${QIMSDK_TF_SRC_DIR}                                                                     && \
     git checkout 63f5a65c7cd7b6241bede8d2e0082058566ea364
