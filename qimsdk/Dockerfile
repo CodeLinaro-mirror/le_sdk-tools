@@ -157,8 +157,8 @@ RUN git init                                                                    
 
 # Add Source Code
 ENV QIMSDK_SRC_DIR=${QIMSDK_BASE_DIR}/src
-RUN mkdir -p ${QIMSDK_SRC_DIR}
-COPY tmp/gst-plugins-qti-oss ${QIMSDK_SRC_DIR}
+RUN mkdir -p ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss
+COPY tmp/gst-plugins-qti-oss ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss
 
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/tmp/scripts/
@@ -259,7 +259,9 @@ COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/opt /opt
 COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-python-examples /usr/bin
 
 # Copy wizard script
-COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-plugin-tools/gst-scripts/demo_setup_wizard.sh /usr/bin
+COPY --from=qimsdk_dev_image                                                                       \
+    ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-plugin-tools/gst-scripts/demo_setup_wizard.sh   \
+    /usr/bin
 
 # Change user to qimsdk
 USER qimsdk

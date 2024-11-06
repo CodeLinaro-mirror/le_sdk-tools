@@ -151,7 +151,7 @@ function qimsdk-dev-docker-build-image() {
     local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
     mkdir -p ${QIMSDK_TMP_FOLDER}
 
-    rsync -a ${QIMSDK_GST_SOURCES} ${QIMSDK_TMP_FOLDER}/gst-plugins-qti-oss
+    rsync -a ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER}/gst-plugins-qti-oss
 
     QIMSDK_PATH_TO_eSDK_DIR=${QIMSDK_PATH_TO_eSDK_DIR%/}
 
@@ -308,7 +308,7 @@ function qimsdk-dev-docker-build-image() {
     mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_DEFAULT_TARGET}_recipes_patches.json                          \
         ${QIMSDK_TMP_FOLDER}/recipes_patches.json
 
-    rsync -a ${QIMSDK_PATH_MICROSERVICES} ${QIMSDK_TMP_FOLDER}/
+    rsync -a ${QIMSDK_PATH_MICROSERVICES}/ ${QIMSDK_TMP_FOLDER}/solutions-microservices
 
     local QIMSDK_BASE_DIR="/mnt/work"
 
@@ -364,7 +364,7 @@ function qimsdk-docker-build-image() {
     local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
     mkdir -p ${QIMSDK_TMP_FOLDER}
 
-    rsync -a ${QIMSDK_GST_SOURCES} ${QIMSDK_TMP_FOLDER}/gst-plugins-qti-oss
+    rsync -a ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER}/gst-plugins-qti-oss
 
     QIMSDK_PATH_TO_eSDK_DIR=${QIMSDK_PATH_TO_eSDK_DIR%/}
 
@@ -525,7 +525,7 @@ function qimsdk-docker-build-image() {
     mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_DEFAULT_TARGET}_recipes_patches.json                          \
         ${QIMSDK_TMP_FOLDER}/recipes_patches.json
 
-    rsync -a ${QIMSDK_PATH_MICROSERVICES} ${QIMSDK_TMP_FOLDER}/
+    rsync -a ${QIMSDK_PATH_MICROSERVICES}/ ${QIMSDK_TMP_FOLDER}/solutions-microservices
 
     local QIMSDK_BASE_DIR="/mnt/work"
 

@@ -311,7 +311,7 @@ python3 locales diffstat gawk cpio gcc g++ libxml-simple-perl must be installed 
 sudo apt install -y python3 locales diffstat gawk cpio gcc g++ libxml-simple-perl
 ```
 
-### Instalation example:
+#### eSDK Instalation example:
 
 ```bash
 cd <path/to/eSDK/shell/file>
@@ -320,7 +320,7 @@ umask 022
 ./sample-qcom-ARM-toolchain-ext.sh -y -d <some/destination/directory>
 ```
 
-### JSON should be filled:
+#### JSON should be filled:
 ```bash
 {
   ...
@@ -339,6 +339,15 @@ umask 022
 qimsdk-device-prepare
 adb disable-verity
 adb reboot
+```
+
+#### Prepare Device Data Directory
+
+Device data directory used in qimsdk should have write permissions to world. The reason is docker container is running with qimsdk user and it should have write access to that folder.
+
+```bash
+adb shell "mkdir -p /opt/data"
+adb shell "chmod -R 777 /opt/data"
 ```
 
 #### Prepare Device After Reboot
