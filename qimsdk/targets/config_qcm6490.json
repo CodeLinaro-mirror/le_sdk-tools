@@ -103,7 +103,8 @@
         "/usr/lib/libfastcvdsp_stub.so",
         "/usr/lib/libdmabufheap.so.0.0.0",
         "/usr/lib/dsp/cdsp/libc++.so.1",
-        "/usr/lib/dsp/cdsp/libc++abi.so.1"
+        "/usr/lib/dsp/cdsp/libc++abi.so.1",
+        "/opt/data"
     ],
 
     "Platform_Specific_Mappings" : [

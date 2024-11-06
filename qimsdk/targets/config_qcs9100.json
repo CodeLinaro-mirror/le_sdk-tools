@@ -109,7 +109,8 @@
         "/usr/lib/dsp/cdsp/libc++abi.so.1",
         "/usr/lib/dsp/cdsp1/libc++.so.1",
         "/usr/lib/dsp/cdsp1/libc++abi.so.1",
-        "/usr/lib/dsp/cdsp1/fastrpc_shell_unsigned_4"
+        "/usr/lib/dsp/cdsp1/fastrpc_shell_unsigned_4",
+        "/opt/data"
     ],
 
     "Platform_Specific_Mappings" : [
