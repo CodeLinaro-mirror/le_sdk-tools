@@ -195,25 +195,19 @@ COPY --chmod=755                                                                
 COPY --chmod=755                                                                                   \
         tmp/solutions-microservices/ai/rz/qimsdk_restricted_zone.sh ${QIMSDK_INSTALL_DIR}/usr/bin/
 
-# Copy ppe, person-detect, wizard script label files
+# Copy label files
 COPY --chmod=555                                                                                   \
-        tmp/solutions-microservices/ai/ppe/labels/foot_track_net.labels                            \
-        ${QIMSDK_INSTALL_DIR}/opt/labels/ppe/foot_track_net.labels
+        tmp/solutions-microservices/ai/files/labels/gear_guard_net.labels                          \
+        ${QIMSDK_INSTALL_DIR}/opt/labels/gear_guard_net.labels
 COPY --chmod=555                                                                                   \
-        tmp/solutions-microservices/ai/ppe/labels/gear_guard_net.labels                            \
-        ${QIMSDK_INSTALL_DIR}/opt/labels/ppe/gear_guard_net.labels
+        tmp/solutions-microservices/ai/files/labels/foot_track_net.labels                          \
+        ${QIMSDK_INSTALL_DIR}/opt/labels/foot_track_net.labels
 COPY --chmod=555                                                                                   \
-        tmp/solutions-microservices/ai/person-detect/labels/foot_track_net.labels                  \
-        ${QIMSDK_INSTALL_DIR}/opt/labels/person-detect/foot_track_net.labels
+        tmp/solutions-microservices/ai/files/labels/dv3-argmax.labels                              \
+        ${QIMSDK_INSTALL_DIR}/opt/labels/dv3-argmax.labels
 COPY --chmod=555                                                                                   \
-        tmp/solutions-microservices/ai/scripts/labels/foot_track_net.labels                        \
-        ${QIMSDK_INSTALL_DIR}/opt/labels/gst-wizard/foot_track_net.labels
-COPY --chmod=555                                                                                   \
-        tmp/solutions-microservices/ai/scripts/labels/dv3-argmax.labels                            \
-        ${QIMSDK_INSTALL_DIR}/opt/labels/gst-wizard/dv3-argmax.labels
-COPY --chmod=555                                                                                   \
-        tmp/solutions-microservices/ai/scripts/labels/resnet101.labels                             \
-        ${QIMSDK_INSTALL_DIR}/opt/labels/gst-wizard/resnet101.labels
+        tmp/solutions-microservices/ai/files/labels/resnet101.labels                               \
+        ${QIMSDK_INSTALL_DIR}/opt/labels/resnet101.labels
 
 # Change workdir back to base dir from downloads dir
 WORKDIR ${QIMSDK_BASE_DIR}
@@ -265,7 +259,7 @@ COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/opt /opt
 COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-python-examples /usr/bin
 
 # Copy wizard script
-COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-plugin-tools/gst-scripts/wizard.sh /usr/bin
+COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-plugin-tools/gst-scripts/demo_setup_wizard.sh /usr/bin
 
 # Change user to qimsdk
 USER qimsdk
