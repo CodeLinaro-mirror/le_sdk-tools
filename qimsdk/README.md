@@ -678,6 +678,8 @@ docker-compose up -d -f <docker-compose.yml>
         rsync -aR ./usr/include/hardware/graphics.h                                                \
             <current/docker/dir>/tmp/headers/                                                   && \
         rsync -aR ./usr/include/hardware/native_handle.h                                           \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/iot-core-algs/videoctrl.h                                          \
             <current/docker/dir>/tmp/headers/
       ```
     </ul>

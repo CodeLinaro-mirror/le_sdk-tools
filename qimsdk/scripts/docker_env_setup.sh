@@ -272,6 +272,8 @@ function qimsdk-dev-docker-build-image() {
                 ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
         rsync -aR ./usr/include/hardware/graphics.h                                                \
                 ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/iot-core-algs/videoctrl.h                                          \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
         rsync -aR ./usr/include/hardware/native_handle.h                                           \
                 ${QIMSDK_TMP_FOLDER}/headers/                                                   || {
             echo "Cannot get headers from eSDK !!!"
@@ -539,6 +541,8 @@ function qimsdk-docker-build-image() {
         rsync -aR ./usr/include/hardware/camera_hardware.h                                         \
                 ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
         rsync -aR ./usr/include/hardware/graphics.h                                                \
+                ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
+        rsync -aR ./usr/include/iot-core-algs/videoctrl.h                                          \
                 ${QIMSDK_TMP_FOLDER}/headers/                                                   && \
         rsync -aR ./usr/include/hardware/native_handle.h                                           \
                 ${QIMSDK_TMP_FOLDER}/headers/                                                   || {
