@@ -29,6 +29,9 @@
   * [Contributing to the GStreamer Project](#Contributing_to_the_GStreamer_Project)
   * [Starting the container with docker-compose](#Starting_the_container_with_docker_compose)
 * [Manual Commands Instead Of Scripts](#Manual_Commands_Instead_Of_Scripts)
+* [Docker Container Renaming](#Docker_Container_Renaming)
+  * [Rename device's Docker container from host development container](#Rename_device's_Docker_container_from_host_development_container)
+  * [Rename Docker Device Container](#Rename_Docker_Device_Container)
 
 <div id="Prerequisites">
 
@@ -289,17 +292,16 @@ source scripts/docker_env_setup.sh
 
  - qimsdk-dev-docker-build-image       \<path-to-config-json> - Build development image
  - qimsdk-dev-docker-run-container     \<path-to-config-json> - Run development container
- - qimsdk-dev-send-artifacts-to-device \<path-to-config-json> - Extract artifacts from Development container and send them to the device
- - qimsdk-dev-save-artifacts           \<path-to-config-json> - Save artifacts to specified Docker_image_path in configuration json file
- - qimsdk-dev-save-artifacts-dbg       \<path-to-config-json> - Save debug artifacts to specified Docker_image_path in configuration json file
  - qimsdk-dev-load-artifacts           \<path-to-config-json> - Load artifacts from specified Docker_image_path in configuration json file and install them to the device. They are installed in a shared directory between device and device container
  - qimsdk-dev-load-artifacts-dbg       \<path-to-config-json> - Load debug artifacts from specified Docker_image_path in configuration json file and install them to the device. They are installed in a shared directory between device and device container
 
 These functions are available immediately inside development container:
 
  - qimsdk-incremental-build - Incremental build of gst plugins
- - qimsdk-dev-save-artifacts - Save artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment.
- - qimsdk-dev-save-artifacts-dbg - Save artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment.
+ - qimsdk-dev-save-artifacts - Save release variant artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment.
+ - qimsdk-dev-save-artifacts-dbg - Save debug variant artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment.
+ - qimsdk-dev-push-artifacts - Push release variant artifacts to device with specified id in configuration json file
+ - qimsdk-dev-push-artifacts-dbg - Push debug variant artifacts  to device with specified id in configuration json file
 
 <div id="Development_Workflow">
 
@@ -852,7 +854,7 @@ docker-compose up -d -f <docker-compose.yml>
   </ul>
   </div>
 
-  <div name="docker_build">Dockerfile arguments have default values, but they can be customised using **--build-arg** flag in docker build command, like so:</div>
+  <div name="docker_build">Dockerfile arguments have default values, but they can be customized using **--build-arg** flag in docker build command, like so:</div>
   <ul>
   <div style="color:#FF4500">Variant Host</div>
 
@@ -1101,3 +1103,23 @@ qimsdk-docker-device-run-container <path-to-config-json>
 ```
 
 5. From here any qimsdk-docker-device... functions can be used freely on remote PC.
+
+<div id="Docker_Container_Renaming">
+
+## Docker Container Renaming
+
+<div id="Rename_device's_Docker_container_from_host_development_container">
+
+### Rename device's Docker container from host development container
+Device's container name from development container can be changed by exporting QIMSDK_CONTAINER_NAME
+```bash
+export QIMSDK_CONTAINER_NAME=<new-container-name>
+```
+
+<div id="Rename_Docker_Device_Container">
+
+### Rename Docker Device Container
+
+Device Container can be renamed by using the "Additional_tag_container" in *config.json*
+
+*Note: Keep in mind that "qimsdk" prefix will be automatically prepend to that name.*

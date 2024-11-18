@@ -53,7 +53,8 @@ function qimsdk-device-command () {
         adb pull /tmp/rc.txt /tmp/rc.txt 2>&1 > /dev/null
         rc=$?
         adb shell "rm -f /tmp/rc.txt"
-        [ ${rc} -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command ${CMD} failed !!!") && return ${rc}
+        [ ${rc} -ne 0 ] && (rm -f /tmp/rc.txt; print-red "Command ${CMD} failed !!!")           && \
+            return ${rc}
 
         rc=`cat /tmp/rc.txt`
         rm -f /tmp/rc.txt

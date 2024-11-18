@@ -14,7 +14,7 @@ ENV QIMSDK_BASE_DIR=${QIMSDK_ARG_BASE_DIR}
 # Installing required apt packages
 RUN apt-get update                                                                              && \
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
-        git tar unzip ssh rsync bash-completion jq cmake                                           \
+        git tar unzip ssh rsync bash-completion jq cmake android-tools-adb                         \
         libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev       \
         gettext libdaemon-dev libjansson-dev libreadline-dev protobuf-compiler                     \
         libcairo2-dev                                                                              \
@@ -38,6 +38,9 @@ RUN apt-get update                                                              
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
+
+# Add root to plugdev group
+RUN usermod -aG plugdev root
 
 # Add qimsdk install directory
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
@@ -260,7 +263,15 @@ RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-incremental-build
 
 # Set artifacts save Docker_image_path
 ARG QIMSDK_ARG_DOCKER_IMAGE_PATH
-ENV DOCKER_IMAGE_PATH=${QIMSDK_ARG_DOCKER_IMAGE_PATH}
+ENV QIMSDK_DOCKER_IMAGE_PATH=${QIMSDK_ARG_DOCKER_IMAGE_PATH}
+
+# Set artifacts push device id
+ARG QIMSDK_ARG_DEVICE_ID
+ENV QIMSDK_DEVICE_ID=${QIMSDK_ARG_DEVICE_ID}
+
+# Set device container name
+ARG QIMSDK_ARG_CONTAINER_NAME
+ENV QIMSDK_CONTAINER_NAME=${QIMSDK_ARG_CONTAINER_NAME}
 
 # # # # # # # # # # # # # # #
 
