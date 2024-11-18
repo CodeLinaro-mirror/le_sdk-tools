@@ -183,7 +183,7 @@ function qimsdk-cmake-install() {
         set -o pipefail
 
 
-        cmake --install . --prefix ${QIMSDK_INSTALL_DEBUG_DIR}                                    |&
+        cmake --install . --prefix ${QIMSDK_INSTALL_DEBUG_DIR}/usr/                               |&
                 tee ${LOG_FILE_NAME_DBG}                                                        && \
         cmake --install . --prefix /usr --strip                                                   |&
                 tee ${LOG_FILE_NAME}                                                              |\
