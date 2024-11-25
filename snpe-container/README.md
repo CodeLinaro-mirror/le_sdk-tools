@@ -187,12 +187,10 @@ Only one docker image QML is build for device
 
 The json file must contain certain data :
 
- 1. ***MANDATORY*** - **Acceleration_engines** - An array of Acceleration engines to be used in QML environment. If not needed, leave as is in the example config json. ***Every Acceleration engine from the array must contain:***
-    * 1.1. ***MANDATORY*** - **Acceleration_engine** - Acceleration engine to be used. If not needed, leave this field and the "Acceleration_engine_path" field with "-" value
-    * 1.2. ***MANDATORY*** - **Acceleration_engine_version** - SDK Version for Acceleration engine. Example Value `"v2.22.0.240425"`
+ 1. ***MANDATORY*** - **SNPE_version** - SDK Version for SNPE to be downloaded and installed. Example Value `"v2.25.0.240728"`
  2. ***MANDATORY*** - **Base_Image** - Base docker image to be used on the device
  ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
- 3. ***MANDATORY*** - **Target_platform** - Target device platform, which can be kalama or qcs6490 or qrb5165 or qcm6490
+ 3. ***MANDATORY*** - **Target_platform** - Target device platform, which can be kalama, qcs6490, qrb5165, etc.
  4. ***OPTIONAL*** - **Additional_tag_container** - Additional tag for container - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
  5. ***OPTIONAL*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose (to not set an additional tag just leave the value for this field empty)
  6. ***MANDATORY*** - **URL** - Remote destination To be able to sync to this destination folder
