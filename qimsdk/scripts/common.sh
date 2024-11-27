@@ -417,8 +417,65 @@ function qimsdk-generate-docker-compose-yaml() {
             for I in ${PLATFORM_SPECIFIC_LIBS_ARRAY[@]}; do
                 yq -i ".services.qimsdk.volumes += [\"${I}:${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
             done                                                                                || {
-        print-red "Failed to generate docker compose yaml file failed !!!"
+        print-red "Failed to generate docker compose yaml file !!!"
         rm -rf  ${PATH_TO_DOCKER_COMPOSE_YAML}
+        return -1
+    }
+
+    return 0
+}
+
+# Generate Docker CDI json file
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) path to Docker CDI json
+#   $3 - (mandatory) container name from user's config json
+function qimsdk-generate-docker-cdi-specs() {
+    local PATH_TO_CONFIG_JSON=${1}
+    local PATH_TO_DOCKER_CDI_JSON=${2}
+    local CONTAINER_NAME=${3}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    declare -a PLATFORM_SPECIFIC_LIBS_ARRAY
+    PLATFORM_SPECIFIC_LIBS_ARRAY=$(
+        echo ${JSON_CONTENT} | jq '.Platform_Libraries_To_Mount[]' | tr -d '"'
+    )
+    [ -z "${PLATFORM_SPECIFIC_LIBS_ARRAY}" ] && {
+        print-red "Platform_Libraries_To_Mount attribute in ${PATH_TO_CONFIG_JSON} is not set !!!"
+        return -1
+    }
+
+    declare -a PLATFORM_SPECIFIC_MAPS_ARRAY
+    PLATFORM_SPECIFIC_MAPS_ARRAY=$(
+        echo ${JSON_CONTENT} | jq '.Platform_Specific_Mappings[]' | tr -d '"'
+    )
+    [ -z "${PLATFORM_SPECIFIC_MAPS_ARRAY}" ] && {
+        print-red "Platform_Specific_Mappings attribute in ${PATH_TO_CONFIG_JSON} is not set !!!"
+        return -1
+    }
+
+    jq -n                                                                                          \
+        --arg cdiVersion "0.6.0"                                                                   \
+        --arg kind "qualcomm.com/device"                                                           \
+        --argjson devices "[$( jq -n                                                               \
+        --arg name "${CONTAINER_NAME}"                                                             \
+            --argjson containerEdits "$( jq -n                                                     \
+                --argjson env "$(echo ${JSON_CONTENT} | jq '.Exports')"                            \
+                --argjson deviceNodes "$(echo ${JSON_CONTENT} | jq                                 \
+                                               '[.Platform_Specific_Mappings[] | { "path": . }]')" \
+                --argjson mounts "$(echo ${JSON_CONTENT} | jq                                      \
+                    '[.Platform_Libraries_To_Mount[] | { "hostPath": ., "containerPath": ., "options": ["bind"] }]')" \
+                '$ARGS.named')"                                                                    \
+            '$ARGS.named')]"                                                                       \
+        '$ARGS.named' > ${PATH_TO_DOCKER_CDI_JSON}                                                 \
+                                                                                                || {
+        print-red "Failed to generate Docker CDI json file !!!"
+        rm -rf  ${PATH_TO_DOCKER_CDI_JSON}
         return -1
     }
 
@@ -471,6 +528,39 @@ function qimsdk-generate-docker-run-cmd() {
     rc=$?
     [ ${rc} -ne 0 ] && {
         print-red "FAILED: Failed to construct Docker run cmd !!!"
+        return ${rc}
+    }
+
+    return 0
+}
+
+# Generate docker run cdi cmd in shell file
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) remote path
+#   $3 - (mandatory) container name from user's config json
+#   $4 - (mandatory) image name from user's config json
+function qimsdk-generate-docker-run-cdi-cmd() {
+    local PATH_TO_CONFIG_JSON=${1}
+    local RESULT=${2}
+    local CONTAINER_NAME=${3}
+    local IMAGE_NAME=${4}
+
+    local EXPORTS
+    qimsdk-get-variables-to-export ${PATH_TO_CONFIG_JSON}                                          \
+            EXPORTS
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-variables-to-export !!!"
+        return ${rc}
+    }
+
+    echo "docker run -it -d --device qualcomm.com/device=${CONTAINER_NAME} ${EXPORTS}              \
+            -h ${CONTAINER_NAME} --user qimsdk --name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: Failed to construct Docker run CDI cmd !!!"
         return ${rc}
     }
 

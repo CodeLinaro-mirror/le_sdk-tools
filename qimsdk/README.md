@@ -18,6 +18,9 @@
 * [Development Workflow](#Development_Workflow)
   * [Initial One Time Setup](#Initial_One_Time_Setup)
   * [Continuous Development After Initial Setup](#Continuous_Development_After_Initial_Setup)
+* [Docker Container In CDI Mode](#Docker_Container_In_CDI_Mode)
+  * [Prerequisites For CDI](#Prerequisites_For_CDI)
+  * [Running The Container In CDI Mode](#Running_The_Container_In_CDI_Mode)
 * [Examples For Development](#Examples_For_Development)
   * [Remote Device With Disabled Verity](#Remote_Device_With_Disabled_Verity)
   * [Local Device With Verity Check](#Local_Device_With_Verity_Check)
@@ -263,13 +266,14 @@ The developer generally needs to build the image, load the image to the device a
 - qimsdk-docker-device-save-image      \<path-to-config-json> - Save selected device image and run command
 - qimsdk-docker-device-load-image      \<path-to-config-json> - Loads device image on the device
 - qimsdk-docker-device-run-container   \<path-to-config-json> - Run device container
+- qimsdk-docker-device-run-cdi-container \<path-to-config-json> - Run device container in CDI mode
 - qimsdk-docker-device-rm-container    \<path-to-config-json> - Remove device container
 - qimsdk-docker-device-start-container \<path-to-config-json> - Start device container
 - qimsdk-docker-device-stop-container  \<path-to-config-json> - Stop device container
-- qimsdk-docker-device-command   \<path-to-config-json> \<CMD> - Execute CMD in device container
+- qimsdk-docker-device-command  \<path-to-config-json> \<CMD> - Execute CMD in device container
 - qimsdk-docker-device-shell           \<path-to-config-json> - Start shell in the docker container on the device
 - qimsdk-docker-device-images-cleanup  \<path-to-config-json> - Docker device images clean up
-- qimsdk-docker-host-images-cleanup                          - Docker host images clean up
+- qimsdk-docker-host-images-cleanup                           - Docker host images clean up
 
 <div id="Docker_Development_Container_Side_Helper_Scripts">
 
@@ -398,6 +402,33 @@ qimsdk-docker-device-load-image <path-to-config-json>
 
 ```bash
 qimsdk-docker-device-run-container <path-to-config-json>
+```
+
+<div id="Docker_Container_In_CDI_Mode">
+
+## Docker Container In CDI Mode
+
+<div id="Prerequisites_For_CDI">
+
+### Prerequisites For CDI
+
+1. Docker version 25 or higher is required on the device.
+2. CDI feature must be enabled in device's */etc/docker/daemon.json* file.
+
+  ```json
+  {
+    "features": {
+      "cdi": true
+    }
+  }
+  ```
+
+<div id="Running_The_Container_In_CDI_Mode">
+
+### Running The Container In CDI Mode
+To run the container in CDI mode **qimsdk-docker-device-run-cdi-container** command should be invoked instead of **qimsdk-docker-device-run-container**.
+```bash
+qimsdk-docker-device-run-cdi-container <path-to-config-json>
 ```
 
 <div id="Examples_For_Development">

@@ -894,6 +894,30 @@ function qimsdk-docker-device-save-image() {
             return ${rc}
         }
 
+        qimsdk-generate-docker-run-cdi-cmd ${MAPPINGS_JSON}                                        \
+                ${COMMON_PATH}/docker_run_cdi_${SUFFIX_NAME}.sh                                    \
+                ${QIMSDK_CONTAINER_NAME}                                                           \
+                ${QIMSDK_IMAGE_NAME}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "Generate ${COMMON_PATH}/docker_run_cdi_${SUFFIX_NAME}.sh file failed !!!"
+            rm -f ${COMMON_PATH}/docker_run_cdi_${SUFFIX_NAME}.sh
+
+            return ${rc}
+        }
+
+        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run_cdi_${SUFFIX_NAME}.sh            \
+                ${DOCKER_IMAGE_PATH}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+            rm -f ${COMMON_PATH}/docker_run_cdi_${SUFFIX_NAME}.sh
+
+            return ${rc}
+        }
+
         qimsdk-generate-docker-compose-yaml ${MAPPINGS_JSON}                                       \
                 ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml                                   \
                 ${QIMSDK_CONTAINER_NAME}                                                           \
@@ -908,12 +932,35 @@ function qimsdk-docker-device-save-image() {
         }
 
         qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml           \
-            ${DOCKER_IMAGE_PATH}
+                ${DOCKER_IMAGE_PATH}
 
         rc=$?
         [ ${rc} -ne 0 ] && {
             print-red "FAILED: qimsdk-sync-to-remote-and-clean"
             rm -f ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml
+
+            return ${rc}
+        }
+
+        qimsdk-generate-docker-cdi-specs ${MAPPINGS_JSON}                                          \
+                ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json                                      \
+                ${QIMSDK_CONTAINER_NAME}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "Generate qimsdk docker cdi file failed !!!"
+            rm -f ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json
+
+            return ${rc}
+        }
+
+        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json              \
+                ${DOCKER_IMAGE_PATH}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+            rm -f ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json
 
             return ${rc}
         }
@@ -1272,6 +1319,124 @@ function qimsdk-docker-device-run-container() {
     }
 
     print-green "Device run container successful !!!"
+
+    return 0
+}
+
+# Run selected device container in cdi mode
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-device-run-cdi-container() {
+    local PATH_TO_CONFIG_JSON=${1}
+    local QIMSDK_CONTAINER_NAME
+    local QIMSDK_IMAGE_NAME
+    local QIMSDK_DEVICE_ID
+    local EXPORTS
+
+    qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
+            QIMSDK_CONTAINER_NAME                                                                  \
+            QIMSDK_IMAGE_NAME
+
+    local rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-container-and-image-name !!!"
+        return ${rc}
+    }
+
+    qimsdk-get-device-id ${PATH_TO_CONFIG_JSON} QIMSDK_DEVICE_ID
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-device-id  !!!"
+        return ${rc}
+    }
+
+    (
+        local PLATFORMS=(
+            $(cat ${PATH_TO_CONFIG_JSON} | jq '.Supported_targets[]' | tr -d '"')
+        )
+
+        export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
+
+        local MACHINE=$(adb shell "cat /sys/devices/soc0/machine" | tr -d '\r')
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: adb shell "cat /sys/devices/soc0/machine"  !!!"
+            return ${rc}
+        }
+
+        local TARGET_PLATFORM=""
+
+        local TMP_RUN_CMD_DIR=$(mktemp -d)
+
+        for SUFFIX_NAME in ${PLATFORMS[@]}; do
+            local MAPPINGS_JSON="${QIMSDK_DOCKER_DIR}/targets/mappings_${SUFFIX_NAME}.json"
+            local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
+
+            [ -d ${QIMSDK_TMP_FOLDER} ] || mkdir -p ${QIMSDK_TMP_FOLDER}
+
+            qimsdk-generate-docker-cdi-specs ${MAPPINGS_JSON}                                      \
+                    ${QIMSDK_TMP_FOLDER}/docker-cdi-${SUFFIX_NAME}.json                            \
+                    ${QIMSDK_CONTAINER_NAME}
+
+            rc=$?
+            [ ${rc} -ne 0 ] && {
+                print-red "Generate qimsdk docker cdi file failed !!!"
+                rm -f ${QIMSDK_TMP_FOLDER}/docker-cdi-${SUFFIX_NAME}.json
+
+                return ${rc}
+            }
+
+            qimsdk-generate-docker-run-cdi-cmd ${MAPPINGS_JSON}                                    \
+                    ${TMP_RUN_CMD_DIR}/docker_run_cdi_${SUFFIX_NAME}.sh                            \
+                    ${QIMSDK_CONTAINER_NAME}                                                       \
+                    ${QIMSDK_IMAGE_NAME}
+
+            rc=$?
+            [ ${rc} -ne 0 ] && {
+                print-red "Generate ${TMP_RUN_CMD_DIR}/docker_run_cdi_${SUFFIX_NAME}.sh file failed !!!"
+                rm -rf ${TMP_RUN_CMD_DIR}
+
+                return ${rc}
+            }
+
+            declare -A SOC_LIST=$(cat ${MAPPINGS_JSON} | jq '.Soc[]' | tr -d '"')
+
+            for SOC in ${SOC_LIST[@]}; do
+                [[ ${MACHINE} == ${SOC} ]] && {
+                    TARGET_PLATFORM="${SUFFIX_NAME}"
+                    break
+                }
+            done
+        done
+
+        [ -z ${TARGET_PLATFORM} ] && {
+            print-red "Target platform is not set !!!"
+            return -1
+        }
+
+        adb shell "[ -d /etc/cdi ] || mkdir /etc/cdi"                                           && \
+        adb push ${QIMSDK_TMP_FOLDER}/docker-cdi-${TARGET_PLATFORM}.json /etc/cdi/              && \
+        adb push ${TMP_RUN_CMD_DIR}/docker_run_cdi_${TARGET_PLATFORM}.sh /tmp/                  && \
+        qimsdk-device-command "source /tmp/docker_run_cdi_${TARGET_PLATFORM}.sh"                || {
+            rm -rf ${TMP_RUN_CMD_DIR}
+            qimsdk-device-command "rm -rf /tmp/docker_run_cdi_${TARGET_PLATFORM}.sh"
+            echo "qimsdk-docker-device-run-container failed !!!"
+            return -1
+        }
+
+        rm -rf ${TMP_RUN_CMD_DIR}
+        qimsdk-device-command "rm -rf /tmp/docker_run_cdi_${TARGET_PLATFORM}.sh"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+    )
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "Device run container in CDI mode failed !!!"
+        return ${rc}
+    }
+
+    print-green "Device run container in CDI mode successful !!!"
 
     return 0
 }
@@ -1753,6 +1918,8 @@ print-blue "qimsdk-docker-device-load-image                                   <p
 echo "    Loads device image on the device"
 print-blue "qimsdk-docker-device-run-container                                <path-to-config-json>"
 echo "    Run device container"
+print-blue "qimsdk-docker-device-run-cdi-container                            <path-to-config-json>"
+echo "    Run device container in CDI mode"
 print-blue "qimsdk-docker-device-rm-container                                 <path-to-config-json>"
 echo "    Remove device container"
 print-blue "qimsdk-docker-device-start-container                              <path-to-config-json>"
@@ -1770,17 +1937,17 @@ echo "    Docker host images clean up"
 echo        "==================="
 print-yellow "Dev Docker Commands"
 echo        "==================="
-print-green "qimsdk-dev-docker-build-image                                           <path-to-config-json>"
+print-green "qimsdk-dev-docker-build-image                                    <path-to-config-json>"
 echo "    Build dev Docker image"
-print-blue "qimsdk-dev-docker-run-container                                         <path-to-config-json>"
+print-blue "qimsdk-dev-docker-run-container                                   <path-to-config-json>"
 echo "    Run dev Docker container"
-print-blue "qimsdk-dev-send-artifacts-to-device                                     <path-to-config-json>"
+print-blue "qimsdk-dev-send-artifacts-to-device                               <path-to-config-json>"
 echo "    Copy artifacts directly to /opt/qti/development/ path in device"
-print-blue "qimsdk-dev-save-artifacts                                               <path-to-config-json>"
+print-blue "qimsdk-dev-save-artifacts                                         <path-to-config-json>"
 echo "    Save artifacts to Docker_image_path provided in config json file."
-print-blue "qimsdk-dev-save-artifacts-dbg                                           <path-to-config-json>"
+print-blue "qimsdk-dev-save-artifacts-dbg                                     <path-to-config-json>"
 echo "    Save debug artifacts to Docker_image_path provided in config json file."
-print-blue "qimsdk-dev-load-artifacts                                               <path-to-config-json>"
+print-blue "qimsdk-dev-load-artifacts                                         <path-to-config-json>"
 echo "    Load artifacts from Docker_image_path provided in config json file."
-print-blue "qimsdk-dev-load-artifacts-dbg                                           <path-to-config-json>"
+print-blue "qimsdk-dev-load-artifacts-dbg                                     <path-to-config-json>"
 echo "    Load debug artifacts from Docker_image_path provided in config json file."
