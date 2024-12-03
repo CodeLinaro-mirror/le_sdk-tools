@@ -351,12 +351,16 @@ function qimsdk-remove-if-temp() {
     return 0
 }
 
-# Get Platform_Libraries_To_Mount from json
+# Generate docker compose yaml file
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) path to docker compose yaml
+#   $3 - (mandatory) container name from user's config json
+#   $4 - (mandatory) image name from user's config json
 function qimsdk-generate-docker-compose-yaml() {
     local PATH_TO_CONFIG_JSON=${1}
     local PATH_TO_DOCKER_COMPOSE_YAML=${2}
+    local CONTAINER_NAME=${3}
+    local IMAGE_NAME=${4}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -392,19 +396,13 @@ function qimsdk-generate-docker-compose-yaml() {
         echo ${EXPORTS_ARRAY} | tr -d '"'
     )
 
-    local QIMSDK_IMAGE_NAME
-    local DOCKER_IMAGE_PATH
-    qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
-            QIMSDK_CONTAINER_NAME                                                                  \
-            QIMSDK_IMAGE_NAME
-
     local I
     echo "services:" > ${PATH_TO_DOCKER_COMPOSE_YAML}                                           && \
-            yq -i ".services.qimsdk.image=\"${QIMSDK_IMAGE_NAME}\""                                \
+            yq -i ".services.qimsdk.image=\"${IMAGE_NAME}\""                                       \
                     ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
-            yq -i ".services.qimsdk.container_name=\"${QIMSDK_CONTAINER_NAME}\""                   \
+            yq -i ".services.qimsdk.container_name=\"${CONTAINER_NAME}\""                          \
                     ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
-            yq -i ".services.qimsdk.hostname=\"${QIMSDK_CONTAINER_NAME}\""                         \
+            yq -i ".services.qimsdk.hostname=\"${CONTAINER_NAME}\""                                \
                     ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
             yq -i ".services.qimsdk.user=\"qimsdk\"" ${PATH_TO_DOCKER_COMPOSE_YAML}             && \
             yq -i ".services.qimsdk.stdin_open=true" ${PATH_TO_DOCKER_COMPOSE_YAML}             && \
@@ -423,6 +421,52 @@ function qimsdk-generate-docker-compose-yaml() {
         rm -rf  ${PATH_TO_DOCKER_COMPOSE_YAML}
         return -4
     }
+
+    return 0
+}
+
+# Generate docker run cmd in shell file
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) remote path
+#   $3 - (mandatory) container name from user's config json
+#   $4 - (mandatory) image name from user's config json
+function qimsdk-generate-docker-run-cmd() {
+    local PATH_TO_CONFIG_JSON=${1}
+    local RESULT=${2}
+    local CONTAINER_NAME=${3}
+    local IMAGE_NAME=${4}
+
+    local PLATFORM_SPECIFIC_MAP
+    local PLATFORM_LIBS_TO_MOUNT
+
+    qimsdk-get-platform-specific-mapping ${PATH_TO_CONFIG_JSON} PLATFORM_SPECIFIC_MAP
+
+    local rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-platform-specific-mapping  !!!"
+        return ${rc}
+    }
+
+    qimsdk-get-platform-libs-to-mount ${PATH_TO_CONFIG_JSON} PLATFORM_LIBS_TO_MOUNT
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-platform-specific-mapping  !!!"
+        return ${rc}
+    }
+
+    local EXPORTS
+    qimsdk-get-variables-to-export ${PATH_TO_CONFIG_JSON}                                          \
+            EXPORTS
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-variables-to-export !!!"
+        return ${rc}
+    }
+
+    echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT} ${EXPORTS}          \
+            -h ${CONTAINER_NAME} --user qimsdk --name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}
 
     return 0
 }

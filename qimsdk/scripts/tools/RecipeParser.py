@@ -113,37 +113,55 @@ class BBPatchParser(Parsable):
         if not os.path.exists(self.path_to_gstd_recipe_bb):
             raise Exception("Gstd recipes path cannot be reached !!!")
 
+        self.path_to_pulseaudio_bbappend = os.path.join(
+            path_to_layers, "meta-qti-pulseaudio-plugins/recipes-multimedia/audio/")
+
+        if not os.path.exists(self.path_to_pulseaudio_bbappend):
+            raise Exception("Pulse audio recipes path cannot be reached !!!")
+
+        self.path_to_pulseaudio_recipe_bb = os.path.join(
+            path_to_layers, "poky/meta/recipes-multimedia/pulseaudio/")
+
+        if not os.path.exists(self.path_to_pulseaudio_recipe_bb):
+            raise Exception("Pulse audio recipes path cannot be reached !!!")
+
         self.recipes = {
             "wayland": self.Recipe(),
             "plugins_good": self.Recipe(),
             "plugins_bad": self.Recipe(),
             "gstd": self.Recipe(),
+            "pulseaudio": self.Recipe(),
         }
 
         self.recipes["wayland"].title = "wayland"
         self.recipes["plugins_good"].title = "plugins_good"
         self.recipes["plugins_bad"].title = "plugins_bad"
         self.recipes["gstd"].title = "gstd"
+        self.recipes["pulseaudio"].title = "pulseaudio"
 
         self.recipes["wayland"].bb_append.name = "wayland-protocols_%.bbappend"
         self.recipes["plugins_good"].bb_append.name = "gstreamer1.0-plugins-good_*%.bbappend"
         self.recipes["plugins_bad"].bb_append.name = "gstreamer1.0-plugins-bad_*%.bbappend"
         self.recipes["gstd"].bb_append.name = "gstd_*%.bbappend"
+        self.recipes["pulseaudio"].bb_append.name = "pulseaudio_*.bbappend"
 
         self.recipes["wayland"].bb.name = "wayland_*.bb"
         self.recipes["plugins_good"].bb.name = "gstreamer1.0-plugins-good_*.bb"
         self.recipes["plugins_bad"].bb.name = "gstreamer1.0-plugins-bad_*.bb"
         self.recipes["gstd"].bb.name = "gstd_*.bb"
+        self.recipes["pulseaudio"].bb.name = "pulseaudio_*.bb"
 
         self.recipes["wayland"].bb_append.path = self.path_to_wayland_protocols_bbappend
         self.recipes["plugins_good"].bb_append.path = self.path_to_gstreamer_recipes
         self.recipes["plugins_bad"].bb_append.path = self.path_to_gstreamer_recipes
         self.recipes["gstd"].bb_append.path = self.path_to_gstreamer_recipes
+        self.recipes["pulseaudio"].bb_append.path = self.path_to_pulseaudio_bbappend
 
         self.recipes["wayland"].bb.path = self.path_to_wayland_protocols_bb
         self.recipes["plugins_good"].bb.path = self.path_to_gstreamer_recipes_bb
         self.recipes["plugins_bad"].bb.path = self.path_to_gstreamer_recipes_bb
         self.recipes["gstd"].bb.path = self.path_to_gstd_recipe_bb
+        self.recipes["pulseaudio"].bb.path = self.path_to_pulseaudio_recipe_bb
 
     def __get_content_of_bbappend(self, recipe: Recipe) -> Recipe:
 
@@ -215,10 +233,15 @@ class BBPatchParser(Parsable):
             raise Exception(f"SRC_URI couldn't be get from:                                        \
                 {recipe.bb_append.path}/{recipe.bb_append.name}")
 
-        patch = str(patch).replace('file://', '')
-
         recipe.patches += patch.strip().split()
         recipe.patches = [item for item in recipe.patches if ".patch" in item]
+
+        i = 0
+        for patch in recipe.patches:
+            index = str(patch).rfind('/')
+            if index != -1:
+                recipe.patches[i] = patch[index + 1:]
+            i += 1
 
         return recipe
 
