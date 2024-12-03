@@ -373,16 +373,17 @@ class BuildCodeGenerator(RecipeParser):
 
             plugins += bb_parsed.getVar("RDEPENDS:${PN}")
 
+        # Plugins that are not enabled yet should be append to the blacklist
         blacklisted = [
-            # TODO not yet enabled
-            "qcom-gstreamer1.0-plugins-oss-msgbroker",
-            "qcom-gstreamer1.0-plugins-oss-smartvencbin",
             # Depends on eSDK
             "qcom-gstreamer1.0-plugins-oss-dfs",
-            "qcom-gst-python-examples",
         ]
 
-        self.plugins = [ x for x in plugins.split() if "qcom-gstreamer1.0" in x or "qcom-gst-" in x ]
+        self.plugins = [
+            x for x in plugins.split()
+                if "qcom-gstreamer1.0" in x or "qcom-gst-" in x
+        ]
+
         self.plugins = [ x for x in self.plugins if x not in blacklisted ]
 
         for file in self.path_to_recipes:
@@ -401,6 +402,11 @@ class BuildCodeGenerator(RecipeParser):
         for recipe,content in self.plugin_to_content.items():
 
             plugin = recipe.replace('.bb', '')
+
+            if ("inherit cmake" not in content):
+                index = self.plugins.index(plugin)
+                self.plugins.pop(index)
+                continue
 
             current_data_smart = bb.data.init()
             bb.parse.siggen = bb.siggen.init(current_data_smart)
