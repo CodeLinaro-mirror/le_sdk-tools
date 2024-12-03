@@ -339,6 +339,12 @@ qimsdk-meson-build-gst-plugins-bad() {
     qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
+# CMake Build le-services
+function qimsdk-cmake-build-le-services () {
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/le-services -DTARGET_BOARD_PLATFORM=qimsdk && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
 # Clean meson wayland-protocols build directory
 function qimsdk-meson-clean-wayland-protocols() {
     rm -rf ${QIMSDK_BUILD_DIR}/wayland-protocols-1.25
@@ -374,6 +380,13 @@ function qimsdk-meson-clean-pulseaudio() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
+# Clean CMake le-services build directory
+function qimsdk-cmake-clean-le-services() {
+    rm -rf ${QIMSDK_BUILD_DIR}/le-services
+
+    print-green "${FUNCNAME} completed successfully!"
+}
+
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
     qimsdk-meson-build-gstd                                                                     && \
@@ -381,6 +394,7 @@ function qimsdk-incremental-build() {
             qimsdk-meson-build-wayland-protocols                                                && \
             qimsdk-meson-build-gst-plugins-good                                                 && \
             qimsdk-meson-build-gst-plugins-bad                                                  && \
+            qimsdk-cmake-build-le-services                                                      && \
             qimsdk-incremental-build-qti                                                        && \
             print-green "QIMSDK GStreamer targets built successfully !!!"
 }

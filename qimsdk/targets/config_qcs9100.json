@@ -10,6 +10,7 @@
     "IM_SDK_Source_Dir" : "<path-to-gst-plugins-qti-oss-dir>",
     "IM_SDK_Meta_Dir" : "<path-to-meta-qti-gst>",
     "Solution_Microservices_Dir": "<path-to-solutions-microservices>",
+    "LE_Services_Source_Dir": "<path-to-le-services>",
 
     "Path_to_eSDK_dir" : "<path-to-installed-eSDK-dir>",
 
@@ -110,6 +111,8 @@
         "/usr/lib/dsp/cdsp1/libc++abi.so.1",
         "/usr/lib/dsp/cdsp1/fastrpc_shell_unsigned_4",
         "/var/run/pulse/native",
+        "/usr/lib/libcamera_metadata.so",
+        "/tmp/socket/cam_server/",
         "/opt/data"
     ],
 

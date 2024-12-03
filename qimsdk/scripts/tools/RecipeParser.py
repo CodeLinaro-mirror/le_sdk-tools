@@ -366,7 +366,10 @@ class BuildCodeGenerator(RecipeParser):
 
             bb.data.expandKeys(bb_parsed)
 
-            bb_parsed.setVar("OVERRIDES", self.platform)
+            if (file_name != "qcom-gstreamer1.0-plugins-oss-qmmfsrc.bb"):
+                bb_parsed.setVar("OVERRIDES", "")
+            else:
+                bb_parsed.setVar("OVERRIDES", self.platform)
 
             plugins += bb_parsed.getVar("RDEPENDS:${PN}")
 
@@ -374,9 +377,9 @@ class BuildCodeGenerator(RecipeParser):
             # TODO not yet enabled
             "qcom-gstreamer1.0-plugins-oss-msgbroker",
             "qcom-gstreamer1.0-plugins-oss-smartvencbin",
-            "qcom-gstreamer1.0-plugins-oss-qmmfsrc",
-            "qcom-gst-camera-burst-capture-example",
-            "qcom-gst-camera-metadata-example"
+            # Depends on eSDK
+            "qcom-gstreamer1.0-plugins-oss-dfs",
+            "qcom-gst-python-examples",
         ]
 
         self.plugins = [ x for x in plugins.split() if "qcom-gstreamer1.0" in x or "qcom-gst-" in x ]
@@ -455,7 +458,10 @@ class BuildCodeGenerator(RecipeParser):
     # Export to shell method of BuildCodeGenerator
     def export(self, path_to_tmp: pathlib.Path):
 
-        path_to_sh = os.path.join(path_to_tmp, "build_plugins.sh")
+        path_to_sh = os.path.join(
+            path_to_tmp, f"{self.platform}_build_plugins.sh"
+        )
+
         with open(path_to_sh, "w") as build_plugins_sh:
             build_plugins_sh.write("""#!/bin/bash
 
