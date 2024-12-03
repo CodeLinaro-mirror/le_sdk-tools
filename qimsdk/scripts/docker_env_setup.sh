@@ -12,7 +12,6 @@
 #   $6 - (mandatory) variable to take path to microservices
 #   $7 - (mandatory) variable to take path to eSDK
 #   $8 - (mandatory) variable to take supported targets
-#   $9 - (mandatory) variable to take default target
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
@@ -22,7 +21,6 @@ function qimsdk-docker-parse-json() {
     local -n OUT_QIMSDK_PATH_MICROSERVICES=${6}
     local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${7}
     local -n OUT_QIMSDK_SUPPORTED_TARGETS=${8}
-    local -n OUT_QIMSDK_DEFAULT_TARGET=${9}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -98,10 +96,6 @@ function qimsdk-docker-parse-json() {
         echo ${JSON_CONTENT} | jq '.Supported_targets[]' | tr -d '"'
     ) )
 
-    OUT_QIMSDK_DEFAULT_TARGET=( $(
-        echo ${JSON_CONTENT} | jq '.Default_target' | tr -d '"'
-    ) )
-
     [ ${#OUT_QIMSDK_SUPPORTED_TARGETS[@]} -eq 0 ]                                               && {
         print-red "Supported_targets attribute is empty in config json !!!"
         return -6
@@ -121,7 +115,6 @@ function qimsdk-dev-docker-build-image() {
     local QIMSDK_PATH_MICROSERVICES
     local QIMSDK_PATH_TO_eSDK_DIR
     local QIMSDK_SUPPORTED_TARGETS
-    local QIMSDK_DEFAULT_TARGET
     local DOCKER_IMAGE_PATH
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
@@ -131,8 +124,7 @@ function qimsdk-dev-docker-build-image() {
             QIMSDK_GST_META                                                                        \
             QIMSDK_PATH_MICROSERVICES                                                              \
             QIMSDK_PATH_TO_eSDK_DIR                                                                \
-            QIMSDK_SUPPORTED_TARGETS                                                               \
-            QIMSDK_DEFAULT_TARGET
+            QIMSDK_SUPPORTED_TARGETS
 
     local rc=$?
     [ ${rc} -ne 0 ] && {
@@ -328,21 +320,11 @@ function qimsdk-dev-docker-build-image() {
 
         diff ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[0]}_recipes_patches.json              \
             ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}_recipes_patches.json     || {
-            [ -z ${QIMSDK_DEFAULT_TARGET} ]                                                     && {
-                print-red "Patches of supported targets differ !!!"
-                rm -rf ${QIMSDK_TMP_FOLDER}
-                return -11
-            } || {
-                print-yellow "Patches of supported targets differ !!!"
-            }
+            print-yellow "Patches of supported targets differ !!!"
         }
     done
 
-    [ -z ${QIMSDK_DEFAULT_TARGET} ]                                                             && {
-        QIMSDK_DEFAULT_TARGET=${QIMSDK_SUPPORTED_TARGETS[0]}
-    }
-
-    mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_DEFAULT_TARGET}_recipes_patches.json                          \
+    mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[0]}_recipes_patches.json                    \
         ${QIMSDK_TMP_FOLDER}/recipes_patches.json
 
     rsync -a ${QIMSDK_PATH_MICROSERVICES}/ ${QIMSDK_TMP_FOLDER}/solutions-microservices
@@ -379,7 +361,6 @@ function qimsdk-docker-build-image() {
     local QIMSDK_GST_META
     local QIMSDK_PATH_MICROSERVICES
     local QIMSDK_SUPPORTED_TARGETS
-    local QIMSDK_DEFAULT_TARGET
     local QIMSDK_PATH_TO_eSDK_DIR
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
@@ -389,8 +370,7 @@ function qimsdk-docker-build-image() {
             QIMSDK_GST_META                                                                        \
             QIMSDK_PATH_MICROSERVICES                                                              \
             QIMSDK_PATH_TO_eSDK_DIR                                                                \
-            QIMSDK_SUPPORTED_TARGETS                                                               \
-            QIMSDK_DEFAULT_TARGET
+            QIMSDK_SUPPORTED_TARGETS
 
     local rc=$?
     [ ${rc} -ne 0 ]                                                                             && {
@@ -572,21 +552,11 @@ function qimsdk-docker-build-image() {
 
         diff ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[0]}_recipes_patches.json              \
             ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}_recipes_patches.json     || {
-            [ -z ${QIMSDK_DEFAULT_TARGET} ]                                                     && {
-                print-red "Patches of supported targets differ !!!"
-                rm -rf ${QIMSDK_TMP_FOLDER}
-                return -11
-            } || {
-                print-yellow "Patches of supported targets differ !!!"
-            }
+            print-yellow "Patches of supported targets differ !!!"
         }
     done
 
-    [ -z ${QIMSDK_DEFAULT_TARGET} ]                                                             && {
-        QIMSDK_DEFAULT_TARGET=${QIMSDK_SUPPORTED_TARGETS[0]}
-    }
-
-    mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_DEFAULT_TARGET}_recipes_patches.json                          \
+    mv ${QIMSDK_TMP_FOLDER}/${QIMSDK_SUPPORTED_TARGETS[0]}_recipes_patches.json                    \
         ${QIMSDK_TMP_FOLDER}/recipes_patches.json
 
     rsync -a ${QIMSDK_PATH_MICROSERVICES}/ ${QIMSDK_TMP_FOLDER}/solutions-microservices

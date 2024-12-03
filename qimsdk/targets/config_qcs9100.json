@@ -7,7 +7,6 @@
         "qcm6490",
         "qcs9100"
     ],
-    "Default_target" : "<target>",
     "IM_SDK_Source_Dir" : "<path-to-gst-plugins-qti-oss-dir>",
     "IM_SDK_Meta_Dir" : "<path-to-meta-qti-gst>",
     "Solution_Microservices_Dir": "<path-to-solutions-microservices>",
