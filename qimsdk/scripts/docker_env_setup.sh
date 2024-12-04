@@ -901,7 +901,7 @@ function qimsdk-docker-device-save-image() {
 
         rc=$?
         [ ${rc} -ne 0 ] && {
-            print-red "Generate qimsk docker compose file failed !!!"
+            print-red "Generate qimsdk docker compose file failed !!!"
             rm -f ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml
 
             return ${rc}
@@ -1220,18 +1220,20 @@ function qimsdk-docker-device-run-container() {
 
         local TARGET_PLATFORM=""
 
+        local TMP_RUN_CMD_DIR=$(mktemp -d)
+
         for SUFFIX_NAME in ${PLATFORMS[@]}; do
             local MAPPINGS_JSON="${QIMSDK_DOCKER_DIR}/targets/mappings_${SUFFIX_NAME}.json"
 
             qimsdk-generate-docker-run-cmd ${MAPPINGS_JSON}                                        \
-                    /tmp/docker_run_${SUFFIX_NAME}.sh                                              \
+                    ${TMP_RUN_CMD_DIR}/docker_run_${SUFFIX_NAME}.sh                                \
                     ${QIMSDK_CONTAINER_NAME}                                                       \
                     ${QIMSDK_IMAGE_NAME}
 
             rc=$?
             [ ${rc} -ne 0 ] && {
-                print-red "Generate /tmp/docker_run_${SUFFIX_NAME}.sh file failed !!!"
-                rm -f /tmp/docker_run_${SUFFIX_NAME}.sh
+                print-red "Generate ${TMP_RUN_CMD_DIR}/docker_run_${SUFFIX_NAME}.sh file failed !!!"
+                rm -rf ${TMP_RUN_CMD_DIR}
 
                 return ${rc}
             }
@@ -1251,15 +1253,15 @@ function qimsdk-docker-device-run-container() {
             return -1
         }
 
-        adb push /tmp/docker_run_${TARGET_PLATFORM}.sh /tmp/
+        adb push ${TMP_RUN_CMD_DIR}/docker_run_${TARGET_PLATFORM}.sh /tmp/                      && \
         qimsdk-device-command "source /tmp/docker_run_${TARGET_PLATFORM}.sh"                    || {
-            rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh
+            rm -rf ${TMP_RUN_CMD_DIR}
             qimsdk-device-command "rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh"
             echo "qimsdk-docker-device-run-container failed !!!"
             return -1
         }
 
-        rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh
+        rm -rf ${TMP_RUN_CMD_DIR}
         qimsdk-device-command "rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh"
     )
 

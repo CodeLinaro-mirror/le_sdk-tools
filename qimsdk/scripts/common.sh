@@ -468,5 +468,11 @@ function qimsdk-generate-docker-run-cmd() {
     echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT} ${EXPORTS}          \
             -h ${CONTAINER_NAME} --user qimsdk --name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}
 
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: Failed to construct Docker run cmd !!!"
+        return ${rc}
+    }
+
     return 0
 }
