@@ -64,6 +64,7 @@
         "/usr/lib/libjpeg_internal.so",
         "/usr/lib/libtensorflowlite_c.so",
         "/usr/lib/libtf_logging.so",
+        "/usr/lib/libVideoCtrl.so",
         "/usr/lib/libIB2C.so",
         "/usr/lib/libEGL_adreno.so",
         "/usr/lib/libGLESv2_adreno.so",
