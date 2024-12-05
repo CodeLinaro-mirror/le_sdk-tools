@@ -232,6 +232,23 @@ COPY --chmod=555                                                                
         tmp/solutions-microservices/ai/files/labels/resnet101.labels                               \
         ${QIMSDK_INSTALL_DIR}/opt/labels/resnet101.labels
 
+RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
+        'https://github.com/quic/sample-apps-for-qualcomm-linux/releases/download/GA1.3-rel/labels.zip' && \
+        cd ${QIMSDK_DOWNLOAD_DIR} && unzip labels.zip                                           && \
+        cp labels/* ${QIMSDK_INSTALL_DIR}/opt/labels/ && rm -rf labels*                         && \
+    wget -t 2 -T 30 -P ${QIMSDK_INSTALL_DIR}/opt/models/                                           \
+        'https://huggingface.co/qualcomm/Inception-v3-Quantized/blob/main/Inception-v3-Quantized.tflite' && \
+    wget -t 2 -T 30 -P ${QIMSDK_INSTALL_DIR}/opt/models/                                           \
+        'https://huggingface.co/qualcomm/DeepLabV3-Plus-MobileNet-Quantized/blob/main/DeepLabV3-Plus-MobileNet-Quantized.tflite' && \
+    wget -t 2 -T 30 -P ${QIMSDK_INSTALL_DIR}/opt/models/                                           \
+        'https://huggingface.co/qualcomm/Midas-V2-Quantized/blob/main/Midas-V2-Quantized.tflite' && \
+    wget -t 2 -T 30 -P ${QIMSDK_INSTALL_DIR}/opt/models/                                           \
+        'https://huggingface.co/qualcomm/HRNetPoseQuantized/blob/main/HRNetPoseQuantized.tflite' && \
+    wget -t 2 -T 30 -P ${QIMSDK_INSTALL_DIR}/opt/models/                                           \
+        'https://huggingface.co/qualcomm/QuickSRNetSmall-Quantized/blob/main/QuickSRNetSmall-Quantized.tflite' && \
+    wget -t 2 -T 30 -P ${QIMSDK_INSTALL_DIR}/opt/labels/                                           \
+        'https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/midas/midasv2_linux_assets/monodepth.labels'
+
 # Change workdir back to base dir from downloads dir
 WORKDIR ${QIMSDK_BASE_DIR}
 
