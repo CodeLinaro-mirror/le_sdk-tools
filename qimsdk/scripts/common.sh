@@ -451,7 +451,7 @@ function qimsdk-generate-docker-run-cmd() {
 
     rc=$?
     [ ${rc} -ne 0 ] && {
-        print-red "FAILED: qimsdk-get-platform-specific-mapping  !!!"
+        print-red "FAILED: qimsdk-get-platform-libs-to-mount  !!!"
         return ${rc}
     }
 

@@ -1,24 +1,8 @@
 {
-    "Additional_tag_container": "",
-    "Additional_tag_image": "",
-    "Docker_image_path": "<path-to-save-docker-images-and-artifacts>",
-    "Target_device_ID" : "<adb-device-id>",
-    "Supported_targets": [
-        "qcm6490",
-        "qcs9100"
-    ],
-    "IM_SDK_Source_Dir" : "<path-to-gst-plugins-qti-oss-dir>",
-    "IM_SDK_Meta_Dir" : "<path-to-meta-qti-gst>",
-    "Solution_Microservices_Dir": "<path-to-solutions-microservices>",
-    "LE_Services_Source_Dir": "<path-to-le-services>",
-
-    "Path_to_eSDK_dir" : "<path-to-installed-eSDK-dir>",
-
     "Exports": [
         "XDG_RUNTIME_DIR=/dev/socket/weston",
         "WAYLAND_DISPLAY=wayland-1",
-        "GST_DEBUG_NO_COLOR=1",
-        "ADSP_LIBRARY_PATH=\"/usr/lib/dsp/cdsp;/usr/lib/dsp/cdsp1;${ADSP_LIBRARY_PATH}\""
+        "GST_DEBUG_NO_COLOR=1"
     ],
 
     "Platform_Libraries_To_Mount": [
@@ -35,7 +19,7 @@
         "/usr/lib/libSnpeDspV66Stub.so",
         "/usr/lib/libSnpeHta.so",
         "/usr/lib/libSnpeHtpPrepare.so",
-        "/usr/lib/libSnpeHtpV73Stub.so",
+        "/usr/lib/libSnpeHtpV68Stub.so",
         "/usr/lib/libQnnChrometraceProfilingReader.so",
         "/usr/lib/libQnnGpu.so",
         "/usr/lib/libQnnHtpProfilingReader.so",
@@ -52,10 +36,10 @@
         "/usr/lib/libQnnGpuProfilingReader.so",
         "/usr/lib/libQnnHtpPrepare.so",
         "/usr/lib/libQnnSystem.so",
-        "/usr/lib/libQnnHtpV73Stub.so",
-        "/usr/lib/rfsa/adsp/libSnpeHtpV73Skel.so",
-        "/usr/lib/rfsa/adsp/libQnnHtpV73Skel.so",
-        "/usr/lib/rfsa/adsp/libQnnHtpV73.so",
+        "/usr/lib/libQnnHtpV68Stub.so",
+        "/usr/lib/rfsa/adsp/libSnpeHtpV68Skel.so",
+        "/usr/lib/rfsa/adsp/libQnnHtpV68Skel.so",
+        "/usr/lib/rfsa/adsp/libQnnHtpV68.so",
         "/usr/lib/rfsa/adsp/libQnnSaver.so",
         "/usr/lib/rfsa/adsp/libQnnSystem.so",
         "/usr/lib/libenv_time.so",
@@ -99,18 +83,13 @@
         "/usr/lib/libQnnTFLiteDelegate.so",
         "/usr/lib/libadsprpc.so",
         "/usr/lib/libcdsprpc.so",
-        "/usr/lib/libadsp_default_listener.so",
-        "/usr/lib/libcdsp_default_listener.so",
         "/usr/lib/libfastcvopt.so",
-        "/usr/lib/dsp/cdsp/cv/v73/LEMANS/libfastcvdsp_skel.so",
-        "/usr/lib/dsp/cdsp/cv/v73/LEMANS/libfastcvadsp.so",
+        "/usr/lib/dsp/cdsp/cv/v68/KODIAK/libfastcvdsp_skel.so",
+        "/usr/lib/dsp/cdsp/cv/v68/KODIAK/libfastcvadsp.so",
         "/usr/lib/libfastcvdsp_stub.so",
         "/usr/lib/libdmabufheap.so.0.0.0",
         "/usr/lib/dsp/cdsp/libc++.so.1",
         "/usr/lib/dsp/cdsp/libc++abi.so.1",
-        "/usr/lib/dsp/cdsp1/libc++.so.1",
-        "/usr/lib/dsp/cdsp1/libc++abi.so.1",
-        "/usr/lib/dsp/cdsp1/fastrpc_shell_unsigned_4",
         "/var/run/pulse/native",
         "/usr/lib/libcamera_metadata.so",
         "/tmp/socket/cam_server/",
@@ -125,7 +104,6 @@
         "/dev/video33",
         "/dev/dma_heap/system",
         "/dev/dma_heap/qcom,system",
-        "/dev/fastrpc-cdsp",
-        "/dev/fastrpc-cdsp1"
+        "/dev/fastrpc-cdsp"
     ]
 }

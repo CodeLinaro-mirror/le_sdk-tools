@@ -12,7 +12,7 @@
   * [QIMSDK Dev Image](#QIMSDK_Dev_Image)
   * [QIMSDK Device Image](#QIMSDK_Device_Image)
 * [Host Side Helper Scripts And Configuration](#Host_Side_Helper_Scripts_And_Configuration)
-  * [How to fill out Configuration JSON File](#How_to_fill_out_Configuration_JSON_File)
+  * [How to fill out Configuration JSON Files](#How_to_fill_out_Configuration_JSON_Files)
   * [Docker Host Side Helper Scripts](#Docker_Host_Side_Helper_Scripts)
   * [Docker Development Container Side Helper Scripts](#Docker_Development_Container_Side_Helper_Scripts)
 * [Development Workflow](#Development_Workflow)
@@ -218,11 +218,15 @@ Two QIMSDK docker images are built. One for development. One for device target.
 
 ## Host Side Helper Scripts And Configuration
 
-<div id="How_to_fill_out_Configuration_JSON_File">
+<div id="How_to_fill_out_Configuration_JSON_Files">
 
-### How to fill out Configuration JSON File
+### How to fill out Configuration JSON Files
 
-The json file must contain certain data :
+Two configuration json files are used in QIMSDK project:
+ - One is generic config json *(config.json)*. Used to configure environment compilation.
+ - The others are target specific json *(mappings_\<target-name\>.json)*. Used to configure containers to be run for that specific target.
+
+Config json files *(config.json)* must contain the following data:
  1. ***OPTIONAL*** - **Additional_tag_container** - Additional tag for container - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
  2. ***OPTIONAL*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose (to not set an additional tag just leave the value for this field empty)
  3. ***OPTIONAL*** - **Docker_image_path** - Remote ssh destination or local path to sync docker images or artifacts
@@ -233,9 +237,11 @@ The json file must contain certain data :
  8. ***MANDATORY*** - **Solution_Microservices_Dir** - PATH to solutions-microservices directory, which contains all qimsdk microservices shell scripts. ***Note: Path provided must point to solutions-microservices directory!***
  9. ***MANDATORY*** - **LE_Services_Source_Dir** - PATH to le-services directory, which contains source code of camera recorder client and camera metadata libs compiled inside dev container. ***Note: Path provided must point to le-services directory!***
  10. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
- 11. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
- 12. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
- 13. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
+
+Target specific json files *(mappings_\<target-name\>.json)* must contain the following data:
+ 1. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
+ 2. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
+ 3. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
 
 <div id="Docker_Host_Side_Helper_Scripts">
 

@@ -848,9 +848,9 @@ function qimsdk-docker-device-save-image() {
     )
 
     for SUFFIX_NAME in ${PLATFORMS[@]}; do
-        local CONFIG_JSON="${QIMSDK_DOCKER_DIR}/targets/config_${SUFFIX_NAME}.json"
+        local MAPPINGS_JSON="${QIMSDK_DOCKER_DIR}/targets/mappings_${SUFFIX_NAME}.json"
 
-        qimsdk-generate-docker-run-cmd ${CONFIG_JSON}                                              \
+        qimsdk-generate-docker-run-cmd ${MAPPINGS_JSON}                                            \
                 ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                                        \
                 ${QIMSDK_CONTAINER_NAME}                                                           \
                 ${QIMSDK_IMAGE_NAME}
@@ -874,7 +874,7 @@ function qimsdk-docker-device-save-image() {
             return ${rc}
         }
 
-        qimsdk-generate-docker-compose-yaml ${CONFIG_JSON}                                         \
+        qimsdk-generate-docker-compose-yaml ${MAPPINGS_JSON}                                       \
                 ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml                                   \
                 ${QIMSDK_CONTAINER_NAME}                                                           \
                 ${QIMSDK_IMAGE_NAME}
@@ -1004,7 +1004,8 @@ function qimsdk-docker-device-load-image() {
 
         qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
-        qimsdk-device-command "docker load -i /home/data/docker_images/${FILE_NAME}" ${QIMSDK_DEVICE_ID}
+        qimsdk-device-command "docker load -i /home/data/docker_images/${FILE_NAME}"               \
+            ${QIMSDK_DEVICE_ID}
 
         rc=$?
         [ ${rc} -ne 0 ] && {
@@ -1163,9 +1164,6 @@ function qimsdk-docker-device-run-container() {
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_DEVICE_ID
-    local PLATFORM_SPECIFIC_MAP
-    local PLATFORM_LIBS_TO_MOUNT
-    local EXPORTS
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -1191,9 +1189,9 @@ function qimsdk-docker-device-run-container() {
         )
 
         for SUFFIX_NAME in ${PLATFORMS[@]}; do
-            local CONFIG_JSON="${QIMSDK_DOCKER_DIR}/targets/config_${SUFFIX_NAME}.json"
+            local MAPPINGS_JSON="${QIMSDK_DOCKER_DIR}/targets/mappings_${SUFFIX_NAME}.json"
 
-            qimsdk-generate-docker-run-cmd ${CONFIG_JSON}                                          \
+            qimsdk-generate-docker-run-cmd ${MAPPINGS_JSON}                                        \
                     /tmp/docker_run_${SUFFIX_NAME}.sh                                              \
                     ${QIMSDK_CONTAINER_NAME}                                                       \
                     ${QIMSDK_IMAGE_NAME}
