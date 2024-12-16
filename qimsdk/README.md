@@ -243,6 +243,7 @@ Config json files *(config.json)* must contain the following data:
  8. ***MANDATORY*** - **Solution_Microservices_Dir** - PATH to solutions-microservices directory, which contains all qimsdk microservices shell scripts. ***Note: Path provided must point to solutions-microservices directory!***
  9. ***MANDATORY*** - **LE_Services_Source_Dir** - PATH to le-services directory, which contains source code of camera recorder client and camera metadata libs compiled inside dev container. ***Note: Path provided must point to le-services directory!***
  10. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
+ 11. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir or Solution_Microservices_Dir is wanted to be mapped to the development container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
 
 Target specific json files *(mappings_\<target-name\>.json)* must contain the following data:
  1. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform

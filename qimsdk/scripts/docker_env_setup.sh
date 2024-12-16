@@ -1232,9 +1232,14 @@ function qimsdk-dev-docker-run-container() {
         return ${rc}
     }
 
+    local DEVELOPMENT_MAP
+
+    qimsdk-get-map-for-dev-container ${PATH_TO_CONFIG_JSON}                                        \
+            DEVELOPMENT_MAP
+
     docker run -it -d -h ${QIMSDK_CONTAINER_NAME}_dev --name ${QIMSDK_CONTAINER_NAME}_dev          \
-        --device /dev/bus/usb                                                                      \
-        ${QIMSDK_IMAGE_NAME}_dev bash
+            --device /dev/bus/usb ${DEVELOPMENT_MAP}                                               \
+            ${QIMSDK_IMAGE_NAME}_dev bash
 
     rc=$?
     [ ${rc} -ne 0 ] && {
