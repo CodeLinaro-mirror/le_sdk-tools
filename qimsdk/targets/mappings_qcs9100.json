@@ -112,5 +112,12 @@
         "/dev/dma_heap/qcom,system",
         "/dev/fastrpc-cdsp",
         "/dev/fastrpc-cdsp1"
+    ],
+
+    "Soc" : [
+        "SA8775P",
+        "QCS9100",
+        "QCS9075",
+        "SA7255P"
     ]
 }

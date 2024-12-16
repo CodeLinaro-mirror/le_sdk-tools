@@ -1188,6 +1188,18 @@ function qimsdk-docker-device-run-container() {
             $(cat ${PATH_TO_CONFIG_JSON} | jq '.Supported_targets[]' | tr -d '"')
         )
 
+        export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
+
+        local MACHINE=$(adb shell "cat /sys/devices/soc0/machine" | tr -d '\r')
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: adb shell "cat /sys/devices/soc0/machine"  !!!"
+            return ${rc}
+        }
+
+        local TARGET_PLATFORM=""
+
         for SUFFIX_NAME in ${PLATFORMS[@]}; do
             local MAPPINGS_JSON="${QIMSDK_DOCKER_DIR}/targets/mappings_${SUFFIX_NAME}.json"
 
@@ -1203,30 +1215,19 @@ function qimsdk-docker-device-run-container() {
 
                 return ${rc}
             }
+
+            declare -A SOC_LIST=$(cat ${MAPPINGS_JSON} | jq '.Soc[]' | tr -d '"')
+
+            for SOC in ${SOC_LIST[@]}; do
+                [[ ${MACHINE} == ${SOC} ]] && {
+                    TARGET_PLATFORM="${SUFFIX_NAME}"
+                    break
+                }
+            done
         done
 
-        export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
-
-        adb pull /sys/devices/soc0/machine /tmp/.
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-red "FAILED: adb pull /sys/devices/soc0/machine  !!!"
-            return ${rc}
-        }
-
-        local MACHINE=$(cat /tmp/machine)
-
-        rm /tmp/machine
-
-        local TARGET_PLATFORM=""
-
-        [[ "${MACHINE}" == "SA8775P" ]] && {
-            TARGET_PLATFORM="qcs9100"
-        } || [[ "${MACHINE}" == "QCS6490" ]] && {
-            TARGET_PLATFORM="qcm6490"
-        } || {
-            print-red "Unsuported target ${MACHINE} !!!"
+        [ -z ${TARGET_PLATFORM} ] && {
+            print-red "Target platform is not set !!!"
             return -1
         }
 
