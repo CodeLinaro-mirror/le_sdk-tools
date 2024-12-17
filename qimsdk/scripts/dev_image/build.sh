@@ -355,6 +355,12 @@ function qimsdk-cmake-build-le-services () {
             print-green "${FUNCNAME} completed successfully!"
 }
 
+# CMake Build solutions-microservices
+function qimsdk-cmake-build-solutions-microservices () {
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/solutions-microservices/ai                             && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
 # Clean meson wayland-protocols build directory
 function qimsdk-meson-clean-wayland-protocols() {
     rm -rf ${QIMSDK_BUILD_DIR}/wayland-protocols-1.25
@@ -397,6 +403,13 @@ function qimsdk-cmake-clean-le-services() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
+# Clean CMake solutions-microservices build directory
+function qimsdk-cmake-clean-solutions-microservices() {
+    rm -rf ${QIMSDK_BUILD_DIR}/solutions-microservices
+
+    print-green "${FUNCNAME} completed successfully!"
+}
+
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
     qimsdk-meson-build-gstd                                                                     && \
@@ -406,6 +419,7 @@ function qimsdk-incremental-build() {
             qimsdk-meson-build-gst-plugins-bad                                                  && \
             qimsdk-cmake-build-le-services                                                      && \
             qimsdk-incremental-build-qti                                                        && \
+            qimsdk-cmake-build-solutions-microservices                                          && \
             print-green "QIMSDK GStreamer targets built successfully !!!"
 }
 
