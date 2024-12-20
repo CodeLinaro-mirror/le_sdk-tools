@@ -13,6 +13,7 @@
         "/opt/qti/development",
         "/usr/lib/libgbm.so",
         "/usr/lib/libgsl.so",
+        "/usr/lib/libgsl.so.1",
         "/usr/lib/libdmabufheap.so.0",
         "/usr/lib/libhta_hexagon_runtime_snpe.so",
         "/usr/lib/libPlatformValidatorShared.so",
@@ -52,7 +53,9 @@
         "/usr/lib/libVideoCtrl.so",
         "/usr/lib/libIB2C.so",
         "/usr/lib/libEGL_adreno.so",
+        "/usr/lib/libEGL_adreno.so.1",
         "/usr/lib/libGLESv2_adreno.so",
+        "/usr/lib/libGLESv2_adreno.so.2",
         "/usr/lib/libpropertyvault.so.0",
         "/usr/lib/libpropertyvault.so.0.0.0",
         "/usr/lib/libwayland-client.so.0",
@@ -74,6 +77,7 @@
         "/usr/lib/libGLESv2.so.2.0",
         "/usr/lib/libGLESv2.so.2.0.0",
         "/usr/lib/libllvm-glnext.so",
+        "/usr/lib/libllvm-glnext.so.1",
         "/usr/lib/libllvm-qcom.so",
         "/usr/lib/libllvm-qgl.so",
         "/usr/lib/libOpenCL.so",
@@ -117,7 +121,6 @@
     "Soc" : [
         "SA8775P",
         "QCS9100",
-        "QCS9075",
-        "SA7255P"
+        "QCS9075"
     ]
 }
