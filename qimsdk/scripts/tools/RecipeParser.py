@@ -536,6 +536,10 @@ echo \"    Print build and clean function of each gst plugins\"
 """)
 
 class RuntimeFlagsGenerator(RecipeParser):
+    class Platform:
+        def __init__(self, name: str, list_of_socs: list):
+            self.name = name
+            self.list_of_socs = list_of_socs
 
     # Init of RecipeFlagsParser
     # Reads the recipes and buffers them in dictionary (plugin : content)
@@ -543,10 +547,17 @@ class RuntimeFlagsGenerator(RecipeParser):
                 platform: str) -> None:
         super().__init__(path_to_layers, path_to_meta, platform)
 
-        self.platform_to_soc = {
-            "qcs9100" : "SA8775P",
-            "qcm6490" : "QCS6490"
-        }
+        target_json = os.path.join(
+            os.getcwd(), f"targets/mappings_{self.platform}.json"
+        )
+
+        list_of_socs = list(str())
+
+        with open(target_json, "r") as mappings:
+            json_content = json.load(mappings)
+            list_of_socs = json_content['Soc']
+
+        self.target_platform = self.Platform(self.platform, list_of_socs)
 
         self.plugin_to_flags = dict()
 
@@ -566,7 +577,7 @@ class RuntimeFlagsGenerator(RecipeParser):
             bb_parsed = bb.parse.handle(
                 my_temp_file.name, current_data_smart)['']
 
-            bb_parsed.setVar("OVERRIDES", self.platform)
+            bb_parsed.setVar("OVERRIDES", self.target_platform.name)
 
             extra_oecmake_string = bb_parsed.getVar("EXTRA_OECMAKE")
 
@@ -624,15 +635,15 @@ class RuntimeFlagsGenerator(RecipeParser):
     # Export it to json file ("plugin" : { "member" : "flags" })
     def export(self, path_to_tmp: pathlib.Path):
 
-        soc = self.platform_to_soc[self.platform]
+        for soc in self.target_platform.list_of_socs:
 
-        path_to_json = os.path.join(
-            path_to_tmp, f"{soc}_runtime_flags.json"
-        )
+            path_to_json = os.path.join(
+                path_to_tmp, f"{soc}_runtime_flags.json"
+            )
 
-        with open(path_to_json, "w") as runtime_flags_json:
-            json_buffer = json.dumps(self.plugin_to_flags, indent=4)
-            runtime_flags_json.write(json_buffer)
+            with open(path_to_json, "w") as runtime_flags_json:
+                json_buffer = json.dumps(self.plugin_to_flags, indent=4)
+                runtime_flags_json.write(json_buffer)
 
 
 # Parse arguments function
