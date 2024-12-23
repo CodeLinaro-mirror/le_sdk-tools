@@ -347,13 +347,15 @@ adb disable-verity
 adb reboot
 ```
 
-#### Prepare Device Data Directory
+#### Prepare Device Data and Development Directories
 
 Device data directory used in qimsdk should have write permissions to world. The reason is docker container is running with qimsdk user and it should have write access to that folder.
 
 ```bash
 adb shell "mkdir -p /opt/data"
 adb shell "chmod -R 777 /opt/data"
+adb shell "mkdir -p /opt/qti/development"
+adb shell "chmod -R /opt/qti/development"
 ```
 
 #### Prepare Device After Reboot

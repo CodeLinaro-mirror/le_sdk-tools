@@ -23,7 +23,7 @@ function qimsdk-dev-save-artifacts-variant() {
                     echo "rsync -a qimsdk_dev_artifacts_${VARIANT}.tar `
                         `${DOCKER_IMAGE_PATH} failed !!!"
                     popd > /dev/null
-                    return -2
+                    return -1
                 }
         rm -f qimsdk_dev_artifacts_${VARIANT}.tar
     popd  > /dev/null

@@ -117,6 +117,10 @@ class BBPatchParser(Parsable):
             path_to_layers, "meta-qti-pulseaudio-plugins/recipes-multimedia/audio/")
 
         if not os.path.exists(self.path_to_pulseaudio_bbappend):
+            self.path_to_pulseaudio_bbappend = os.path.join(
+                    path_to_layers, "meta-qcom-hwe/recipes-multimedia/audio/")
+
+        if not os.path.exists(self.path_to_pulseaudio_bbappend):
             raise Exception("Pulse audio recipes path cannot be reached !!!")
 
         self.path_to_pulseaudio_recipe_bb = os.path.join(
@@ -341,12 +345,13 @@ class BuildCodeGenerator(RecipeParser):
             file_to_open = str()
 
             if file_name.endswith(".bb"):
-                file_to_open = os.path.join(path_to_meta, file_name)
+                path = os.path.join(path_to_meta, file_name)
             elif file_name.endswith(".bbappend"):
-                file_name = os.path.join("meta-qti-qim-product-sdk", file_name)
-                file_to_open = os.path.join(path_to_layers, file_name)
+                path = os.path.join(path_to_layers, "meta-qcom-qim-product-sdk", file_name)
+                if not os.path.exists(path):
+                    path = os.path.join(path_to_layers, "meta-qti-qim-product-sdk", file_name)
 
-            with open(file_to_open) as file:
+            with open(path) as file:
                 content += file.read()
 
             current_data_smart = bb.data.init()

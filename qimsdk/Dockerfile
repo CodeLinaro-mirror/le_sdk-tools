@@ -308,7 +308,7 @@ COPY --from=qimsdk_dev_image                                                    
 ENV QIMSDK_RUNTIME_FLAGS_DIR=/opt/qti/runtime_flags/
 RUN mkdir -p ${QIMSDK_RUNTIME_FLAGS_DIR}
 
-COPY tmp/*runtime_flags.json ${QIMSDK_RUNTIME_FLAGS_DIR}
+COPY --chmod=644 tmp/*runtime_flags.json ${QIMSDK_RUNTIME_FLAGS_DIR}
 
 # Change user to qimsdk
 USER qimsdk

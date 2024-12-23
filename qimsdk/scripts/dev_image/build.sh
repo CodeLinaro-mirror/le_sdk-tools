@@ -16,6 +16,11 @@ function qimsdk-meson-configure() {
     local MESON_CONFIG_FLAGS=$@
 
     (
+        export CFLAGS="-mbranch-protection=standard -fstack-protector-strong -O2 `
+            `-D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security -pipe `
+            `-feliminate-unused-debug-types -march=armv8.2-a+crypto"
+        export CXXFLAGS="${CFLAGS}"
+
         mkdir -p ${QIMSDK_BUILD_DIR}
         cd ${QIMSDK_BUILD_DIR}
         set -o pipefail
@@ -53,6 +58,11 @@ function qimsdk-cmake-configure() {
     local CMAKE_CUSTOM_CONFIG_FLAGS=$@
 
     (
+        export CFLAGS="-mbranch-protection=standard -fstack-protector-strong -O2 `
+            `-D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security -pipe `
+            `-feliminate-unused-debug-types"
+        export CXXFLAGS="${CFLAGS}"
+
         local CMAKE_FLAGS="
             -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
             -DENABLE_RUNTIME_PARSER:BOOL=ON
@@ -74,10 +84,10 @@ function qimsdk-cmake-configure() {
         set -o pipefail
 
         cmake ${CMAKE_FLAGS} ${SOURCE_PATH}                                                       |&
-                tee "${QIMSDK_LOGS_DIR}/do_configure_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
+                tee "${QIMSDK_LOGS_DIR}/cmake_configure_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
     ) || {
         print-red "FAILED: qimsdk-cmake-configure-${TARGET}: cmake configure failed !!!"
-        return -2
+        return -1
     }
 
     print-green "qimsdk ${TARGET} cmake configured successfully !!!"
@@ -93,7 +103,7 @@ function qimsdk-meson-compile() {
 
         set -o pipefail
 
-        meson compile                                                                             |&
+        meson compile -v                                                                          |&
                 tee "${QIMSDK_LOGS_DIR}/meson_compile_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
     ) || {
         print-red "FAILED: qimsdk-meson-compile-${TARGET}: meson compile failed !!!"
@@ -122,10 +132,10 @@ function qimsdk-cmake-compile() {
         set -o pipefail
 
         cmake --build .                                                                           |&
-                tee "${QIMSDK_LOGS_DIR}/do_compile_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
+                tee "${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
     ) || {
         print-red "FAILED: qimsdk-cmake-compile-${TARGET}: cmake compile failed !!!"
-        return -2
+        return -1
     }
 
     print-green "qimsdk ${TARGET} built successfully !!!"
@@ -167,8 +177,8 @@ function qimsdk-cmake-install() {
     local TARGET=${1}
 
     local DATE=$(date "+%Y_%m_%d-%H_%M_%S")
-    local LOG_FILE_NAME=${QIMSDK_LOGS_DIR}/do_install_${TARGET}_${DATE}.log
-    local LOG_FILE_NAME_DBG=${QIMSDK_LOGS_DIR}/do_install_${TARGET}_dbg_${DATE}.log
+    local LOG_FILE_NAME=${QIMSDK_LOGS_DIR}/cmake_install_${TARGET}_${DATE}.log
+    local LOG_FILE_NAME_DBG=${QIMSDK_LOGS_DIR}/cmake_install_${TARGET}_dbg_${DATE}.log
 
     [ ! -d ${QIMSDK_BUILD_DIR}/${TARGET} ]                                                      && {
         print-red "No such build dir: ${QIMSDK_BUILD_DIR}/${TARGET}"
@@ -191,7 +201,7 @@ function qimsdk-cmake-install() {
                 cut -d ' ' -f 3 | xargs -i rsync -aR {} ${QIMSDK_INSTALL_DIR}/
     ) || {
         print-red "FAILED: qimsdk-cmake-install-${TARGET}: cmake install failed !!!"
-        return -2
+        return -1
     }
 
     cat ${LOG_FILE_NAME}
@@ -375,7 +385,7 @@ function qimsdk-meson-clean-gstd() {
 
 # Clean meson pulseaudio build directory
 function qimsdk-meson-clean-pulseaudio() {
-    rm -rf ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-15.0
+    rm -rf ${QIMSDK_BUILD_DIR}/pulseaudio-15.0
 
     print-green "${FUNCNAME} completed successfully!"
 }

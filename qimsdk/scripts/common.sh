@@ -89,15 +89,15 @@ function qimsdk-device-prepare() {
 
         adb wait-for-device remount wait-for-device
         rc=$?
-        [ "${rc}" -ne 0 ] && print-red "adb remount failed !!!" && return -2
+        [ "${rc}" -ne 0 ] && print-red "adb remount failed !!!" && return -1
 
         qimsdk-device-command "mount -o remount,rw / > /dev/null" ${TARGET_DEVICE_ID}
         rc=$?
-        [ "${rc}" -ne 0 ] && print-red "adb file system remount failed !!!" && return -3
+        [ "${rc}" -ne 0 ] && print-red "adb file system remount failed !!!" && return -1
 
         qimsdk-device-command "! command -v setenforce || setenforce 0" ${TARGET_DEVICE_ID}
         rc=$?
-        [ "${rc}" -ne 0 ] && print-red "adb disable SE Linux failed !!!" && return -4
+        [ "${rc}" -ne 0 ] && print-red "adb disable SE Linux failed !!!" && return -1
 
         return 0
     )
@@ -168,7 +168,7 @@ function qimsdk-get-docker-image-path() {
 
     [ -z "${OUT_DOCKER_IMAGE_PATH}" ] && {
         print-red "Docker_image_path attribute in config.json is not set !!!"
-        return -2
+        return -1
     }
 
     return 0
@@ -192,7 +192,7 @@ function qimsdk-get-device-id() {
 
     [ -z "${OUT_TARGET_DEVICE_ID}" ] && {
         print-red "Target_device_ID attribute in config.json is not set !!!"
-        return -2
+        return -1
     }
 
     return 0
@@ -220,7 +220,7 @@ function qimsdk-get-platform-specific-mapping() {
 
     [ -z "${PLATFORM_SPECIFIC_MAPS_ARRAY}" ] && {
         print-red "Platform_Specific_Mappings attribute in ${PATH_TO_CONFIG_JSON} is not set !!!"
-        return -2
+        return -1
     }
 
     declare -a PLATFORM_SPECIFIC_MAPS_ARRAY_TEMP=""
@@ -258,7 +258,7 @@ function qimsdk-get-platform-libs-to-mount() {
 
     [ -z "${PLATFORM_SPECIFIC_LIBS_ARRAY}" ] && {
         print-red "Platform_Libraries_To_Mount attribute in ${PATH_TO_CONFIG_JSON} is not set !!!"
-        return -2
+        return -1
     }
 
     declare -a PLATFORM_SPECIFIC_LIBS_ARRAY_TEMP=""
@@ -375,7 +375,7 @@ function qimsdk-generate-docker-compose-yaml() {
     )
     [ -z "${PLATFORM_SPECIFIC_LIBS_ARRAY}" ] && {
         print-red "Platform_Libraries_To_Mount attribute in ${PATH_TO_CONFIG_JSON} is not set !!!"
-        return -2
+        return -1
     }
 
     declare -a PLATFORM_SPECIFIC_MAPS_ARRAY
@@ -384,7 +384,7 @@ function qimsdk-generate-docker-compose-yaml() {
     )
     [ -z "${PLATFORM_SPECIFIC_MAPS_ARRAY}" ] && {
         print-red "Platform_Specific_Mappings attribute in ${PATH_TO_CONFIG_JSON} is not set !!!"
-        return -3
+        return -1
     }
 
     declare -a EXPORTS_ARRAY
@@ -419,7 +419,7 @@ function qimsdk-generate-docker-compose-yaml() {
             done                                                                                || {
         print-red "Failed to generate docker compose yaml file failed !!!"
         rm -rf  ${PATH_TO_DOCKER_COMPOSE_YAML}
-        return -4
+        return -1
     }
 
     return 0
