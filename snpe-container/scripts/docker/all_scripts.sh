@@ -5,6 +5,6 @@
 
 ALL_SCRIPTS_FOLDER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-source ${ALL_SCRIPTS_FOLDER}/update_libraries.sh &>/dev/null
+source ${ALL_SCRIPTS_FOLDER}/install_libraries.sh &>/dev/null
 
 $@

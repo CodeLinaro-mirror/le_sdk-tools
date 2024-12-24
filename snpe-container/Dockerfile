@@ -23,20 +23,17 @@ ADD scripts/docker/ ${QML_BASE_DIR}/scripts
 WORKDIR "${QML_BASE_DIR}"
 
 # Set base directory
-ARG QML_ARG_SDK_VER
-ENV QML_SDK_VERS_STRING=${QML_ARG_SDK_VER}
+ARG QML_ARG_SDK_VERSION
+ENV QML_SDK_VERSION=${QML_ARG_SDK_VERSION}
 
 ARG QML_ARG_TARGET_PLATFORM
 ENV QML_TARGET_PLATFORM=${QML_ARG_TARGET_PLATFORM}
-
-ARG QML_ARG_ACCELERATION_ENGINE_NAMES
-ENV QML_ACCELERATION_ENGINE_NAMES=${QML_ARG_ACCELERATION_ENGINE_NAMES}
 
 RUN mkdir -p /deploy/snpe/usr/lib/rfsa/adsp/
 RUN mkdir -p /deploy/snpe/usr/bin/
 
 # Copy Acceleration engine libraries and binaries to /usr/lib/ and /usr/bin/
-RUN bash ${QML_BASE_DIR}/scripts/all_scripts.sh qml-update-libraries
+RUN bash ${QML_BASE_DIR}/scripts/all_scripts.sh qml-install-libraries
 
 # QML Image
 FROM --platform=linux/arm64 ${QML_ARG_BASE_IMAGE} as QML

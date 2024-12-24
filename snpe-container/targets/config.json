@@ -1,15 +1,11 @@
 {
-    "Acceleration_engines": [
-        {
-            "Acceleration_engine": "snpe",
-            "Acceleration_engine_version":"v2.22.0.240425"
-        },
-        {
-            "Acceleration_engine": "",
-            "Acceleration_engine_version":""
-        }
-    ],
+    "SNPE_version":"v2.27.0.240926",
     "Base_Image": "ubuntu:22.04",
-    "Target_platform": "qcs9100",
-    "DeviceID": "<device ID>"
+    "Target_platform": "qcs8300",
+
+    "Additional_tag_container": "",
+    "Additional_tag_image": "",
+    "URL": "",
+
+    "DeviceID" : "<device-id>"
 }
