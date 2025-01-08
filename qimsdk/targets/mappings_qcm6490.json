@@ -60,6 +60,7 @@
         "/usr/lib/libwayland-client.so.0",
         "/usr/lib/libwayland-egl.so.1",
         "/usr/lib/libadreno_utils.so",
+        "/usr/lib/libadreno_utils.so.1",
         "/usr/lib/libCB.so",
         "/usr/lib/libEGL.so",
         "/usr/lib/libEGL.so.1",
