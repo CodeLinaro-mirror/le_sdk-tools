@@ -245,8 +245,15 @@ function qimsdk-check-required-packages() {
         jq binutils-dev openjdk-8-jdk-headless util-linux whiptail libxml-simple-perl openssl gdb  \
         bash-completion software-properties-common locales lcov libbz2-dev libffi-dev libgdbm-dev  \
         usbutils file libgdbm-compat-dev liblzma-dev libncurses5-dev libreadline-dev libssl-dev    \
-        libsqlite3-dev lzma lzma-dev tk-dev android-tools-adb android-tools-fastboot fakechroot    \
+        libsqlite3-dev lzma lzma-dev tk-dev fakechroot    \
         language-pack-en-base libiberty-dev qemu-user-static"
+
+    local UBUNTU_VERSION=$(lsb_release -rs)
+    if [[ "$UBUNTU_VERSION" == "22.04" ]]; then
+        REQUIRED_PKGS+= " adb fastboot"
+    else
+        REQUIRED_PKGS+= " android-tools-adb android-tools-fastboot"
+    fi
 
     for PKG in ${REQUIRED_PKGS[@]}; do
         dpkg-query -s ${PKG} > /dev/null 2>&1 || NOT_INSTALLED_PKGS+=${PKG}" "
