@@ -101,6 +101,9 @@
         "/usr/lib/librv.so",
         "/usr/lib/libmv1.so",
         "/usr/lib/libmv3.so",
+        "/etc/labels",
+        "/etc/media",
+        "/etc/models",
         "/opt/data"
     ],
 

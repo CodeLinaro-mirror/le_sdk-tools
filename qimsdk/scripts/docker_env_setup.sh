@@ -1384,6 +1384,15 @@ function qimsdk-docker-device-run-container() {
             return ${rc}
         }
 
+        local MEDIA_DIRS=("labels" "media" "models")
+
+        for idx in ${!MEDIA_DIRS[@]}; do
+            qimsdk-device-command "mkdir -m 777 -p /etc/${MEDIA_DIRS[$idx]}"                    || {
+                print-red "FAILED: /etc/${MEDIA_DIRS[$idx]} can not be created in device !!!"
+                return -1
+            }
+        done
+
         local TARGET_PLATFORM=""
 
         local TMP_RUN_CMD_DIR=$(mktemp -d)
@@ -1483,6 +1492,15 @@ function qimsdk-docker-device-run-cdi-container() {
             print-red "FAILED: adb shell "cat /sys/devices/soc0/machine"  !!!"
             return ${rc}
         }
+
+        local MEDIA_DIRS=("labels" "media" "models")
+
+        for idx in ${!MEDIA_DIRS[@]}; do
+            qimsdk-device-command "mkdir -m 777 -p /etc/${MEDIA_DIRS[$idx]}"                    || {
+                print-red "FAILED: /etc/${MEDIA_DIRS[$idx]} can not be created in device !!!"
+                return -1
+            }
+        done
 
         local TARGET_PLATFORM=""
 
