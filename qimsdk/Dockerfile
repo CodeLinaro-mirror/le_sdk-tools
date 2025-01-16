@@ -182,6 +182,12 @@ RUN git init                                                                    
     git add --all                                                                               && \
     git commit -m "Initial Pulse Audio Commit"
 
+WORKDIR ${QIMSDK_DOWNLOAD_DIR}
+RUN git clone https://github.com/abseil/abseil-cpp.git                                          && \
+    cd abseil-cpp && mkdir -p build && cd build                                                 && \
+    cmake .. && cmake --build . -j7 && cmake --install .                                        && \
+    cd ${QIMSDK_DOWNLOAD_DIR} && rm -rf abseil-cpp
+
 # Add Source Code
 ENV QIMSDK_SRC_DIR=${QIMSDK_BASE_DIR}/src
 RUN mkdir -p ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss
