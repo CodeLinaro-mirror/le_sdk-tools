@@ -26,6 +26,16 @@ RUN apt-get update                                                              
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
 
+# Propagate proxy to dev container
+ARG QIMSDK_ARG_HTTP_PROXY
+ENV http_proxy=${QIMSDK_ARG_HTTP_PROXY}
+
+ARG QIMSDK_ARG_HTTPS_PROXY
+ENV https_proxy=${QIMSDK_ARG_HTTPS_PROXY}
+
+ARG QIMSDK_ARG_NO_PROXY
+ENV no_proxy=${QIMSDK_ARG_NO_PROXY}
+
 # Add root to plugdev group
 RUN usermod -aG plugdev root
 

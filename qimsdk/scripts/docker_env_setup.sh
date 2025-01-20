@@ -455,11 +455,18 @@ function qimsdk-dev-docker-build-image() {
 
     local QIMSDK_BASE_DIR="/mnt/work"
 
+    local QIMSDK_HTTP_PROXY=${http_proxy}
+    local QIMSDK_HTTPS_PROXY=${https_proxy}
+    local QIMSDK_NO_PROXY=${no_proxy}
+
     DOCKER_BUILDKIT=1 docker build                                                                 \
             --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_BASE_DIR}                                     \
             --build-arg QIMSDK_ARG_DOCKER_IMAGE_PATH=${DOCKER_IMAGE_PATH}                          \
             --build-arg QIMSDK_ARG_DEVICE_ID=${QIMSDK_DEVICE_ID}                                   \
             --build-arg QIMSDK_ARG_CONTAINER_NAME=${QIMSDK_CONTAINER_NAME}                         \
+            --build-arg QIMSDK_ARG_HTTP_PROXY=${QIMSDK_HTTP_PROXY}                                 \
+            --build-arg QIMSDK_ARG_HTTPS_PROXY=${QIMSDK_HTTPS_PROXY}                               \
+            --build-arg QIMSDK_ARG_NO_PROXY=${QIMSDK_NO_PROXY}                                     \
             --progress=plain --target QIMSDK_dev_image                                             \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}_dev
 
@@ -792,8 +799,15 @@ function qimsdk-docker-build-image() {
 
     local QIMSDK_BASE_DIR="/mnt/work"
 
+    local QIMSDK_HTTP_PROXY=${http_proxy}
+    local QIMSDK_HTTPS_PROXY=${https_proxy}
+    local QIMSDK_NO_PROXY=${no_proxy}
+
     DOCKER_BUILDKIT=1 docker build                                                                 \
             --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_BASE_DIR}                                     \
+            --build-arg QIMSDK_ARG_HTTP_PROXY=${QIMSDK_HTTP_PROXY}                                 \
+            --build-arg QIMSDK_ARG_HTTPS_PROXY=${QIMSDK_HTTPS_PROXY}                               \
+            --build-arg QIMSDK_ARG_NO_PROXY=${QIMSDK_NO_PROXY}                                     \
             --progress=plain --target QIMSDK_device_image                                          \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}
 
