@@ -65,7 +65,6 @@ function qimsdk-cmake-configure() {
 
         local CMAKE_FLAGS="
             -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
-            -DENABLE_RUNTIME_PARSER:BOOL=ON
             -DGST_PLUGINS_QTI_OSS_VERSION=1.20
             -DGST_VERSION_REQUIRED=1.20
             -DSYSROOT_INCDIR=/usr/include
