@@ -872,7 +872,7 @@ function qimsdk-docker-device-update-image() {
             return -1
         }
 
-        qimsdk-device-command "mkdir -p /home/data/docker_images" ${QIMSDK_DEVICE_ID}
+        qimsdk-device-command "mkdir -p /tmp/data/docker_images" ${QIMSDK_DEVICE_ID}
 
         local rc=$?
         [ ${rc} -ne 0 ] && {
@@ -882,11 +882,11 @@ function qimsdk-docker-device-update-image() {
             return ${rc}
         }
 
-        adb push ${FILE_NAME} /home/data/docker_images
+        adb push ${FILE_NAME} /tmp/data/docker_images
 
         rc=$?
         [ ${rc} -ne 0 ] && {
-            print-red "FAILED: adb push ${FILE_NAME} /home/data/docker_images !!!"
+            print-red "FAILED: adb push ${FILE_NAME} /tmp/data/docker_images !!!"
             rm ${FILE_NAME}
 
             return ${rc}
@@ -894,7 +894,7 @@ function qimsdk-docker-device-update-image() {
 
         rm ${FILE_NAME}
 
-        qimsdk-device-command "docker load -i /home/data/docker_images/${FILE_NAME}" ${QIMSDK_DEVICE_ID}
+        qimsdk-device-command "docker load -i /tmp/data/docker_images/${FILE_NAME}" ${QIMSDK_DEVICE_ID}
 
         rc=$?
         [ ${rc} -ne 0 ] && {
@@ -902,7 +902,7 @@ function qimsdk-docker-device-update-image() {
             return ${rc}
         }
 
-        qimsdk-device-command "rm /home/data/docker_images/${FILE_NAME}" ${QIMSDK_DEVICE_ID}
+        qimsdk-device-command "rm /tmp/data/docker_images/${FILE_NAME}" ${QIMSDK_DEVICE_ID}
 
         rc=$?
         [ ${rc} -ne 0 ] && {
@@ -1174,7 +1174,7 @@ function qimsdk-docker-device-load-image() {
             return -1
         }
 
-        qimsdk-device-command "mkdir -p /home/data/docker_images" ${QIMSDK_DEVICE_ID}
+        qimsdk-device-command "mkdir -p /tmp/data/docker_images" ${QIMSDK_DEVICE_ID}
 
         local rc=$?
         [ ${rc} -ne 0 ] && {
@@ -1184,12 +1184,12 @@ function qimsdk-docker-device-load-image() {
             return ${rc}
         }
 
-        adb push ${LOCAL_DOCKER_IMAGE} /home/data/docker_images
+        adb push ${LOCAL_DOCKER_IMAGE} /tmp/data/docker_images
 
         rc=$?
         [ ${rc} -ne 0 ] && {
             print-red "FAILED: adb push ${LOCAL_DOCKER_IMAGE}                                      \
-                    /home/data/docker_images !!!"
+                    /tmp/data/docker_images !!!"
 
             qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
@@ -1198,7 +1198,7 @@ function qimsdk-docker-device-load-image() {
 
         qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
-        qimsdk-device-command "docker load -i /home/data/docker_images/${FILE_NAME}"               \
+        qimsdk-device-command "docker load -i /tmp/data/docker_images/${FILE_NAME}"               \
             ${QIMSDK_DEVICE_ID}
 
         rc=$?
@@ -1207,7 +1207,7 @@ function qimsdk-docker-device-load-image() {
             return ${rc}
         }
 
-        qimsdk-device-command "rm /home/data/docker_images/${FILE_NAME}" ${QIMSDK_DEVICE_ID}
+        qimsdk-device-command "rm /tmp/data/docker_images/${FILE_NAME}" ${QIMSDK_DEVICE_ID}
 
         rc=$?
         [ ${rc} -ne 0 ] && {
