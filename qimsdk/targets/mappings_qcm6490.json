@@ -91,6 +91,8 @@
         "/usr/lib/libcdsprpc.so.1",
         "/usr/lib/libcdsprpc.so.1.0.0",
         "/usr/lib/libfastcvopt.so",
+        "/usr/lib/libfastcvopt.so.1",
+        "/usr/lib/libfastcvopt.so.1.7.1",
         "/usr/lib/dsp/cdsp/cv/v68/KODIAK/libfastcvdsp_skel.so",
         "/usr/lib/dsp/cdsp/cv/v68/KODIAK/libfastcvadsp.so",
         "/usr/lib/libfastcvdsp_stub.so",

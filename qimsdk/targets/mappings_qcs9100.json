@@ -94,6 +94,8 @@
         "/usr/lib/libadsp_default_listener.so",
         "/usr/lib/libcdsp_default_listener.so",
         "/usr/lib/libfastcvopt.so",
+        "/usr/lib/libfastcvopt.so.1",
+        "/usr/lib/libfastcvopt.so.1.7.1",
         "/usr/lib/dsp/cdsp/cv/v73/LEMANS/libfastcvdsp_skel.so",
         "/usr/lib/dsp/cdsp/cv/v73/LEMANS/libfastcvadsp.so",
         "/usr/lib/libfastcvdsp_stub.so",
