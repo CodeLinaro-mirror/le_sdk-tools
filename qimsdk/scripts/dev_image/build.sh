@@ -72,6 +72,7 @@ function qimsdk-cmake-configure() {
             -DGST_PLUGINS_QTI_OSS_INSTALL_INCDIR=/usr/include
             -DGST_PLUGINS_QTI_OSS_INSTALL_BINDIR=/usr/bin
             -DGST_PLUGINS_QTI_OSS_INSTALL_LIBDIR=/usr/lib/aarch64-linux-gnu
+            -DGST_PLUGINS_QTI_OSS_INSTALL_CONFIG=/etc/configs/
             -DCMAKE_BUILD_TYPE=Debug
             ${CMAKE_CUSTOM_CONFIG_FLAGS}
         "
