@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # QIMSDK Development Image
-FROM --platform=arm64 ubuntu:22.04 AS qimsdk_dev_image
+FROM --platform=arm64 ubuntu:24.04 AS qimsdk_dev_image
 
 # Enable color prompt
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc
@@ -20,8 +20,9 @@ RUN apt-get update                                                              
         libgstrtspserver-1.0-dev libgirepository1.0-dev opencl-headers libjson-glib-dev            \
         libsoup2.4-dev libhiredis-dev libeigen3-dev libltdl-dev libsndfile1-dev libxtst-dev        \
         libmosquitto-dev libxml-parser-perl python3 python3-pip python3-setuptools python3-gst-1.0 \
-        python3-wheel ninja-build                                                               && \
-        pip3 install meson                                                                      && \
+        python3-wheel ninja-build python3-full pipx                                             && \
+        pipx ensurepath                                                                         && \
+        pipx install meson                                                                      && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
@@ -35,6 +36,9 @@ ENV https_proxy=${QIMSDK_ARG_HTTPS_PROXY}
 
 ARG QIMSDK_ARG_NO_PROXY
 ENV no_proxy=${QIMSDK_ARG_NO_PROXY}
+
+# Add meson install location to PATH
+ENV PATH="${PATH}:/root/.local/bin"
 
 # Add root to plugdev group
 RUN usermod -aG plugdev root
@@ -82,12 +86,6 @@ RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                   
         /usr/include/                                                                           && \
     rm -rf ${QIMSDK_DOWNLOAD_DIR}/qairt
 
-# gstd: fetch (hash is for v0.11.3) and install
-ENV QIMSDK_GSTD_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/gstd-1.x
-RUN git clone https://github.com/RidgeRun/gstd-1.x.git ${QIMSDK_GSTD_SRC_DIR}                   && \
-    cd ${QIMSDK_GSTD_SRC_DIR}                                                                   && \
-    git checkout d924fcbc2123dcfcb35242ecf5dc2fc3049004b3
-
 # Add bash aliases file
 COPY .bash_aliases /root/.bash_aliases
 
@@ -97,87 +95,101 @@ COPY tmp/patches ${QIMSDK_PATCHES_DIR}
 
 # wayland-protocols: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        'https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz'                && \
+        'https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/1.33/downloads/wayland-protocols-1.33.tar.xz' && \
     wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-        'https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz.sig'            && \
+        'https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/1.33/downloads/wayland-protocols-1.33.tar.xz.sig' && \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
-        8307C0A224BABDA1BABD0EB9A6EEEC9E0136164A                                                && \
-    gpg --fingerprint 8307C0A224BABDA1BABD0EB9A6EEEC9E0136164A                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25.tar.xz.sig                          \
-        ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25.tar.xz                                    && \
+        A66D805F7C9329B4C5D82767CCC4F07FAC641EFF                                                && \
+    gpg --fingerprint A66D805F7C9329B4C5D82767CCC4F07FAC641EFF                                  && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.33.tar.xz.sig                          \
+        ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.33.tar.xz                                    && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf wayland-protocols-1.25.tar.xz                                                       && \
-    gpg --batch --delete-key 8307C0A224BABDA1BABD0EB9A6EEEC9E0136164A                           && \
-    rm -f wayland-protocols-1.25.tar.xz*
+    tar -xf wayland-protocols-1.33.tar.xz                                                       && \
+    gpg --batch --delete-key A66D805F7C9329B4C5D82767CCC4F07FAC641EFF                           && \
+    rm -f wayland-protocols-1.33.tar.xz*
 
-WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25
+WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.33
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25      && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.33      && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
     git commit -m "Initial wayland protocols Commit"
 
-# gst-plugins-bad: fetch and prepare git repo
+# gst-plugins-base: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz'   && \
+    'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.9.tar.xz'     && \
     wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz.asc' && \
+    'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.9.tar.xz.asc' && \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
-        D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
+    D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                    && \
     gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7.tar.xz.asc                          \
-        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7.tar.xz                                    && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9.tar.xz.asc                         \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9.tar.xz                                   && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf gst-plugins-bad-1.20.7.tar.xz                                                       && \
+    tar -xf gst-plugins-base-1.24.9.tar.xz                                                      && \
     gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
-    rm -f gst-plugins-bad-1.20.7.tar.xz*
+    rm -f gst-plugins-base-1.24.9.tar.xz*
 
-WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7
+WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7      && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9     && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
-    git commit -m "Initial Plugins Bad Commit"
+    git commit -m "Initial Plugins Base Commit"
 
 # gst-plugins-good: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz' && \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.9.tar.xz' && \
     wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz.asc' && \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.9.tar.xz.asc' && \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
         D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
     gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7.tar.xz.asc                         \
-        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7.tar.xz                                   && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9.tar.xz.asc                         \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9.tar.xz                                   && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf gst-plugins-good-1.20.7.tar.xz                                                      && \
+    tar -xf gst-plugins-good-1.24.9.tar.xz                                                      && \
     gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
-    rm -f gst-plugins-good-1.20.7.tar.xz*
+    rm -f gst-plugins-good-1.24.9.tar.xz*
 
-WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7
+WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7     && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9     && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
     git commit -m "Initial Plugins Good Commit"
 
-# pulseaudio: fetch and prepare git repo
+# gst-plugins-bad: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        'https://freedesktop.org/software/pulseaudio/releases/pulseaudio-15.0.tar.xz'           && \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.24.9.tar.xz'   && \
+    wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.24.9.tar.xz.asc' && \
+    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
+        D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
+    gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9.tar.xz.asc                          \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9.tar.xz                                    && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xfpulseaudio-15.0.tar.xz                                                               && \
-    rm -f pulseaudio-15.0.tar.xz*
+    tar -xf gst-plugins-bad-1.24.9.tar.xz                                                       && \
+    gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
+    rm -f gst-plugins-bad-1.24.9.tar.xz*
 
-WORKDIR ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-15.0
+WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-15.0             && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9      && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
-    git commit -m "Initial Pulse Audio Commit"
+    git commit -m "Initial Plugins Bad Commit"
+
+# gstd: fetch (hash is for v0.11.3) and install
+ENV QIMSDK_GSTD_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/gstd-1.x
+RUN git clone https://github.com/RidgeRun/gstd-1.x.git ${QIMSDK_GSTD_SRC_DIR}                   && \
+    cd ${QIMSDK_GSTD_SRC_DIR}                                                                   && \
+    git checkout d924fcbc2123dcfcb35242ecf5dc2fc3049004b3
 
 WORKDIR ${QIMSDK_DOWNLOAD_DIR}
 RUN git clone https://github.com/abseil/abseil-cpp.git                                          && \
@@ -251,39 +263,52 @@ ENV QIMSDK_CONTAINER_NAME=${QIMSDK_ARG_CONTAINER_NAME}
 # # # # # # # # # # # # # # #
 
 # QIMSDK Device Image
-FROM --platform=arm64 ubuntu:22.04 AS qimsdk_device_image
+FROM --platform=arm64 ubuntu:24.04 AS qimsdk_device_image
 
 # Set base directory
 ARG QIMSDK_ARG_BASE_DIR
 ENV QIMSDK_BASE_DIR=${QIMSDK_ARG_BASE_DIR}
 
+# Add jammy suites to downgrade gstreamer1.0 version
+RUN sed -i 's/noble noble-updates noble-backports/noble noble-updates noble-backports jammy jammy-updates/g' /etc/apt/sources.list.d/ubuntu.sources
+
 # Installing required apt packages
 RUN apt-get update                                                                              && \
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y bash-completion               \
-        gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools libhiredis0.14       \
-        python3 python3-gst-1.0 libjpeg62 libprotobuf23 libgstrtspserver-1.0-0 gstreamer1.0-nice   \
-        libdaemon0 mosquitto libopencv-imgproc4.5d libopencv-calib3d4.5d libopencv-imgcodecs4.5d   \
-        libopencv-highgui4.5d                                                                   && \
+        gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools libhiredis1.1.0      \
+        python3 python3-gst-1.0 libjpeg62 libprotobuf32t64 libgstrtspserver-1.0-0                  \
+        gstreamer1.0-nice libdaemon0 mosquitto libopencv-imgproc406t64 libopencv-calib3d406t64     \
+        libopencv-imgcodecs406t64 libopencv-highgui406t64                                       && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
 
 # Link needed versions of rvsdk dependencies
-RUN ln -s /usr/lib/aarch64-linux-gnu/libopencv_core.so.4.5d                                        \
+RUN ln -s /usr/lib/aarch64-linux-gnu/libopencv_core.so.4.6.0                                       \
         /usr/lib/libopencv_core.so.405                                                          && \
-    ln -s /usr/lib/aarch64-linux-gnu/libopencv_imgproc.so.4.5d                                     \
+    ln -s /usr/lib/aarch64-linux-gnu/libopencv_imgproc.so.4.6.0                                    \
         /usr/lib/libopencv_imgproc.so.405                                                       && \
-    ln -s /usr/lib/aarch64-linux-gnu/libopencv_calib3d.so.4.5d                                     \
+    ln -s /usr/lib/aarch64-linux-gnu/libopencv_calib3d.so.4.6.0                                    \
             /usr/lib/libopencv_calib3d.so.405                                                   && \
-    ln -s /usr/lib/aarch64-linux-gnu/libopencv_imgcodecs.so.4.5d                                   \
+    ln -s /usr/lib/aarch64-linux-gnu/libopencv_imgcodecs.so.4.6.0                                  \
         /usr/lib/libopencv_imgcodecs.so.405                                                     && \
-    ln -s /usr/lib/aarch64-linux-gnu/libopencv_highgui.so.4.5.4d                                   \
+    ln -s /usr/lib/aarch64-linux-gnu/libopencv_highgui.so.4.6.0                                    \
         /usr/lib/libopencv_highgui.so.405
+
+# Link to the gbm and msm_gbm libraries and dependent xml file
+RUN ln -s /usr/lib/libgbm.so.1                                                                     \
+        /usr/lib/libgbm.so                                                                      && \
+    mkdir -p /usr/lib/aarch64-linux-gnu/gbm/                                                    && \
+    ln -s /usr/lib/gbm/msm_gbm.so                                                                  \
+        /usr/lib/aarch64-linux-gnu/gbm/msm_gbm.so                                               && \
+    ln -s /usr/lib/gbm/default_fmt_alignment.xml                                                   \
+        /usr/lib/aarch64-linux-gnu/gbm/default_fmt_alignment.xml
 
 # Create USER and add to video group for accessing v4ls devices
 RUN addgroup qcom                                                                               && \
     useradd -s /bin/bash -m -g qcom qimsdk                                                      && \
     usermod -aG video qimsdk                                                                    && \
+    usermod -aG kmem qimsdk                                                                     && \
     echo qimsdk:asd | chpasswd
 
 # Enable color prompt
@@ -292,7 +317,7 @@ RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /home/qimsdk/.ba
 # Copy installed binaries to device image
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/usr /usr
-COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/etc/configs /etc/configs
+COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/configs /etc/configs
 
 # Copy python examples
 COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-python-examples /usr/bin

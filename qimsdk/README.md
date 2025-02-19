@@ -29,6 +29,7 @@
   * [Development when device is not connected to host build machine](#Development_when_device_is_not_connected_to_host_build_machine)
   * [Contributing to the GStreamer Project](#Contributing_to_the_GStreamer_Project)
   * [Starting the container with docker-compose](#Starting_the_container_with_docker_compose)
+  * [Starting the wayland](#Starting_the_wayland)
 * [Manual Commands Instead Of Scripts](#Manual_Commands_Instead_Of_Scripts)
 * [Docker Container Renaming](#Docker_Container_Renaming)
   * [Rename device's Docker container from host development container](#Rename_device's_Docker_container_from_host_development_container)
@@ -54,6 +55,9 @@ Prerequisite packages must be installed on the host (one time)
 sudo apt install -y jq tofrodos qemu-user-static qemu-system-arm
 sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
 sudo chmod +x /usr/bin/yq
+wget http://archive.ubuntu.com/ubuntu/pool/universe/q/qemu/qemu-user-static_6.2+dfsg-2ubuntu6_amd64.deb
+sudo dpkg -i qemu-user-static_6.2+dfsg-2ubuntu6_amd64.deb
+rm qemu-user-static_6.2+dfsg-2ubuntu6_amd64.deb
 ```
 
 <h3 style="color:red">
@@ -390,17 +394,6 @@ adb disable-verity
 adb reboot
 ```
 
-#### Prepare Device Data and Development Directories
-
-Device data directory used in qimsdk should have write permissions to world. The reason is docker container is running with qimsdk user and it should have write access to that folder.
-
-```bash
-adb shell "mkdir -p /opt/data"
-adb shell "chmod -R 777 /opt/data"
-adb shell "mkdir -p /opt/qti/development"
-adb shell "chmod -R /opt/qti/development"
-```
-
 #### Prepare Device After Reboot
 
 ***Please note that this step needs to be invoked only once after device, connected to local PC, is started***
@@ -452,7 +445,7 @@ qimsdk-docker-device-run-container <path-to-config-json>
 ### Prerequisites For CDI
 
 1. Docker version 25 or higher is required on the device.
-2. CDI feature must be enabled in device's */etc/docker/daemon.json* file.
+2. CDI feature must be enabled in device's */etc/docker/daemon.json* file, if it is not enabled.
 
   ```json
   {
@@ -461,6 +454,11 @@ qimsdk-docker-device-run-container <path-to-config-json>
     }
   }
   ```
+3. Docker service needs to be restarted in order the new changes to take effect.
+```bash
+systemctl restart docker
+```
+*Note: If restarting the docker service fails, please check /etc/docker/daemon.json for syntax errors.*
 
 <div id="Running_The_Container_In_CDI_Mode">
 
@@ -660,6 +658,16 @@ function qimsdk-meson-clean-<Project-Directory-Name>() {
 docker-compose up -d -f <docker-compose.yml>
 ```
 
+<div id="Starting_the_wayland">
+
+### Starting the wayland
+
+<h3 style="color:orange">In Scarthgap wayland needs to be started explicitly with the following command</h3>
+
+```bash
+adb shell "export GBM_BACKEND=msm && export XDG_RUNTIME_DIR=/dev/socket/weston && mkdir -p $XDG_RUNTIME_DIR  && weston --continue-without-input --idle-time=0"
+```
+
 <div id="Manual_Commands_Instead_Of_Scripts">
 
 ## Manual Commands Instead Of Scripts
@@ -728,19 +736,9 @@ docker-compose up -d -f <docker-compose.yml>
       ```bash
         cd <path/to/unarchived/eSDK/directory>/tmp/sysroots/${TARGET}/
 
-        rsync -a ./usr/share/libweston-10/protocols/gbm-buffer-backend.xml                         \
-          <current/docker/dir>/tmp/headers/usr/share/wayland-protocols/stable/`
-              `gbm-buffer-backend/                                                              && \
-
         rsync -aR ./usr/include/fastcv/fastcv.h                                                    \
             <current/docker/dir>/tmp/headers/                                                   && \
         rsync -aR ./usr/include/iot-core-algs/ib2c.h                                               \
-            <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/display/media/mmm_color_fmt.h                                      \
-            <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/gbm_priv.h                                                         \
-            <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/CL/cl_ext_qcom.h                                                   \
             <current/docker/dir>/tmp/headers/                                                   && \
         rsync -aR ./usr/include/properties.h                                                       \
             <current/docker/dir>/tmp/headers/                                                   && \
@@ -754,19 +752,11 @@ docker-compose up -d -f <docker-compose.yml>
             <current/docker/dir>/tmp/headers/                                                   && \
         rsync -aR ./usr/include/system/camera_vendor_tags.h                                        \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/hardware/camera3.h                                                 \
-            <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/hardware/camera_common.h                                           \
-            <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/system/camera.h                                                    \
-            <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/hardware/camera_hardware.h                                         \
-            <current/docker/dir>/tmp/headers/                                                   && \
         rsync -aR ./usr/include/hardware/graphics.h                                                \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/hardware/native_handle.h                                           \
-            <current/docker/dir>/tmp/headers/                                                   && \
         rsync -aR ./usr/include/iot-core-algs/videoctrl.h                                          \
+            <current/docker/dir>/tmp/headers/                                                   && \
+        rsync -aR ./usr/include/hardware/native_handle.h                                           \
             <current/docker/dir>/tmp/headers/                                                   && \
         rsync -aR ./usr/include/dfs_factory.h                                                      \
             <current/docker/dir>/tmp/headers/                                                   && \
@@ -808,35 +798,29 @@ docker-compose up -d -f <docker-compose.yml>
             <current/docker/dir>/tmp/headers/                                                   && \
         rsync -aR ./usr/include/rv_dfs_base.h                                                      \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rv_multi_dfs_base.h
+        rsync -aR ./usr/include/rv_multi_dfs_base.h                                                \
+            <current/docker/dir>/tmp/headers/
       ```
     </ul>
 
-    <div>Get source code of wayland-protocols-1.25, gst-plugins-bad-1.20.7 and wayland-protocols-1.25
+    <div>Get source code of gst-plugins-base-1.24.9 and gst-plugins-good-1.24.9
     <ul>
-      <div name="wayland-protocols", style="color:#90EE90">wayland-protocols-1.25</div>
-
-      ```bash
-        wget -t 2 -T 30 --passive-ftp -P <current/docker/dir>/tmp/                                 \
-        'https://wayland.freedesktop.org/releases/wayland-protocols-1.25.tar.xz'                && \
-        cd <current/docker/dir>/tmp/ && tar -xf wayland-protocols-1.25.tar.xz                   && \
-        rm -f wayland-protocols-1.25.tar.xz
-      ```
-      <div name="gst-plugins-bad", style="color:#90EE90">gst-plugins-bad-1.20.7</div>
+      <div name="gst-plugins-base", style="color:#90EE90">gst-plugins-base-1.24.9</div>
 
       ```bash
       wget -t 2 -T 30 --passive-ftp -P <current/docker/dir>/tmp/                                   \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.20.7.tar.xz'   && \
-        cd <current/docker/dir>/tmp/ && tar -xf gst-plugins-bad-1.20.7.tar.xz                   && \
-        rm -f gst-plugins-bad-1.20.7.tar.xz
+        'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.9.tar.xz' && \
+        cd <current/docker/dir>/tmp/ && tar -xf gst-plugins-base-1.24.9.tar.xz                  && \
+        rm -f gst-plugins-base-1.24.9.tar.xz
       ```
-      <div name="gst-plugins-good", style="color:#90EE90">gst-plugins-good-1.20.7</div>
+
+      <div name="gst-plugins-good", style="color:#90EE90">gst-plugins-good-1.24.9</div>
 
       ```bash
       wget -t 2 -T 30 --passive-ftp -P <current/docker/dir>/tmp/                                   \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.20.7.tar.xz' && \
-        cd <current/docker/dir>/tmp/ && tar -xf gst-plugins-good-1.20.7.tar.xz                  && \
-        rm -f gst-plugins-good-1.20.7.tar.xz
+        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.9.tar.xz' && \
+        cd <current/docker/dir>/tmp/ && tar -xf gst-plugins-good-1.24.9.tar.xz                  && \
+        rm -f gst-plugins-good-1.24.9.tar.xz
       ```
     </ul>
     </div>
@@ -846,35 +830,23 @@ docker-compose up -d -f <docker-compose.yml>
       <div style="color:#90EE90">DIR: patches</div>
 
       content of patches directory:
-      <div name="gst-plugins-bad">gst-plugins-bad-1.20.7</div>
+      <div name="gst-plugins-base">gst-plugins-base-1.24.9</div>
 
       ```bash
-        rsync -a <path/to/unarchived/eSDK/directory>/layers/meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20.4/*.patch \
-          <current/docker/dir>/tmp/patches/gst-plugins-bad-1.20.7/
-        rsync -a <path/to/unarchived/eSDK/directory>/layers/poky/meta/recipes-multimedia/gstreamer/gstreamer1.0-plugins-bad/*.patch \
-          <current/docker/dir>/tmp/patches/gst-plugins-bad-1.20.7/
+        rsync -a <path/to/unarchived/eSDK/directory>/layers/meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-base/1.24/*.patch \
+          <current/docker/dir>/tmp/patches/gst-plugins-base-1.24.9/
       ```
-      <div name="gst-plugins-good">gst-plugins-good-1.20.7</div>
+      <div name="gst-plugins-good">gst-plugins-good-1.24.9</div>
 
       ```bash
-        rsync -a <path/to/unarchived/eSDK/directory>/layers/meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.20/*.patch \
-          <current/docker/dir>/tmp/patches/gst-plugins-good-1.20.7/
-        rsync -a <path/to/unarchived/eSDK/directory>/layers/poky/meta/recipes-multimedia/gstreamer/gstreamer1.0-plugins-good/*.patch \
-          <current/docker/dir>/tmp/patches/gst-plugins-good-1.20.7/
-      ```
-      <div name="wayland-protocols">wayland-protocols-1.25</div>
-
-      ```bash
-        rsync -a <path/to/unarchived/eSDK/directory>/layers/meta-qti-display/recipes-graphics/wayland/wayland-protocols/*.patch \
-          <current/docker/dir>/tmp/patches/wayland-protocols-1.25/
-        rsync -a <path/to/unarchived/eSDK/directory>/layers/meta-qcom-hwe/recipes-graphics/wayland/wayland-protocols/*.patch \
-          <current/docker/dir>/tmp/patches/wayland-protocols-1.25/
+        rsync -a <path/to/unarchived/eSDK/directory>/layers/meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.24/*.patch \
+          <current/docker/dir>/tmp/patches/gst-plugins-good-1.24.9/
       ```
     </ul>
 
     <div name="python">RecipeParser
       <div style="color:#6495ED">Take advantage of RecipeParser.py</div>
-      <div style="color:#6495ED">Please note that supported targets are qcm6490 and qcs9100</div>
+      <div style="color:#6495ED">Please note that supported targets are qcs6490, qcs9100 and qcs8300</div>
 
       <ul>
       <div style="color:#90EE90">BBPatchParser</div>
@@ -982,7 +954,7 @@ docker load -i /tmp/qimsdk.tar
 
 ```bash
 ### adb shell
-docker run -it -d --user qimsdk                                                                    \
+docker run -it -d                                                                                  \
 --device /dev/dri/card0                                                                            \
 --device /dev/dri/renderD128                                                                       \
 --device /dev/kgsl-3d0                                                                             \
@@ -991,31 +963,34 @@ docker run -it -d --user qimsdk                                                 
 --device /dev/dma_heap/system                                                                      \
 --device /dev/dma_heap/qcom,system                                                                 \
 --device /dev/fastrpc-cdsp                                                                         \
+-v /dev/socket/weston:/dev/socket/weston                                                           \
+-v /tmp/socket/cam_server/:/tmp/socket/cam_server/                                                 \
+-v /var/run/pulse/native:/var/run/pulse/native                                                     \
+-v /usr/lib/gbm/default_fmt_alignment.xml:/usr/lib/gbm/default_fmt_alignment.xml                   \
+-v /usr/lib/gbm/msm_gbm.so:/usr/lib/gbm/msm_gbm.so                                                 \
+-v /usr/lib/gbm/msm_gbm.so.1:/usr/lib/gbm/msm_gbm.so.1                                             \
+-v /usr/lib/gbm/msm_gbm.so.1.0.0:/usr/lib/gbm/msm_gbm.so.1.0.0                                     \
+-v /usr/lib/libgbm.so.1:/usr/lib/libgbm.so.1                                                       \
+-v /usr/lib/libgbm.so.1.0.0:/usr/lib/libgbm.so.1.0.0                                               \
 -v /usr/lib/libatomic.so.1:/usr/lib/libatomic.so.1                                                 \
 -v /usr/lib/libatomic.so.1.2.0:/usr/lib/libatomic.so.1.2.0                                         \
--v /dev/socket/weston:/dev/socket/weston                                                           \
--v /opt/qti/development:/opt/qti/development                                                       \
--v /usr/lib/libgbm.so:/usr/lib/libgbm.so                                                           \
 -v /usr/lib/libgsl.so:/usr/lib/libgsl.so                                                           \
+-v /usr/lib/libgsl.so.1:/usr/lib/libgsl.so.1                                                       \
 -v /usr/lib/libdmabufheap.so.0:/usr/lib/libdmabufheap.so.0                                         \
 -v /usr/lib/libhta_hexagon_runtime_snpe.so:/usr/lib/libhta_hexagon_runtime_snpe.so                 \
 -v /usr/lib/libPlatformValidatorShared.so:/usr/lib/libPlatformValidatorShared.so                   \
+-v /usr/lib/libSNPE.so:/usr/lib/libSNPE.so                                                         \
 -v /usr/lib/libSnpeDspV66Stub.so:/usr/lib/libSnpeDspV66Stub.so                                     \
 -v /usr/lib/libSnpeHta.so:/usr/lib/libSnpeHta.so                                                   \
 -v /usr/lib/libSnpeHtpPrepare.so:/usr/lib/libSnpeHtpPrepare.so                                     \
 -v /usr/lib/libSnpeHtpV68Stub.so:/usr/lib/libSnpeHtpV68Stub.so                                     \
--v /usr/lib/libSnpeHtpV75Stub.so:/usr/lib/libSnpeHtpV75Stub.so                                     \
--v /usr/lib/libSNPE.so:/usr/lib/libSNPE.so                                                         \
--v /usr/lib/rfsa/adsp/libSnpeHtpV68Skel.so:/usr/lib/rfsa/adsp/libSnpeHtpV68Skel.so                 \
 -v /usr/lib/libQnnChrometraceProfilingReader.so:/usr/lib/libQnnChrometraceProfilingReader.so       \
 -v /usr/lib/libQnnGpu.so:/usr/lib/libQnnGpu.so                                                     \
 -v /usr/lib/libQnnHtpProfilingReader.so:/usr/lib/libQnnHtpProfilingReader.so                       \
--v /usr/lib/libQnnHtpV75Stub.so:/usr/lib/libQnnHtpV75Stub.so                                       \
 -v /usr/lib/libQnnCpu.so:/usr/lib/libQnnCpu.so                                                     \
 -v /usr/lib/libQnnDspV66Stub.so:/usr/lib/libQnnDspV66Stub.so                                       \
 -v /usr/lib/libQnnHtpNetRunExtensions.so:/usr/lib/libQnnHtpNetRunExtensions.so                     \
 -v /usr/lib/libQnnHtp.so:/usr/lib/libQnnHtp.so                                                     \
--v /usr/lib/libQnnHtpV69Stub.so:/usr/lib/libQnnHtpV69Stub.so                                       \
 -v /usr/lib/libQnnJsonProfilingReader.so:/usr/lib/libQnnJsonProfilingReader.so                     \
 -v /usr/lib/libQnnDspNetRunExtensions.so:/usr/lib/libQnnDspNetRunExtensions.so                     \
 -v /usr/lib/libQnnGpuNetRunExtensions.so:/usr/lib/libQnnGpuNetRunExtensions.so                     \
@@ -1024,9 +999,9 @@ docker run -it -d --user qimsdk                                                 
 -v /usr/lib/libQnnDsp.so:/usr/lib/libQnnDsp.so                                                     \
 -v /usr/lib/libQnnGpuProfilingReader.so:/usr/lib/libQnnGpuProfilingReader.so                       \
 -v /usr/lib/libQnnHtpPrepare.so:/usr/lib/libQnnHtpPrepare.so                                       \
--v /usr/lib/libQnnHtpV68Stub.so:/usr/lib/libQnnHtpV68Stub.so                                       \
--v /usr/lib/libQnnHtpV73Stub.so:/usr/lib/libQnnHtpV73Stub.so                                       \
 -v /usr/lib/libQnnSystem.so:/usr/lib/libQnnSystem.so                                               \
+-v /usr/lib/libQnnHtpV68Stub.so:/usr/lib/libQnnHtpV68Stub.so                                       \
+-v /usr/lib/rfsa/adsp/libSnpeHtpV68Skel.so:/usr/lib/rfsa/adsp/libSnpeHtpV68Skel.so                 \
 -v /usr/lib/rfsa/adsp/libQnnHtpV68Skel.so:/usr/lib/rfsa/adsp/libQnnHtpV68Skel.so                   \
 -v /usr/lib/rfsa/adsp/libQnnHtpV68.so:/usr/lib/rfsa/adsp/libQnnHtpV68.so                           \
 -v /usr/lib/rfsa/adsp/libQnnSaver.so:/usr/lib/rfsa/adsp/libQnnSaver.so                             \
@@ -1037,14 +1012,20 @@ docker run -it -d --user qimsdk                                                 
 -v /usr/lib/libjpeg_internal.so:/usr/lib/libjpeg_internal.so                                       \
 -v /usr/lib/libtensorflowlite_c.so:/usr/lib/libtensorflowlite_c.so                                 \
 -v /usr/lib/libtf_logging.so:/usr/lib/libtf_logging.so                                             \
+-v /usr/lib/libVideoCtrl.so:/usr/lib/libVideoCtrl.so                                               \
 -v /usr/lib/libIB2C.so:/usr/lib/libIB2C.so                                                         \
+-v /usr/lib/libIB2C.so.1:/usr/lib/libIB2C.so.1                                                     \
+-v /usr/lib/libIB2C.so.1.0:/usr/lib/libIB2C.so.1.0                                                 \
 -v /usr/lib/libEGL_adreno.so:/usr/lib/libEGL_adreno.so                                             \
+-v /usr/lib/libEGL_adreno.so.1:/usr/lib/libEGL_adreno.so.1                                         \
 -v /usr/lib/libGLESv2_adreno.so:/usr/lib/libGLESv2_adreno.so                                       \
+-v /usr/lib/libGLESv2_adreno.so.2:/usr/lib/libGLESv2_adreno.so.2                                   \
 -v /usr/lib/libpropertyvault.so.0:/usr/lib/libpropertyvault.so.0                                   \
 -v /usr/lib/libpropertyvault.so.0.0.0:/usr/lib/libpropertyvault.so.0.0.0                           \
 -v /usr/lib/libwayland-client.so.0:/usr/lib/libwayland-client.so.0                                 \
 -v /usr/lib/libwayland-egl.so.1:/usr/lib/libwayland-egl.so.1                                       \
 -v /usr/lib/libadreno_utils.so:/usr/lib/libadreno_utils.so                                         \
+-v /usr/lib/libadreno_utils.so.1:/usr/lib/libadreno_utils.so.1                                     \
 -v /usr/lib/libCB.so:/usr/lib/libCB.so                                                             \
 -v /usr/lib/libEGL.so:/usr/lib/libEGL.so                                                           \
 -v /usr/lib/libEGL.so.1:/usr/lib/libEGL.so.1                                                       \
@@ -1061,6 +1042,7 @@ docker run -it -d --user qimsdk                                                 
 -v /usr/lib/libGLESv2.so.2.0:/usr/lib/libGLESv2.so.2.0                                             \
 -v /usr/lib/libGLESv2.so.2.0.0:/usr/lib/libGLESv2.so.2.0.0                                         \
 -v /usr/lib/libllvm-glnext.so:/usr/lib/libllvm-glnext.so                                           \
+-v /usr/lib/libllvm-glnext.so.1:/usr/lib/libllvm-glnext.so.1                                       \
 -v /usr/lib/libllvm-qcom.so:/usr/lib/libllvm-qcom.so                                               \
 -v /usr/lib/libllvm-qgl.so:/usr/lib/libllvm-qgl.so                                                 \
 -v /usr/lib/libOpenCL.so:/usr/lib/libOpenCL.so                                                     \
@@ -1071,19 +1053,28 @@ docker run -it -d --user qimsdk                                                 
 -v /usr/lib/libQnnTFLiteDelegate.so:/usr/lib/libQnnTFLiteDelegate.so                               \
 -v /usr/lib/libadsprpc.so:/usr/lib/libadsprpc.so                                                   \
 -v /usr/lib/libcdsprpc.so:/usr/lib/libcdsprpc.so                                                   \
+-v /usr/lib/libcdsprpc.so.1:/usr/lib/libcdsprpc.so.1                                               \
+-v /usr/lib/libcdsprpc.so.1.0.0:/usr/lib/libcdsprpc.so.1.0.0                                       \
 -v /usr/lib/libfastcvopt.so:/usr/lib/libfastcvopt.so                                               \
--v /usr/lib/rfsa/adsp/libfastcvdsp_skel.so:/usr/lib/rfsa/adsp/libfastcvdsp_skel.so                 \
--v /usr/lib/rfsa/adsp/libfastcvadsp.so:/usr/lib/rfsa/adsp/libfastcvadsp.so                         \
+-v /usr/lib/libfastcvopt.so.1:/usr/lib/libfastcvopt.so.1                                           \
+-v /usr/lib/libfastcvopt.so.1.8.0:/usr/lib/libfastcvopt.so.1.8.0                                   \
+-v /usr/lib/dsp/cdsp/cv/v68/KODIAK/libfastcvdsp_skel.so:/usr/lib/dsp/cdsp/cv/v68/KODIAK/libfastcvdsp_skel.so \
+-v /usr/lib/dsp/cdsp/cv/v68/KODIAK/libfastcvadsp.so:/usr/lib/dsp/cdsp/cv/v68/KODIAK/libfastcvadsp.so \
 -v /usr/lib/libfastcvdsp_stub.so:/usr/lib/libfastcvdsp_stub.so                                     \
+-v /usr/lib/libfastcvdsp_stub.so.1:/usr/lib/libfastcvdsp_stub.so.1                                 \
+-v /usr/lib/libfastcvdsp_stub.so.1.8.0:/usr/lib/libfastcvdsp_stub.so.1.8.0                         \
 -v /usr/lib/libdmabufheap.so.0.0.0:/usr/lib/libdmabufheap.so.0.0.0                                 \
--v /var/run/pulse/native:/var/run/pulse/native                                                     \
+-v /usr/lib/dsp/cdsp/libc++.so.1:/usr/lib/dsp/cdsp/libc++.so.1                                     \
+-v /usr/lib/dsp/cdsp/libc++abi.so.1:/usr/lib/dsp/cdsp/libc++abi.so.1                               \
 -v /usr/lib/libcamera_metadata.so:/usr/lib/libcamera_metadata.so                                   \
--v tmp/socket/cam_server/le_cam_socket:tmp/socket/cam_server/le_cam_socket                         \
 -v /usr/lib/librv.so:/usr/lib/librv.so                                                             \
 -v /usr/lib/libmv1.so:/usr/lib/libmv1.so                                                           \
 -v /usr/lib/libmv3.so:/usr/lib/libmv3.so                                                           \
--v opt/data:opt/data                                                                               \
--h qimsdk-<container-name> --name qimsdk-<container-name> qimsdk-<image-name>
+-v /etc/labels:/etc/labels                                                                         \
+-v /etc/media:/etc/media                                                                           \
+-v /etc/models:/etc/models                                                                         \
+-e XDG_RUNTIME_DIR=/dev/socket/weston -e WAYLAND_DISPLAY=wayland-1 -e GST_DEBUG_NO_COLOR=1         \
+-h qimsdk-<container-name> --user qimsdk --name qimsdk-<container-name> qimsdk-<image-name>
 ```
 
 <h3 style="color:red">

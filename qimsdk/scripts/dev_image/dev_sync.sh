@@ -65,24 +65,24 @@ function qimsdk-dev-push-artifacts-variant() {
             return -1
         }
 
-        qimsdk-device-command "mkdir -p /opt/qti/development" ${QIMSDK_DEVICE_ID}               && \
+        qimsdk-device-command "mkdir -p /tmp/qti/development" ${QIMSDK_DEVICE_ID}               && \
                 adb push ${QIMSDK_DOCKER_IMAGE_PATH}/qimsdk_dev_artifacts_${VARIANT}.tar           \
-                        /opt/qti/development/                                                   && \
-                qimsdk-device-command "cd /opt/qti/development                                  && \
-                        tar -xf /opt/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar        && \
+                        /tmp/qti/development/                                                   && \
+                qimsdk-device-command "cd /tmp/qti/development                                  && \
+                        tar -xf /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar        && \
                         docker cp usr ${QIMSDK_CONTAINER_NAME}:/" ${QIMSDK_DEVICE_ID}           && \
-                qimsdk-device-command "rm -rf /opt/qti/development/usr" ${QIMSDK_DEVICE_ID}     || {
+                qimsdk-device-command "rm -rf /tmp/qti/development/usr" ${QIMSDK_DEVICE_ID}     || {
             print-red "Artifacts push failed !!!"
 
-            qimsdk-device-command "rm -rf /opt/qti/development/usr"
-            qimsdk-device-command "rm -f /opt/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
+            qimsdk-device-command "rm -rf /tmp/qti/development/usr"
+            qimsdk-device-command "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
 
             rm -f qimsdk_dev_artifacts_${VARIANT}.tar
 
             return -1
         }
 
-        qimsdk-device-command "rm -f /opt/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
+        qimsdk-device-command "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
         rm -f qimsdk_dev_artifacts_${VARIANT}.tar
     )
 

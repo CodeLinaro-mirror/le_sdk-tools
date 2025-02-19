@@ -65,8 +65,8 @@ function qimsdk-cmake-configure() {
 
         local CMAKE_FLAGS="
             -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
-            -DGST_PLUGINS_QTI_OSS_VERSION=1.20
-            -DGST_VERSION_REQUIRED=1.20
+            -DGST_PLUGINS_QTI_OSS_VERSION=1.24
+            -DGST_VERSION_REQUIRED=1.24
             -DSYSROOT_INCDIR=/usr/include
             -DSYSROOT_LIBDIR=/usr/lib
             -DGST_PLUGINS_QTI_OSS_INSTALL_INCDIR=/usr/include
@@ -174,7 +174,8 @@ function qimsdk-meson-install() {
         set -o pipefail
 
         cat ${INSTALL_LOG} | grep -E '^Installing'                                                |\
-                grep -Ev '^Installing symlink|^Installing subdir' > ${FILEPATH_LOG}             && \
+                grep -Ev '^Installing symlink|^Installing subdir|^Installing new directory'        \
+                    > ${FILEPATH_LOG}                                                           && \
                 sed -e 's/$/\//' -i ${FILEPATH_LOG}                                             && \
                 cut -d ' ' -f 4 ${FILEPATH_LOG} > ${PATHS_LOG}                                  && \
                 cut -d ' ' -f 2 ${FILEPATH_LOG} | xargs -i basename {} > ${FILES_LOG}           && \
@@ -287,7 +288,7 @@ function qimsdk-cmake-build() {
 
 ###########################################################
 
-# Meson build wayland-protocols-1.25
+# Meson build wayland-protocols-1.33
 qimsdk-meson-build-wayland-protocols() {
     local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
             --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
@@ -295,7 +296,84 @@ qimsdk-meson-build-wayland-protocols() {
             --localstatedir /var --sharedstatedir /com --wrap-mode nodownload -Dtests=false"
     local DESTINATION_DIR='/'
 
-    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.25 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.33 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+}
+
+# Meson build gst-plugins-base-1.24.9
+qimsdk-meson-build-gst-plugins-base() {
+    local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
+            --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
+            --includedir include --mandir share/man --infodir share/info --sysconfdir /etc         \
+            --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                      \
+            -Dintrospection=enabled -Dexamples=disabled -Dnls=enabled -Ddoc=disabled               \
+            -Dgl_api=gles2 -Dgl_platform=egl -Dgl_winsys=egl,wayland -Dalsa=enabled                \
+            -Dcdparanoia=disabled -Dgl-graphene=disabled -Dgl-jpeg=enabled -Dogg=enabled           \
+            -Dopus=disabled -Dorc=enabled -Dpango=enabled -Dgl-png=enabled -Dqt5=disabled          \
+            -Dtheora=enabled -Dtremor=disabled -Dlibvisual=disabled -Dvorbis=enabled               \
+            -Dx11=disabled -Dxvideo=disabled -Dxshm=disabled -Dbuild-all-plugins=false"
+    local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
+
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+}
+
+# Meson build gst-plugins-good-1.24.9
+qimsdk-meson-build-gst-plugins-good() {
+    local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
+            --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
+            --includedir include --mandir share/man --infodir share/info --sysconfdir /etc         \
+            --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                      \
+            -Dexamples=disabled -Dnls=enabled -Ddoc=disabled -Daalib=disabled                      \
+            -Ddirectsound=disabled -Ddv=disabled -Dlibcaca=disabled -Doss=enabled -Doss4=disabled  \
+            -Dosxaudio=disabled -Dosxvideo=disabled -Dshout2=disabled -Dtwolame=disabled           \
+            -Dwaveform=disabled -Damrnb=disabled -Damrwbdec=disabled -Dasm=disabled -Dbz2=enabled  \
+            -Dcairo=enabled -Ddv1394=disabled -Dflac=enabled -Dgdk-pixbuf=enabled -Dgtk3=disabled  \
+            -Dv4l2-gudev=enabled -Djack=disabled -Djpeg=enabled -Dlame=enabled -Dpng=enabled       \
+            -Dv4l2-libv4l2=disabled -Dmpg123=enabled -Dorc=enabled -Dpulse=enabled -Dqt5=disabled  \
+            -Drpicamsrc=disabled -Dsoup=enabled -Dspeex=disabled -Dtaglib=enabled -Dv4l2=enabled   \
+            -Dv4l2-probe=true -Dvpx=enabled -Dwavpack=disabled -Dximagesrc=disabled                \
+            -Dximagesrc-xshm=disabled -Dximagesrc-xfixes=disabled -Dximagesrc-xdamage=disabled     \
+            -Dadaptivedemux2=disabled -Dbuild-all-plugins=false"
+    local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
+
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+}
+
+# Meson build gst-plugins-bad-1.24.9
+qimsdk-meson-build-gst-plugins-bad() {
+    local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
+            --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
+            --includedir include --mandir share/man --infodir share/info --sysconfdir /etc         \
+            --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                      \
+            -Dintrospection=enabled -Dexamples=disabled -Dnls=enabled -Dgpl=disabled               \
+            -Ddoc=disabled -Daes=enabled -Dcodecalpha=enabled -Ddecklink=enabled -Ddvb=enabled     \
+            -Dfbdev=enabled -Dipcpipeline=enabled -Dshm=enabled -Dtranscode=enabled                \
+            -Dandroidmedia=disabled -Dapplemedia=disabled -Dasio=disabled -Dbs2b=disabled          \
+            -Dchromaprint=disabled -Dd3dvideosink=disabled -Dd3d11=disabled -Ddirectsound=disabled \
+            -Ddts=disabled -Dfdkaac=disabled -Dflite=disabled -Dgme=disabled -Dgs=disabled         \
+            -Dgsm=disabled -Diqa=disabled -Dladspa=disabled -Dldac=disabled -Dlv2=disabled         \
+            -Dmagicleap=disabled -Dmediafoundation=disabled -Dmicrodns=disabled                    \
+            -Dmpeg2enc=disabled -Dmplex=disabled -Dmusepack=disabled -Dnvcodec=disabled            \
+            -Dopenexr=disabled -Dopenni2=disabled -Dopenaptx=disabled -Dopensles=disabled          \
+            -Donnx=disabled -Dqroverlay=disabled -Dsoundtouch=disabled -Dspandsp=disabled          \
+            -Dsvthevcenc=disabled -Dteletext=disabled -Dwasapi=disabled -Dwasapi2=disabled         \
+            -Dwildmidi=disabled -Dwinks=disabled -Dwinscreencap=disabled -Dwpe=disabled            \
+            -Dzxing=disabled -Daom=disabled -Dassrender=disabled -Davtp=disabled -Dbluez=enabled   \
+            -Dbz2=enabled -Dclosedcaption=enabled -Dcurl=enabled -Ddash=enabled -Ddc1394=disabled  \
+            -Ddirectfb=disabled -Ddtls=enabled -Dfaac=disabled -Dfaad=disabled                     \
+            -Dfluidsynth=disabled -Dgl=enabled -Dhls=enabled -Dkms=disabled                        \
+            -Dcolormanagement=disabled -Dlibde265=disabled -Dcurl-ssh2=disabled -Dmodplug=disabled \
+            -Dmsdk=disabled -Dneon=disabled -Dopenal=disabled -Dopencv=disabled                    \
+            -Dopenh264=disabled -Dopenjpeg=disabled -Dopenmpt=disabled -Dhls-crypto=openssl        \
+            -Dopus=disabled -Dorc=enabled -Dresindvd=disabled -Drsvg=enabled -Drtmp=disabled       \
+            -Dsbc=enabled -Dsctp=enabled -Dsmoothstreaming=enabled -Dsndfile=enabled -Dsrt=enabled \
+            -Dsrtp=enabled -Dtinyalsa=disabled -Dttml=enabled -Duvch264=enabled                    \
+            -Dv4l2codecs=disabled -Dva=disabled -Dvoaacenc=disabled -Dvoamrwbenc=disabled          \
+            -Dvulkan=enabled -Dwayland=enabled -Dwebp=enabled -Dwebrtc=enabled                     \
+            -Dwebrtcdsp=disabled -Dx11=disabled -Dx265=disabled -Dzbar=disabled                    \
+            -Dbuild-all-plugins=false"
+    local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
+
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
 # Meson build gstd
@@ -304,89 +382,6 @@ qimsdk-meson-build-gstd() {
     local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
 
     qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gstd-1.x ${DESTINATION_DIR} ${CONFIG_FLAGS}
-}
-
-# Meson build pulseaudio
-qimsdk-meson-build-pulseaudio() {
-    local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
-            --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
-            --includedir include --mandir share/man --infodir share/info --sysconfdir /etc         \
-            --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                      \
-            -Dhal-compat=false                                                                     \
-            -Dorc=disabled                                                                         \
-            -Daccess_group=audio                                                                   \
-            -Dopenssl=disabled                                                                     \
-            -Ddatabase=simple                                                                      \
-            -Dzshcompletiondir=no                                                                  \
-            -Dudevrulesdir=`pkg-config --variable=udevdir udev`/rules.d                            \
-            -Dvalgrind=disabled                                                                    \
-            -Dtests=false                                                                          \
-            -Drunning-from-build-tree=false"
-
-    local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
-
-    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-15.0 ${DESTINATION_DIR} ${CONFIG_FLAGS}
-}
-
-# Meson build gst-plugins-good-1.20.7
-qimsdk-meson-build-gst-plugins-good() {
-    local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
-            --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
-            --includedir include --mandir share/man --infodir share/info --sysconfdir /etc         \
-            --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                      \
-            -Dexamples=disabled -Dnls=enabled -Ddoc=disabled -Daalib=disabled                      \
-            -Ddirectsound=disabled -Ddv=disabled -Dlibcaca=disabled -Doss=enabled                  \
-            -Doss4=disabled -Dosxaudio=disabled -Dosxvideo=disabled -Dshout2=disabled              \
-            -Dtwolame=disabled -Dwaveform=disabled -Dasm=disabled -Dbz2=enabled                    \
-            -Dcairo=enabled -Ddv1394=disabled -Dflac=enabled -Dgdk-pixbuf=enabled                  \
-            -Dgtk3=disabled -Dv4l2-gudev=enabled -Djack=disabled -Djpeg=enabled -Dlame=enabled     \
-            -Dpng=enabled -Dv4l2-libv4l2=disabled -Dmpg123=enabled -Dorc=enabled                   \
-            -Dpulse=enabled -Dqt5=disabled -Drpicamsrc=disabled -Dsoup=enabled -Dspeex=enabled     \
-            -Dtaglib=enabled -Dv4l2=enabled -Dv4l2-probe=true -Dvpx=disabled                       \
-            -Dwavpack=disabled -Dximagesrc=disabled -Dximagesrc-xshm=disabled                      \
-            -Dximagesrc-xfixes=disabled -Dximagesrc-xdamage=disabled -Dbuild_all_plugins=false"
-    local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
-
-    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.20.7 ${DESTINATION_DIR} ${CONFIG_FLAGS}
-}
-
-# Meson build gst-plugins-bad-1.20.7
-qimsdk-meson-build-gst-plugins-bad() {
-    local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
-            --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
-            --includedir include --mandir share/man --infodir share/info --sysconfdir /etc         \
-            --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                      \
-            -Dintrospection=enabled -Dexamples=disabled -Dnls=disabled -Dgpl=disabled              \
-            -Ddoc=disabled -Daes=enabled -Dcodecalpha=enabled -Ddecklink=enabled -Ddvb=enabled     \
-            -Dfbdev=enabled -Dipcpipeline=enabled -Dshm=enabled -Dtranscode=enabled                \
-            -Dandroidmedia=disabled -Dapplemedia=disabled -Dasio=disabled -Davtp=disabled          \
-            -Dbs2b=disabled -Dchromaprint=disabled -Dd3dvideosink=disabled -Dd3d11=disabled        \
-            -Ddirectsound=disabled -Ddts=disabled -Dfdkaac=disabled -Dflite=disabled               \
-            -Dgme=disabled -Dgs=disabled -Dgsm=disabled -Diqa=disabled -Dkate=disabled             \
-            -Dladspa=disabled -Dldac=disabled -Dlv2=disabled -Dmagicleap=disabled                  \
-            -Dmediafoundation=disabled -Dmicrodns=disabled -Dmpeg2enc=disabled                     \
-            -Dmplex=disabled -Dmusepack=disabled -Dnvcodec=disabled -Dopenexr=disabled             \
-            -Dopenni2=disabled -Dopenaptx=disabled -Dopensles=disabled -Donnx=disabled             \
-            -Dqroverlay=disabled -Dsoundtouch=disabled -Dspandsp=disabled                          \
-            -Dsvthevcenc=disabled -Dteletext=disabled -Dwasapi=disabled -Dwasapi2=disabled         \
-            -Dwildmidi=disabled -Dwinks=disabled -Dwinscreencap=disabled -Dwpe=disabled            \
-            -Dzxing=disabled -Daom=disabled -Dassrender=disabled -Dbluez=enabled -Dbz2=enabled     \
-            -Dclosedcaption=enabled -Dcurl=enabled -Ddash=enabled -Ddc1394=disabled                \
-            -Ddirectfb=disabled -Ddtls=enabled -Dfaac=disabled -Dfaad=disabled                     \
-            -Dfluidsynth=disabled -Dgl=enabled -Dhls=enabled -Dkms=disabled                        \
-            -Dcolormanagement=disabled -Dlibde265=disabled -Dcurl-ssh2=disabled                    \
-            -Dmodplug=disabled -Dmsdk=disabled -Dneon=disabled -Dopenal=disabled                   \
-            -Dopencv=disabled -Dopenh264=disabled -Dopenjpeg=disabled -Dopenmpt=disabled           \
-            -Dhls-crypto=openssl -Dopus=disabled -Dorc=enabled -Dresindvd=disabled                 \
-            -Drsvg=enabled -Drtmp=disabled -Dsbc=enabled -Dsctp=disabled                           \
-            -Dsmoothstreaming=enabled -Dsndfile=enabled -Dsrt=disabled -Dsrtp=disabled             \
-            -Dtinyalsa=disabled -Dttml=enabled -Duvch264=enabled -Dv4l2codecs=disabled             \
-            -Dva=disabled -Dvoaacenc=disabled -Dvoamrwbenc=disabled -Dvulkan=enabled               \
-            -Dwayland=enabled -Dwebp=enabled -Dwebrtc=disabled -Dwebrtcdsp=disabled                \
-            -Dx11=disabled -Dx265=disabled -Dzbar=disabled -Dbuild_all_plugins=false"
-    local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
-
-    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.20.7 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
 # CMake Build le-services
@@ -403,21 +398,28 @@ function qimsdk-cmake-build-solutions-microservices () {
 
 # Clean meson wayland-protocols build directory
 function qimsdk-meson-clean-wayland-protocols() {
-    rm -rf ${QIMSDK_BUILD_DIR}/wayland-protocols-1.25
+    rm -rf ${QIMSDK_BUILD_DIR}/wayland-protocols-1.33
+
+    print-green "${FUNCNAME} completed successfully!"
+}
+
+# Clean meson gst-plugins-base build directory
+function qimsdk-meson-clean-gst-plugins-base() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-base-1.24.9
 
     print-green "${FUNCNAME} completed successfully!"
 }
 
 # Clean meson gst-plugins-good build directory
 function qimsdk-meson-clean-gst-plugins-good() {
-    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-good-1.20.7
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-good-1.24.9
 
     print-green "${FUNCNAME} completed successfully!"
 }
 
 # Clean meson gst-plugins-bad build directory
 function qimsdk-meson-clean-gst-plugins-bad() {
-    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-bad-1.20.7
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-bad-1.24.9
 
     print-green "${FUNCNAME} completed successfully!"
 }
@@ -425,13 +427,6 @@ function qimsdk-meson-clean-gst-plugins-bad() {
 # Clean meson gstd build directory
 function qimsdk-meson-clean-gstd() {
     rm -rf ${QIMSDK_BUILD_DIR}/gstd-1.x
-
-    print-green "${FUNCNAME} completed successfully!"
-}
-
-# Clean meson pulseaudio build directory
-function qimsdk-meson-clean-pulseaudio() {
-    rm -rf ${QIMSDK_BUILD_DIR}/pulseaudio-15.0
 
     print-green "${FUNCNAME} completed successfully!"
 }
@@ -452,11 +447,11 @@ function qimsdk-cmake-clean-solutions-microservices() {
 
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
-    qimsdk-meson-build-gstd                                                                     && \
-            qimsdk-meson-build-pulseaudio                                                       && \
-            qimsdk-meson-build-wayland-protocols                                                && \
+    qimsdk-meson-build-wayland-protocols                                                        && \
+            qimsdk-meson-build-gst-plugins-base                                                 && \
             qimsdk-meson-build-gst-plugins-good                                                 && \
             qimsdk-meson-build-gst-plugins-bad                                                  && \
+            qimsdk-meson-build-gstd                                                             && \
             qimsdk-cmake-build-le-services                                                      && \
             qimsdk-incremental-build-qti                                                        && \
             qimsdk-cmake-build-solutions-microservices                                          && \

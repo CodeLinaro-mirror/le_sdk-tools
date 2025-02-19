@@ -98,6 +98,10 @@ function qimsdk-device-prepare() {
         rc=$?
         [ "${rc}" -ne 0 ] && print-red "adb file system remount failed !!!" && return -1
 
+        qimsdk-device-command "mount -o remount,rw /usr > /dev/null" ${TARGET_DEVICE_ID}
+        rc=$?
+        [ "${rc}" -ne 0 ] && print-red "adb remount /usr on system failed !!!" && return -1
+
         qimsdk-device-command "! command -v setenforce || setenforce 0" ${TARGET_DEVICE_ID}
         rc=$?
         [ "${rc}" -ne 0 ] && print-red "adb disable SE Linux failed !!!" && return -1

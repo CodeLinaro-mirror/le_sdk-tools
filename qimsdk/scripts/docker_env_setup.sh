@@ -180,8 +180,17 @@ function qimsdk-dev-docker-build-image() {
 
     QIMSDK_PATH_TO_eSDK_DIR=${QIMSDK_PATH_TO_eSDK_DIR%/}
 
+    local PATH_TO_GST_PLUGINS_BASE_PATCHES="${QIMSDK_GST_META}/`
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-base/1.24/"
+
+    [ ! -d ${PATH_TO_GST_PLUGINS_BASE_PATCHES} ] && {
+        print-red "gstreamer-plugins-base's patches NOT found !!!"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+        return -1
+    }
+
     local PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_GST_META}/`
-        `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.20/"
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.24/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_GOOD_PATCHES} ] && {
         print-red "gstreamer-plugins-good's patches NOT found !!!"
@@ -190,7 +199,7 @@ function qimsdk-dev-docker-build-image() {
     }
 
     local PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_GST_META}/`
-        `recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20.4/"
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.24/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ] && {
         print-red "gstreamer-plugins-bad's patches NOT found !!!"
@@ -219,15 +228,6 @@ function qimsdk-dev-docker-build-image() {
         return -1
     }
 
-    local PATH_TO_PULSEAUDIO_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-        `poky/meta/recipes-multimedia/pulseaudio/pulseaudio/"
-
-    [ ! -d ${PATH_TO_PULSEAUDIO_PATCHES} ] && {
-        print-red "pulseaudio's patches NOT found !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER}
-        return -1
-    }
-
     local TARGET_SYSROOT=$(find ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots -name fastcv.h | head -n 1)
     TARGET_SYSROOT=${TARGET_SYSROOT%"/usr/include/fastcv/fastcv.h"}
 
@@ -242,20 +242,14 @@ function qimsdk-dev-docker-build-image() {
         return -1
     }
 
-    mkdir -p "${QIMSDK_TMP_FOLDER}/`
-            `headers/usr/share/wayland-protocols/stable/gbm-buffer-backend/"                    && \
-
-    rsync -a ./usr/share/libweston-10/protocols/gbm-buffer-backend.xml                             \
-            ${QIMSDK_TMP_FOLDER}/headers/usr/share/wayland-protocols/stable/`
-            `gbm-buffer-backend/                                                                && \
+    [ -f "./usr/include/display/media/mmm_color_fmt.h" ] && {
+        rsync -aR ./usr/include/display/media/mmm_color_fmt.h                                      \
+            ${QIMSDK_TMP_FOLDER}/headers/
+    }
 
     rsync -aR ./usr/include/fastcv/fastcv.h                                                        \
             ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
     rsync -aR ./usr/include/iot-core-algs/ib2c.h                                                   \
-            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
-    rsync -aR ./usr/include/display/media/mmm_color_fmt.h                                          \
-            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
-    rsync -aR ./usr/include/gbm_priv.h                                                             \
             ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
     rsync -aR ./usr/include/CL/cl_ext_qcom.h                                                       \
             ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
@@ -271,14 +265,6 @@ function qimsdk-dev-docker-build-image() {
             ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
     rsync -aR ./usr/include/system/camera_vendor_tags.h                                            \
             ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
-    rsync -aR ./usr/include/hardware/camera3.h                                                     \
-            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
-    rsync -aR ./usr/include/hardware/camera_common.h                                               \
-            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
-    rsync -aR ./usr/include/system/camera.h                                                        \
-            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
-    rsync -aR ./usr/include/hardware/camera_hardware.h                                             \
-            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
     rsync -aR ./usr/include/hardware/graphics.h                                                    \
             ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
     rsync -aR ./usr/include/iot-core-algs/videoctrl.h                                              \
@@ -289,17 +275,6 @@ function qimsdk-dev-docker-build-image() {
         popd 1>/dev/null
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -1
-    }
-
-    local QIMSDK_PATH_TO_PULSEAUDIO_META="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qti-pulseaudio-plugins"
-    [ -d "${QIMSDK_PATH_TO_PULSEAUDIO_META}" ]                                                  || {
-        QIMSDK_PATH_TO_PULSEAUDIO_META="${QIMSDK_PATH_TO_eSDK_DIR}/layers/meta-qcom-hwe"
-        [ -d "${QIMSDK_PATH_TO_PULSEAUDIO_META}" ]                                              || {
-            echo "Cannot find path to pulseaudio meta !!!"
-            popd 1>/dev/null
-            return -1
-        }
     }
 
     # Skip building dfs in case dependencies are not met
@@ -355,33 +330,23 @@ function qimsdk-dev-docker-build-image() {
 
     popd 1>/dev/null                                                                            && \
 
-    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.20.7/                               && \
-    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.20.7/                              && \
-    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.25/                               && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.33/                               && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-base-1.24.9/                              && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.24.9/                              && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.24.9/                               && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                 && \
 
-    rsync -a ${QIMSDK_PATH_TO_eSDK_DIR}/layers/poky/meta/recipes-multimedia/gstreamer/`
-            `gstreamer1.0-plugins-bad/*.patch                                                      \
-            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.20.7/                                && \
+    rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
+            ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.33/                                && \
 
-    rsync -a ${PATH_TO_GST_PLUGINS_BAD_PATCHES}/*.patch                                            \
-            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.20.7/                                && \
-
-    rsync -a ${QIMSDK_PATH_TO_eSDK_DIR}/layers/poky/meta/recipes-multimedia/gstreamer/`
-            `gstreamer1.0-plugins-good/*.patch                                                     \
-            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.20.7/                               && \
+    rsync -a ${PATH_TO_GST_PLUGINS_BASE_PATCHES}/*.patch                                           \
+            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-base-1.24.9/                               && \
 
     rsync -a ${PATH_TO_GST_PLUGINS_GOOD_PATCHES}/*.patch                                           \
-            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.20.7/                               && \
+            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.24.9/                               && \
 
-    rsync -a ${QIMSDK_PATH_TO_PULSEAUDIO_META}/recipes-multimedia/audio/pulseaudio/*.patch         \
-            ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                            && \
-
-    rsync -a ${PATH_TO_PULSEAUDIO_PATCHES}/*.patch                                                 \
-            ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                            && \
-
-    rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
-            ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.25/                                && \
+    rsync -a ${PATH_TO_GST_PLUGINS_BAD_PATCHES}/*.patch                                            \
+            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.24.9/                                && \
 
     rsync -a ${PATH_TO_GSTD_PATCHES}/*.patch                                                       \
             ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                  || {
@@ -421,6 +386,7 @@ function qimsdk-dev-docker-build-image() {
                 -m ${QIMSDK_GST_META}                                                              \
                 -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
                 -t ${QIMSDK_TMP_FOLDER}                                                            \
+                -v "1.24"                                                                          \
                 BBPatchParser                                                                   || {
             print-red "Python Parser returns error, mode BBPatchParser !!!"
             rm -rf ${QIMSDK_TMP_FOLDER}
@@ -520,8 +486,17 @@ function qimsdk-docker-build-image() {
 
     QIMSDK_PATH_TO_eSDK_DIR=${QIMSDK_PATH_TO_eSDK_DIR%/}
 
+    local PATH_TO_GST_PLUGINS_BASE_PATCHES="${QIMSDK_GST_META}/`
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-base/1.24/"
+
+    [ ! -d ${PATH_TO_GST_PLUGINS_BASE_PATCHES} ] && {
+        print-red "gstreamer-plugins-base's patches NOT found !!!"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+        return -1
+    }
+
     local PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_GST_META}/`
-        `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.20/"
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.24/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_GOOD_PATCHES} ] && {
         print-red "gstreamer-plugins-good's patches NOT found !!!"
@@ -530,7 +505,7 @@ function qimsdk-docker-build-image() {
     }
 
     local PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_GST_META}/`
-        `recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.20.4/"
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.24/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ] && {
         print-red "gstreamer-plugins-bad's patches NOT found !!!"
@@ -559,15 +534,6 @@ function qimsdk-docker-build-image() {
         return -1
     }
 
-    local PATH_TO_PULSEAUDIO_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-        `poky/meta/recipes-multimedia/pulseaudio/pulseaudio/"
-
-    [ ! -d ${PATH_TO_PULSEAUDIO_PATCHES} ] && {
-        print-red "pulseaudio's patches NOT found !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER}
-        return -1
-    }
-
     local TARGET_SYSROOT=$(find ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots -name fastcv.h | head -n 1)
     TARGET_SYSROOT=${TARGET_SYSROOT%"/usr/include/fastcv/fastcv.h"}
 
@@ -582,20 +548,14 @@ function qimsdk-docker-build-image() {
         return -1
     }
 
-    mkdir -p "${QIMSDK_TMP_FOLDER}/`
-            `headers/usr/share/wayland-protocols/stable/gbm-buffer-backend/"                    && \
-
-    rsync -a ./usr/share/libweston-10/protocols/gbm-buffer-backend.xml                             \
-            ${QIMSDK_TMP_FOLDER}/headers/usr/share/wayland-protocols/stable/`
-            `gbm-buffer-backend/                                                                && \
+    [ -f "./usr/include/display/media/mmm_color_fmt.h" ] && {
+        rsync -aR ./usr/include/display/media/mmm_color_fmt.h                                      \
+            ${QIMSDK_TMP_FOLDER}/headers/
+    }
 
     rsync -aR ./usr/include/fastcv/fastcv.h                                                        \
             ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
     rsync -aR ./usr/include/iot-core-algs/ib2c.h                                                   \
-            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
-    rsync -aR ./usr/include/display/media/mmm_color_fmt.h                                          \
-            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
-    rsync -aR ./usr/include/gbm_priv.h                                                             \
             ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
     rsync -aR ./usr/include/CL/cl_ext_qcom.h                                                       \
             ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
@@ -611,14 +571,6 @@ function qimsdk-docker-build-image() {
             ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
     rsync -aR ./usr/include/system/camera_vendor_tags.h                                            \
             ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
-    rsync -aR ./usr/include/hardware/camera3.h                                                     \
-            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
-    rsync -aR ./usr/include/hardware/camera_common.h                                               \
-            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
-    rsync -aR ./usr/include/system/camera.h                                                        \
-            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
-    rsync -aR ./usr/include/hardware/camera_hardware.h                                             \
-            ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
     rsync -aR ./usr/include/hardware/graphics.h                                                    \
             ${QIMSDK_TMP_FOLDER}/headers/                                                       && \
     rsync -aR ./usr/include/iot-core-algs/videoctrl.h                                              \
@@ -629,17 +581,6 @@ function qimsdk-docker-build-image() {
         popd 1>/dev/null
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -1
-    }
-
-    local QIMSDK_PATH_TO_PULSEAUDIO_META="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qti-pulseaudio-plugins"
-    [ -d "${QIMSDK_PATH_TO_PULSEAUDIO_META}" ]                                                  || {
-        QIMSDK_PATH_TO_PULSEAUDIO_META="${QIMSDK_PATH_TO_eSDK_DIR}/layers/meta-qcom-hwe"
-        [ -d "${QIMSDK_PATH_TO_PULSEAUDIO_META}" ]                                              || {
-            echo "Cannot find path to pulseaudio meta !!!"
-            popd 1>/dev/null
-            return -1
-        }
     }
 
     # Skip building dfs in case dependencies are not met
@@ -695,37 +636,23 @@ function qimsdk-docker-build-image() {
 
     popd 1>/dev/null                                                                            && \
 
-    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.20.7/                               && \
-    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.20.7/                              && \
-    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.25/                               && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.33/                               && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-base-1.24.9/                              && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.24.9/                              && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.24.9/                               && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                 && \
 
-    rsync -a ${QIMSDK_PATH_TO_eSDK_DIR}/layers/poky/meta/recipes-multimedia/gstreamer/`
-            `gstreamer1.0-plugins-bad/*.patch                                                      \
-            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.20.7/                                && \
+    rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
+            ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.33/                                && \
 
-    rsync -a ${PATH_TO_GST_PLUGINS_BAD_PATCHES}/*.patch                                            \
-            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.20.7/                                && \
-
-    rsync -a ${QIMSDK_PATH_TO_eSDK_DIR}/layers/poky/meta/recipes-multimedia/gstreamer/`
-            `gstreamer1.0-plugins-good/*.patch                                                     \
-            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.20.7/                               && \
+    rsync -a ${PATH_TO_GST_PLUGINS_BASE_PATCHES}/*.patch                                           \
+            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-base-1.24.9/                               && \
 
     rsync -a ${PATH_TO_GST_PLUGINS_GOOD_PATCHES}/*.patch                                           \
-            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.20.7/                               && \
+            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.24.9/                               && \
 
-    rsync -a ${QIMSDK_PATH_TO_PULSEAUDIO_META}/recipes-multimedia/audio/pulseaudio/*.patch         \
-            ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                            && \
-
-    rsync -a ${PATH_TO_PULSEAUDIO_PATCHES}/*.patch                                                 \
-            ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                            && \
-
-    rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
-            ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.25/                                && \
-
-    rsync -a ${QIMSDK_PATH_TO_eSDK_DIR}/layers/meta-openembedded/meta-multimedia/`
-            `recipes-multimedia/gstreamer-1.0/gstd/*.patch                                         \
-            ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                  && \
+    rsync -a ${PATH_TO_GST_PLUGINS_BAD_PATCHES}/*.patch                                            \
+            ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.24.9/                                && \
 
     rsync -a ${PATH_TO_GSTD_PATCHES}/*.patch                                                       \
             ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                  || {
@@ -765,6 +692,7 @@ function qimsdk-docker-build-image() {
                 -m ${QIMSDK_GST_META}                                                              \
                 -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
                 -t ${QIMSDK_TMP_FOLDER}                                                            \
+                -v "1.24"                                                                          \
                 BBPatchParser                                                                   || {
             print-red "Python Parser Crashed, mode BBPatchParser !!!"
             rm -rf ${QIMSDK_TMP_FOLDER}
@@ -1262,7 +1190,7 @@ function qimsdk-dev-docker-run-container() {
     }
 
     # Propagate ssh and gitconfig to container
-    docker exec --user root ${QIMSDK_CONTAINER_NAME}_dev mkdir /root/.ssh || {
+    docker exec --user root ${QIMSDK_CONTAINER_NAME}_dev mkdir -p /root/.ssh || {
         print-red "docker mkdir ~/.ssh failed !!!"
         return -1
     }
@@ -1472,7 +1400,6 @@ function qimsdk-docker-device-run-cdi-container() {
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_DEVICE_ID
-    local EXPORTS
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -1882,24 +1809,24 @@ function qimsdk-dev-load-artifacts-variant() {
         }
 
         rsync -aP ${DOCKER_IMAGE_PATH}/qimsdk_dev_artifacts_${VARIANT}.tar .                    && \
-                qimsdk-device-command "mkdir -p /opt/qti/development" ${QIMSDK_DEVICE_ID}       && \
-                adb push qimsdk_dev_artifacts_${VARIANT}.tar /opt/qti/development/              && \
-                qimsdk-device-command "cd /opt/qti/development                                  && \
-                        tar -xf /opt/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar        && \
+                qimsdk-device-command "mkdir -p /tmp/qti/development" ${QIMSDK_DEVICE_ID}       && \
+                adb push qimsdk_dev_artifacts_${VARIANT}.tar /tmp/qti/development/              && \
+                qimsdk-device-command "cd /tmp/qti/development                                  && \
+                        tar -xf /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar        && \
                         docker cp usr ${QIMSDK_CONTAINER_NAME}:/" ${QIMSDK_DEVICE_ID}           && \
-                qimsdk-device-command "rm -rf /opt/qti/development/usr"                            \
+                qimsdk-device-command "rm -rf /tmp/qti/development/usr"                            \
                         ${QIMSDK_DEVICE_ID}                                                     || {
             print-red "Artifacts load failed !!!"
 
-            qimsdk-device-command "rm -rf /opt/qti/development/usr"
-            qimsdk-device-command "rm -f /opt/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
+            qimsdk-device-command "rm -rf /tmp/qti/development/usr"
+            qimsdk-device-command "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
 
             rm -f qimsdk_dev_artifacts_${VARIANT}.tar
 
             return -1
         }
 
-        qimsdk-device-command "rm -f /opt/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
+        qimsdk-device-command "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
         rm -f qimsdk_dev_artifacts_${VARIANT}.tar
     )
 
@@ -1962,7 +1889,7 @@ echo "    Build dev Docker image"
 print-blue "qimsdk-dev-docker-run-container                                   <path-to-config-json>"
 echo "    Run dev Docker container"
 print-blue "qimsdk-dev-send-artifacts-to-device                               <path-to-config-json>"
-echo "    Copy artifacts directly to /opt/qti/development/ path in device"
+echo "    Copy artifacts directly to /tmp/qti/development/ path in device"
 print-blue "qimsdk-dev-save-artifacts                                         <path-to-config-json>"
 echo "    Save artifacts to Docker_image_path provided in config json file."
 print-blue "qimsdk-dev-save-artifacts-dbg                                     <path-to-config-json>"
