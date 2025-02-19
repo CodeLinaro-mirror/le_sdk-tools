@@ -59,18 +59,18 @@ function qml-install-libraries-snpe() {
 
 function qml-download-models-snpe() {
     local rc=$?
-    rc=$(curl -iL --write-out "%{http_code}\n" --output v0.1.0.zip "https://github.com/quic/sample-apps-for-qualcomm-linux/releases/download/v0.1.0/v0.1.0.zip")
+    rc=$(curl -iL --write-out "%{http_code}\n" --output models.zip "https://github.com/quic/sample-apps-for-qualcomm-linux/releases/download/GA1.4-rel/snpe_docker_models.zip")
     [ $rc -ne 200 ] && {
         echo "FAILED: to download models"
         return $rc
     }
 
-    rc=$(unzip -q v0.1.0.zip -d ${QML_BASE_DIR}/downloads/)
+    rc=$(unzip -q models.zip -d ${QML_BASE_DIR}/downloads/)
     [ $rc -ne 200 ] && {
-        echo "FAILED: to unzip v0.1.0.zip"
+        echo "FAILED: to unzip models.zip"
         return $rc
     }
-    cp ${QML_BASE_DIR}/downloads/v0.1.0/deeplabv3_resnet50.dlc /deploy/snpe/opt
+    cp ${QML_BASE_DIR}/downloads/deeplabv3_resnet50.dlc /deploy/snpe/opt
 
     return 0
 }
