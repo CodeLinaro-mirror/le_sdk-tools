@@ -1149,6 +1149,50 @@ qimsdk-docker-device-run-container <path-to-config-json>
 
 5. From here any qimsdk-docker-device... functions can be used freely on remote PC.
 
+#### Python scripts to load image, run container and build artifacts from Windows
+*Note: Docker_image_path in json file should be path from host machine*
+
+#### Windows
+
+#### Install necessary pip3 packages
+
+```powershell
+pip3 install colorama
+```
+
+Example for adding adb to powershell path
+
+```powershell
+$Env:PATH += ";<path to adb>"
+```
+
+1. Load QIMSDK device image via python
+
+```powershell
+# Load docker image
+python3 DockerEssentials.py -j <path-to-qimsdk-project>\targets\config.json load_image
+```
+
+2. Run container via python
+
+```powershell
+# Run container
+python3 DockerEssentials.py -j <path-to-qimsdk-project>\targets\config.json run_container
+```
+
+3. Load artifacts to the existing docker container in device
+
+3.1 Load release artifacts
+
+```powershell
+python3 DockerEssentials.py -j <path-to-qimsdk-project>\targets\config.json load_artifacts -v release
+```
+
+3.2 Load debug artifacts
+```powershell
+python3 DockerEssentials.py -j <path-to-qimsdk-project>\targets\config.json load_artifacts -v debug
+```
+
 <div id="Docker_Container_Renaming">
 
 ## Docker Container Renaming
