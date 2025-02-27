@@ -92,6 +92,8 @@ function qimsdk-device-prepare() {
         rc=$?
         [ "${rc}" -ne 0 ] && print-red "adb remount failed !!!" && return -1
 
+        adb wait-for-device
+
         qimsdk-device-command "mount -o remount,rw / > /dev/null" ${TARGET_DEVICE_ID}
         rc=$?
         [ "${rc}" -ne 0 ] && print-red "adb file system remount failed !!!" && return -1
@@ -99,6 +101,10 @@ function qimsdk-device-prepare() {
         qimsdk-device-command "! command -v setenforce || setenforce 0" ${TARGET_DEVICE_ID}
         rc=$?
         [ "${rc}" -ne 0 ] && print-red "adb disable SE Linux failed !!!" && return -1
+
+        qimsdk-device-command "date `date +%m%d%H%M%Y.%S`" ${TARGET_DEVICE_ID}
+        rc=$?
+        [ "${rc}" -ne 0 ] && print-red "setting device date failed !!!" && return -1
 
         return 0
     )
