@@ -573,3 +573,61 @@ function qimsdk-generate-docker-run-cdi-cmd() {
 
     return 0
 }
+
+# Get map of host to dev container to mount src dirs
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) output map
+function qimsdk-get-map-for-dev-container() {
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_DEV_MAP=${2}
+
+    local JSON_CONTENT=$(
+        cat ${PATH_TO_CONFIG_JSON}
+    )
+
+    local MAP_SOURCES_TO_DEV_CONTAINER=$(
+        echo ${JSON_CONTENT} |  jq '.MAP_sources_to_dev_container' | tr -d '"'
+    )
+
+    [ ! "${MAP_SOURCES_TO_DEV_CONTAINER}" == "TRUE" ]                                           && \
+    [ ! "${MAP_SOURCES_TO_DEV_CONTAINER}" == "ENABLE" ]                                         && \
+    [ ! "${MAP_SOURCES_TO_DEV_CONTAINER}" == "ENABLED" ]                                        && {
+        return 0
+    }
+
+    local GST_SRC_DIR=$(
+        echo ${JSON_CONTENT} |  jq '.IM_SDK_Source_Dir' | tr -d '"'
+    )
+
+    local LE_SERVICES_DIR=$(
+        echo ${JSON_CONTENT} |  jq '.LE_Services_Source_Dir' | tr -d '"'
+    )
+
+    local SOLUTION_MICROSERVICES_DIR=$(
+        echo ${JSON_CONTENT} |  jq '.Solution_Microservices_Dir' | tr -d '"'
+    )
+
+    [[ -z ${GST_SRC_DIR} ]]                                                                     || \
+    [[ -z ${LE_SERVICES_DIR} ]]                                                                 || \
+    [[ -z ${SOLUTION_MICROSERVICES_DIR} ]]                                                      && {
+        return 0
+    }
+
+    declare -a DEV_MAP_ARR=""
+
+    [ -d ${GST_SRC_DIR} ] && {
+        DEV_MAP_ARR+="-v ${GST_SRC_DIR}:/mnt/work/src/gst-plugins-qti-oss "
+    }
+
+    [ -d ${LE_SERVICES_DIR} ] && {
+        DEV_MAP_ARR+="-v ${LE_SERVICES_DIR}:/mnt/work/src/le-services "
+    }
+
+    [ -d ${SOLUTION_MICROSERVICES_DIR} ] && {
+        DEV_MAP_ARR+="-v ${SOLUTION_MICROSERVICES_DIR}:/mnt/work/src/solutions-microservices "
+    }
+
+    OUT_DEV_MAP=${DEV_MAP_ARR}
+
+    return 0
+}
