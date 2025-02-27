@@ -190,6 +190,9 @@ COPY tmp/gst-plugins-qti-oss ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss
 RUN mkdir -p ${QIMSDK_SRC_DIR}/le-services
 COPY tmp/le-services ${QIMSDK_SRC_DIR}/le-services
 
+RUN mkdir -p ${QIMSDK_SRC_DIR}/solutions-microservices
+COPY tmp/solutions-microservices ${QIMSDK_SRC_DIR}/solutions-microservices
+
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/tmp/scripts/
 COPY scripts/dev_image ${QIMSDK_SCRIPTS}
