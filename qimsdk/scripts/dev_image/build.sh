@@ -148,23 +148,63 @@ function qimsdk-cmake-compile() {
 function qimsdk-meson-install() {
     local TARGET=${1}
     local DESTINATION=${2}
+    local INSTALL_TIME=$(date "+%Y_%m_%d-%H_%M_%S")
+    local INSTALL_LOG="${QIMSDK_LOGS_DIR}/meson_install_${TARGET}_${INSTALL_TIME}.log"
+    local FILEPATH_LOG="/tmp/${INSTALL_TIME}_filepath.log"
+    local PATHS_LOG="/tmp/${INSTALL_TIME}_paths.log"
+    local FILES_LOG="/tmp/${INSTALL_TIME}_files.log"
+
+    # Install to dev container root to be used by other dev container projects
     (
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
 
         meson install --destdir ${QIMSDK_INSTALL_DEBUG_DIR}                                       |&
-                tee "${QIMSDK_LOGS_DIR}/meson_install_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S")`
+                tee "${QIMSDK_LOGS_DIR}/meson_install_${TARGET}_${INSTALL_TIME}`
                 `_dbg.log"                                                                      && \
-        meson install --destdir ${DESTINATION} --strip                                            |&
-                tee "${QIMSDK_LOGS_DIR}/meson_install_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"  \
-                                                                                                && \
-        meson install --destdir "/" --strip                                                       |&
-                tee "${QIMSDK_LOGS_DIR}/meson_install_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
+                meson install --destdir / --strip |& tee ${INSTALL_LOG}
     ) || {
-        print-red "FAILED: qimsdk-meson-install-${TARGET}: meson install failed !!!"
+        print-red "FAILED: qimsdk-meson-install-${TARGET}: meson install to root failed !!!"
         return -1
     }
+
+    # Propagate minimal needed files to device container deploy dir
+    (
+        set -o pipefail
+
+        cat ${INSTALL_LOG} | grep -E '^Installing'                                                |\
+                grep -Ev '^Installing symlink|^Installing subdir' > ${FILEPATH_LOG}             && \
+                sed -e 's/$/\//' -i ${FILEPATH_LOG}                                             && \
+                cut -d ' ' -f 4 ${FILEPATH_LOG} > ${PATHS_LOG}                                  && \
+                cut -d ' ' -f 2 ${FILEPATH_LOG} | xargs -i basename {} > ${FILES_LOG}           && \
+                paste -d '' ${PATHS_LOG} ${FILES_LOG}                                             |\
+                xargs -i rsync -aR {} ${QIMSDK_INSTALL_DIR}/ -f"- *.h" -f"- *.pc"
+    ) || {
+        print-red "FAILED: qimsdk-meson-install-${TARGET}: meson install to deploy dir failed !!!"
+        rm -f ${FILEPATH_LOG}
+        rm -f ${PATHS_LOG}
+        rm -f ${FILES_LOG}
+        return -1
+    }
+
+    rm -f ${FILEPATH_LOG}
+    rm -f ${PATHS_LOG}
+    rm -f ${FILES_LOG}
+
+    # Propagate symlinks to device container deploy dir
+    (
+        set -o pipefail
+
+        cat ${INSTALL_LOG} | grep -E '^Installing symlink' > ${FILEPATH_LOG}
+        cut -d ' ' -f 7 ${FILEPATH_LOG} | xargs -i rsync -aR {} ${QIMSDK_INSTALL_DIR}/
+    ) || {
+        print-red "FAILED: qimsdk-meson-install-${TARGET}: meson symlinks in deploy dir failed !!!"
+        rm -f ${FILEPATH_LOG}
+        return -1
+    }
+
+    rm -f ${FILEPATH_LOG}
 
     print-green "qimsdk ${TARGET} installed successfully !!!"
 
@@ -198,7 +238,7 @@ function qimsdk-cmake-install() {
         cmake --install . --prefix /usr --strip                                                   |&
                 tee ${LOG_FILE_NAME}                                                              |\
                 grep -E 'Up-to-date:|Installing:|configuration:' | tail -n +2                     |\
-                cut -d ' ' -f 3 | xargs -i rsync -aR {} ${QIMSDK_INSTALL_DIR}/
+                cut -d ' ' -f 3 | xargs -i rsync -aR {} ${QIMSDK_INSTALL_DIR}/ -f"- *.h"
     ) || {
         print-red "FAILED: qimsdk-cmake-install-${TARGET}: cmake install failed !!!"
         return -1

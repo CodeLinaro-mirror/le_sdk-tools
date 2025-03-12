@@ -16,23 +16,10 @@ RUN apt-get update                                                              
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
         git tar unzip ssh rsync bash-completion jq cmake android-tools-adb                         \
         libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev       \
-        gettext libdaemon-dev libjansson-dev libreadline-dev protobuf-compiler                     \
-        libcairo2-dev                                                                              \
-        libgstrtspserver-1.0-dev                                                                   \
-        libgirepository1.0-dev                                                                     \
-        opencl-headers                                                                             \
-        libjson-glib-dev                                                                           \
-        libsoup2.4-dev                                                                             \
-        libhiredis-dev                                                                             \
-        libjsoncpp-dev                                                                             \
-        libeigen3-dev                                                                              \
-        libltdl-dev                                                                                \
-        libsndfile1-dev                                                                            \
-        libxtst-dev                                                                                \
-        mosquitto-dev                                                                              \
-        libmosquitto-dev                                                                           \
-        libxml-parser-perl                                                                         \
-        python3 python3-pip python3-setuptools python3-gst-1.0                                     \
+        gettext libdaemon-dev libjansson-dev libreadline-dev protobuf-compiler libcairo2-dev       \
+        libgstrtspserver-1.0-dev libgirepository1.0-dev opencl-headers libjson-glib-dev            \
+        libsoup2.4-dev libhiredis-dev libeigen3-dev libltdl-dev libsndfile1-dev libxtst-dev        \
+        libmosquitto-dev libxml-parser-perl python3 python3-pip python3-setuptools python3-gst-1.0 \
         python3-wheel ninja-build                                                               && \
         pip3 install meson                                                                      && \
         apt-get autoremove -y                                                                   && \
@@ -262,17 +249,16 @@ ENV QIMSDK_BASE_DIR=${QIMSDK_ARG_BASE_DIR}
 
 # Installing required apt packages
 RUN apt-get update                                                                              && \
-        DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
+        DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y bash-completion               \
         gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools libhiredis0.14       \
-        libudev1 libgstrtspserver-1.0-0 bash-completion libsoup2.4 gstreamer1.0-nice               \
-        libjsoncpp25 libopencv-imgproc4.5d libdaemon0 python3 python3-gst-1.0 libjpeg62            \
-        libopencv-core4.5d libopencv-calib3d4.5d libopencv-imgcodecs4.5d libopencv-highgui4.5d     \
-        libopencv-flann4.5d libopencv-features2d4.5d libprotobuf23 mosquitto                    && \
+        python3 python3-gst-1.0 libjpeg62 libprotobuf23 libgstrtspserver-1.0-0 gstreamer1.0-nice   \
+        libdaemon0 mosquitto libopencv-imgproc4.5d libopencv-calib3d4.5d libopencv-imgcodecs4.5d   \
+        libopencv-highgui4.5d                                                                   && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
 
-# Link needed versions of rdvsk dependencies
+# Link needed versions of rvsdk dependencies
 RUN ln -s /usr/lib/aarch64-linux-gnu/libopencv_core.so.4.5d                                        \
         /usr/lib/libopencv_core.so.405                                                          && \
     ln -s /usr/lib/aarch64-linux-gnu/libopencv_imgproc.so.4.5d                                     \
