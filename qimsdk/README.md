@@ -7,6 +7,7 @@
   * [Ubuntu Packages](#Ubuntu_Packages)
   * [How to increase Max user watches and max user instances on host system](#Max_user_watches)
   * [Add internal docker registry mirror. (optional)](#Add_internal_docker_registry_mirror)
+  * [Proxy. (optional)](#Proxy)
   * [Docker Must Be Configured On The Host System (one time)](#Docker_Host_System)
 * [Docker Images](#Docker_Images)
   * [QIMSDK Dev Image](#QIMSDK_Dev_Image)
@@ -147,6 +148,41 @@ newgrp docker
 ```bash
 sudo fromdos /etc/docker/daemon.json
 sudo systemctl restart docker
+```
+
+***Please note that until PC reboot, *newgrp docker* should be invoked on every new console open***
+
+<div id="Proxy">
+
+### Proxy. (optional)
+
+#### Note: Using a tab instead of space and other invisible whitespace characters may break the proper work of json configuration files and later may lead to 'docker.service failed to start' error.
+
+1. Add corresponding *http-proxy-url*, *https-proxy-url* and *no-proxy-url* values in the tag "http-proxy", *https-proxy* and *no-proxy* in: /etc/docker/daemon.json
+
+```json
+{
+        "proxies": {
+                "http-proxy": <http-proxy-url>,
+                "https-proxy": <https-proxy-url>,
+                "no-proxy": <no-proxy-url>
+        }
+}
+```
+
+2. Restart the docker service to take the new settings.
+
+```bash
+sudo fromdos -f /etc/docker/daemon.json
+sudo systemctl restart docker
+```
+
+3. Set proxy related environment variables in bash, before invoking docker build commands
+
+```bash
+export http_proxy=<http-proxy-url>
+export https_proxy=<https-proxy-url>
+export no_proxy=<no-proxy-url>
 ```
 
 ***Please note that until PC reboot, *newgrp docker* should be invoked on every new console open***
