@@ -162,7 +162,7 @@ function qimsdk-copy-tf-lite-headers-to-sysroot() {
     # Remove the header from pending_list if it doesn't exist
     for HEADER in "${!PENDING_LIST[@]}"; do
         [ ! -f "${QIMSDK_TF_SRC_DIR}/${PENDING_LIST[${HEADER}]}" ] && {
-            unset -v 'PENDING_LIST[$HEADER]'
+            unset 'PENDING_LIST[HEADER]'
         }
     done
 
@@ -170,7 +170,14 @@ function qimsdk-copy-tf-lite-headers-to-sysroot() {
 
     while [ ${#PENDING_LIST[@]} -gt 0 ]; do
         # Get next file to be processed
-        local H_FILE="${PENDING_LIST[0]}"
+        local H_FILE=${PENDING_LIST[0]}
+
+        [ -z ${H_FILE} ] && {
+            # Remove file from pending list
+            PENDING_LIST=( "${PENDING_LIST[@]:1}" )
+            continue
+        }
+
         local H_FILE_PATH_tensorflow="${SRC_DIR}"
         local H_FILE_LIB=$(echo ${H_FILE} | cut -d '/' -f 1)
         local H_FILE_PATH=H_FILE_PATH_${H_FILE_LIB}
