@@ -224,37 +224,6 @@ COPY --chmod=755                                                                
 COPY --chmod=755                                                                                   \
         tmp/solutions-microservices/ai/rz/qimsdk_restricted_zone.sh ${QIMSDK_INSTALL_DIR}/usr/bin/
 
-# Copy label files
-COPY --chmod=555                                                                                   \
-        tmp/solutions-microservices/ai/files/labels/gear_guard_net.labels                          \
-        ${QIMSDK_INSTALL_DIR}/opt/labels/gear_guard_net.labels
-COPY --chmod=555                                                                                   \
-        tmp/solutions-microservices/ai/files/labels/foot_track_net.labels                          \
-        ${QIMSDK_INSTALL_DIR}/opt/labels/foot_track_net.labels
-COPY --chmod=555                                                                                   \
-        tmp/solutions-microservices/ai/files/labels/dv3-argmax.labels                              \
-        ${QIMSDK_INSTALL_DIR}/opt/labels/dv3-argmax.labels
-COPY --chmod=555                                                                                   \
-        tmp/solutions-microservices/ai/files/labels/resnet101.labels                               \
-        ${QIMSDK_INSTALL_DIR}/opt/labels/resnet101.labels
-
-RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        'https://github.com/quic/sample-apps-for-qualcomm-linux/releases/download/GA1.3-rel/labels.zip' && \
-        cd ${QIMSDK_DOWNLOAD_DIR} && unzip labels.zip                                           && \
-        cp labels/* ${QIMSDK_INSTALL_DIR}/opt/labels/ && rm -rf labels*                         && \
-    wget -t 2 -T 30 -P ${QIMSDK_INSTALL_DIR}/opt/models/                                           \
-        'https://huggingface.co/qualcomm/Inception-v3-Quantized/resolve/main/Inception-v3-Quantized.tflite' && \
-    wget -t 2 -T 30 -P ${QIMSDK_INSTALL_DIR}/opt/models/                                           \
-        'https://huggingface.co/qualcomm/DeepLabV3-Plus-MobileNet-Quantized/resolve/main/DeepLabV3-Plus-MobileNet-Quantized.tflite' && \
-    wget -t 2 -T 30 -P ${QIMSDK_INSTALL_DIR}/opt/models/                                           \
-        'https://huggingface.co/qualcomm/Midas-V2-Quantized/resolve/main/Midas-V2-Quantized.tflite' && \
-    wget -t 2 -T 30 -P ${QIMSDK_INSTALL_DIR}/opt/models/                                           \
-        'https://huggingface.co/qualcomm/HRNetPoseQuantized/resolve/main/HRNetPoseQuantized.tflite' && \
-    wget -t 2 -T 30 -P ${QIMSDK_INSTALL_DIR}/opt/models/                                           \
-        'https://huggingface.co/qualcomm/QuickSRNetSmall-Quantized/resolve/main/QuickSRNetSmall-Quantized.tflite' && \
-    wget -t 2 -T 30 -P ${QIMSDK_INSTALL_DIR}/opt/labels/                                           \
-        'https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/midas/midasv2_linux_assets/monodepth.labels'
-
 # Change workdir back to base dir from downloads dir
 WORKDIR ${QIMSDK_BASE_DIR}
 
@@ -321,7 +290,7 @@ RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /home/qimsdk/.ba
 # Copy installed binaries to device image
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/usr /usr
-COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/opt /opt
+COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/etc/configs /etc/configs
 
 # Copy python examples
 COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-python-examples /usr/bin
