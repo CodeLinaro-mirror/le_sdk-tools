@@ -699,6 +699,15 @@ docker-compose up -d -f <docker-compose.yml>
       ln -s <path/to/sources>/solutions-microservices <current/docker/dir>/tmp/solutions-microservices
       ```
 
+      <div style="color:#90EE90">Update docker-compose files in solutions-microservices</div>
+
+      ```bash
+      # Example line to update docker-compose files in solutions-microservices:
+      python3 <path/to/qimsdk>/scripts/tools/YamlUpdater.py
+              -j <path/to/qimsdk>/targets/config.json
+              -s <path/to/solutions-microservices>
+      ```
+
     </ul>
 
     <div name="le-services"> le-services</div>
