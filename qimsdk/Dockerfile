@@ -185,6 +185,21 @@ RUN git init                                                                    
     git add --all                                                                               && \
     git commit -m "Initial Plugins Bad Commit"
 
+# pulseaudio: fetch and prepare git repo
+RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
+        'https://freedesktop.org/software/pulseaudio/releases/pulseaudio-17.0.tar.xz'           && \
+    cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
+    tar -xfpulseaudio-17.0.tar.xz                                                               && \
+    rm -f pulseaudio-17.0.tar.xz*
+
+WORKDIR ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-17.0
+RUN git init                                                                                    && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-17.0             && \
+    git config --global user.name "username"                                                    && \
+    git config --global user.email "email"                                                      && \
+    git add --all                                                                               && \
+    git commit -m "Initial Pulse Audio Commit"
+
 # gstd: fetch (hash is for v0.11.3) and install
 ENV QIMSDK_GSTD_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/gstd-1.x
 RUN git clone https://github.com/RidgeRun/gstd-1.x.git ${QIMSDK_GSTD_SRC_DIR}                   && \

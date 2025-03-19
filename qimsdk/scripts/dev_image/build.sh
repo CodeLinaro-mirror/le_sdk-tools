@@ -338,6 +338,29 @@ qimsdk-meson-build-gst-plugins-good() {
     qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
+# Meson build pulseaudio
+qimsdk-meson-build-pulseaudio() {
+    local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
+            --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
+            --includedir include --mandir share/man --infodir share/info --sysconfdir /etc         \
+            --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                      \
+            -Dhal-compat=false                                                                     \
+            -Dorc=disabled                                                                         \
+            -Daccess_group=audio                                                                   \
+            -Dopenssl=disabled                                                                     \
+            -Ddatabase=simple                                                                      \
+            -Dzshcompletiondir=no                                                                  \
+            -Dudevrulesdir=`pkg-config --variable=udevdir udev`/rules.d                            \
+            -Dvalgrind=disabled                                                                    \
+            -Dtests=false                                                                          \
+            -Ddoxygen=false                                                                        \
+            -Drunning-from-build-tree=false"
+
+    local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
+
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-17.0 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+}
+
 # Meson build gst-plugins-bad-1.24.9
 qimsdk-meson-build-gst-plugins-bad() {
     local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
@@ -445,9 +468,15 @@ function qimsdk-cmake-clean-solutions-microservices() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
+#        plugin        |   depends on   | dependency
+#----------------------+----------------+--------------------
+# gst-plugins-bad      | -------------> | wayland-protocols
+# gst-plugins-good     | -------------> | pulseaudio
+
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
     qimsdk-meson-build-wayland-protocols                                                        && \
+            qimsdk-meson-build-pulseaudio                                                       && \
             qimsdk-meson-build-gst-plugins-base                                                 && \
             qimsdk-meson-build-gst-plugins-good                                                 && \
             qimsdk-meson-build-gst-plugins-bad                                                  && \

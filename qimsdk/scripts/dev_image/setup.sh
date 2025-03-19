@@ -19,6 +19,7 @@ function qimsdk-apply-patches() {
             qimsdk-apply-patches-gst-plugins-base-1-24-9                                        && \
             qimsdk-apply-patches-gst-plugins-good-1-24-9                                        && \
             qimsdk-apply-patches-gst-plugins-bad-1-24-9                                         && \
+            qimsdk-apply-patches-pulseaudio                                                     && \
             qimsdk-apply-patches-gstd
 }
 
@@ -95,6 +96,26 @@ function qimsdk-apply-patches-gst-plugins-bad-1-24-9() {
         done
     ) || {
         echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9 !"
+        return -1
+    }
+}
+
+# Apply patches to pulseaudio
+function qimsdk-apply-patches-pulseaudio() {
+    [ -d "${QIMSDK_DOWNLOAD_DIR}/pulseaudio-17.0" ] && (
+        local PATH_TO_PATCHES="${QIMSDK_PATCHES_DIR}/pulseaudio"
+
+        local PULSEAUDIO_PATCHES=$(
+            cat ${QIMSDK_RECIPES_JSON} | jq '.pulseaudio[]' | tr -d '"'
+        )
+
+        cd ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-17.0
+
+        for PATCH in ${PULSEAUDIO_PATCHES}; do
+            qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
+        done
+    ) || {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-17.0 !"
         return -1
     }
 }

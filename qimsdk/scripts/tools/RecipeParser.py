@@ -76,6 +76,7 @@ class BBPatchParser(Parsable):
                 self.name = str()
 
         def __init__(self) -> None:
+            self.bb = self.BitBakeFile()
             self.bb_append = self.BitBakeFile()
 
             self.patches = list(str())
@@ -100,12 +101,29 @@ class BBPatchParser(Parsable):
         if not os.path.exists(self.path_to_wayland_protocols_bbappend):
             raise Exception("Wayland protocols path cannot be reached !!!")
 
+        self.path_to_pulseaudio_bbappend = os.path.join(
+            path_to_layers, "meta-qti-pulseaudio-plugins/recipes-multimedia/audio/")
+
+        if not os.path.exists(self.path_to_pulseaudio_bbappend):
+            self.path_to_pulseaudio_bbappend = os.path.join(
+                    path_to_layers, "meta-qcom-hwe/recipes-multimedia/audio/")
+
+        if not os.path.exists(self.path_to_pulseaudio_bbappend):
+            raise Exception("Pulse audio recipes path cannot be reached !!!")
+
+        self.path_to_pulseaudio_recipe_bb = os.path.join(
+            path_to_layers, "poky/meta/recipes-multimedia/pulseaudio/")
+
+        if not os.path.exists(self.path_to_pulseaudio_recipe_bb):
+            raise Exception("Pulse audio recipes path cannot be reached !!!")
+
         self.recipes = {
             "wayland": self.Recipe(),
             "plugins_base": self.Recipe(),
             "plugins_good": self.Recipe(),
             "plugins_bad": self.Recipe(),
-            "gstd": self.Recipe()
+            "gstd": self.Recipe(),
+            "pulseaudio": self.Recipe()
         }
 
         self.recipes["wayland"].title = "wayland"
@@ -113,15 +131,22 @@ class BBPatchParser(Parsable):
         self.recipes["plugins_good"].title = "plugins_good"
         self.recipes["plugins_bad"].title = "plugins_bad"
         self.recipes["gstd"].title = "gstd"
+        self.recipes["pulseaudio"].title = "pulseaudio"
 
         self.recipes["wayland"].bb_append.name = "wayland-protocols_%.bbappend"
         self.recipes["gstd"].bb_append.name = "gstd_*%.bbappend"
+        self.recipes["pulseaudio"].bb_append.name = "pulseaudio_*.bbappend"
+
+        self.recipes["pulseaudio"].bb.name = "pulseaudio_*.bb"
 
         self.recipes["wayland"].bb_append.path = self.path_to_wayland_protocols_bbappend
         self.recipes["plugins_base"].bb_append.path = self.path_to_gstreamer_recipes
         self.recipes["plugins_good"].bb_append.path = self.path_to_gstreamer_recipes
         self.recipes["plugins_bad"].bb_append.path = self.path_to_gstreamer_recipes
         self.recipes["gstd"].bb_append.path = self.path_to_gstreamer_recipes
+        self.recipes["pulseaudio"].bb_append.path = self.path_to_pulseaudio_bbappend
+
+        self.recipes["pulseaudio"].bb.path = self.path_to_pulseaudio_recipe_bb
 
     def __get_content_of_bbappend(self, recipe: Recipe) -> Recipe:
 
@@ -138,6 +163,29 @@ class BBPatchParser(Parsable):
         recipe.content = recipe.content + content
         recipe.content = recipe.content.replace("require", "#")
         recipe.content = recipe.content.replace("inherit", "#")
+
+        return recipe
+
+    def __get_content_of_bb(self, recipe: Recipe) -> Recipe:
+
+        if ("wayland" == recipe.title):
+            return recipe
+
+        full_path_to_bb = os.path.join(
+            recipe.bb.path,
+            recipe.bb.name
+        )
+
+        for bb in glob.glob(full_path_to_bb):
+            with open(bb) as file:
+                recipe.content = file.read()
+
+            # Set BBPATH as {path_to_layers}/poky/meta
+            # to be able to inherit cmake or pkgconfig
+            recipe.content =                                                                       \
+                f"BBPATH = \"{self.path_to_layers}/poky/meta\"\n"                                  \
+                +                                                                                  \
+                recipe.content
 
         return recipe
 
@@ -193,6 +241,10 @@ class BBPatchParser(Parsable):
         self.recipes["plugins_bad"].bb_append.name = f"gstreamer1.0-plugins-bad_{v}%.bbappend"
 
         for recipe in self.recipes.values():
+
+            recipe = self.__get_content_of_bb(
+                recipe
+            )
 
             recipe = self.__get_content_of_bbappend(
                 recipe
