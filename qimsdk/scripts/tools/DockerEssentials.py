@@ -208,7 +208,7 @@ class Docker():
         print_green("Device run container successful !!!")
 
     def device_load_artifacts(self, variant):
-        device_dev_dir = "/opt/qti/development/"
+        device_dev_dir = "/tmp/qti/development/"
 
         self.device.execute(
             f"mkdir -p {device_dev_dir}"

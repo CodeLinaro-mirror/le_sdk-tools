@@ -4,7 +4,7 @@
     "Docker_image_path": "<path-to-save-docker-images-and-artifacts>",
     "Target_device_ID" : "<adb-device-id>",
     "Supported_targets": [
-        "qcm6490",
+        "qcs6490",
         "qcs9100",
         "qcs8300"
     ],

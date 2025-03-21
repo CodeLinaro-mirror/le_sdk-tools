@@ -63,14 +63,19 @@ class Parsable(ABC):
 
 
 class BBPatchParser(Parsable):
+
+    plugin_version = str()
+
+
     class Recipe():
+
+
         class BitBakeFile():
             def __init__(self) -> None:
                 self.path = str()
                 self.name = str()
 
         def __init__(self) -> None:
-            self.bb = self.BitBakeFile()
             self.bb_append = self.BitBakeFile()
 
             self.patches = list(str())
@@ -95,77 +100,28 @@ class BBPatchParser(Parsable):
         if not os.path.exists(self.path_to_wayland_protocols_bbappend):
             raise Exception("Wayland protocols path cannot be reached !!!")
 
-        self.path_to_wayland_protocols_bb = os.path.join(
-            path_to_layers, "poky/meta/recipes-graphics/wayland/")
-
-        if not os.path.exists(self.path_to_wayland_protocols_bb):
-            raise Exception("Gstreamer recipes path cannot be reached !!!")
-
-        self.path_to_gstreamer_recipes_bb = os.path.join(
-            path_to_layers, "poky/meta/recipes-multimedia/gstreamer/")
-
-        if not os.path.exists(self.path_to_gstreamer_recipes_bb):
-            raise Exception("Gstreamer recipes path cannot be reached !!!")
-
-        self.path_to_gstd_recipe_bb = os.path.join(
-            path_to_layers, "meta-openembedded/meta-multimedia/recipes-multimedia/gstreamer-1.0/")
-
-        if not os.path.exists(self.path_to_gstd_recipe_bb):
-            raise Exception("Gstd recipes path cannot be reached !!!")
-
-        self.path_to_pulseaudio_bbappend = os.path.join(
-            path_to_layers, "meta-qti-pulseaudio-plugins/recipes-multimedia/audio/")
-
-        if not os.path.exists(self.path_to_pulseaudio_bbappend):
-            self.path_to_pulseaudio_bbappend = os.path.join(
-                    path_to_layers, "meta-qcom-hwe/recipes-multimedia/audio/")
-
-        if not os.path.exists(self.path_to_pulseaudio_bbappend):
-            raise Exception("Pulse audio recipes path cannot be reached !!!")
-
-        self.path_to_pulseaudio_recipe_bb = os.path.join(
-            path_to_layers, "poky/meta/recipes-multimedia/pulseaudio/")
-
-        if not os.path.exists(self.path_to_pulseaudio_recipe_bb):
-            raise Exception("Pulse audio recipes path cannot be reached !!!")
-
         self.recipes = {
             "wayland": self.Recipe(),
+            "plugins_base": self.Recipe(),
             "plugins_good": self.Recipe(),
             "plugins_bad": self.Recipe(),
-            "gstd": self.Recipe(),
-            "pulseaudio": self.Recipe(),
+            "gstd": self.Recipe()
         }
 
         self.recipes["wayland"].title = "wayland"
+        self.recipes["plugins_base"].title = "plugins_base"
         self.recipes["plugins_good"].title = "plugins_good"
         self.recipes["plugins_bad"].title = "plugins_bad"
         self.recipes["gstd"].title = "gstd"
-        self.recipes["pulseaudio"].title = "pulseaudio"
 
         self.recipes["wayland"].bb_append.name = "wayland-protocols_%.bbappend"
-        self.recipes["plugins_good"].bb_append.name = "gstreamer1.0-plugins-good_*%.bbappend"
-        self.recipes["plugins_bad"].bb_append.name = "gstreamer1.0-plugins-bad_*%.bbappend"
         self.recipes["gstd"].bb_append.name = "gstd_*%.bbappend"
-        self.recipes["pulseaudio"].bb_append.name = "pulseaudio_*.bbappend"
-
-        self.recipes["wayland"].bb.name = "wayland_*.bb"
-        self.recipes["plugins_good"].bb.name = "gstreamer1.0-plugins-good_*.bb"
-        self.recipes["plugins_bad"].bb.name = "gstreamer1.0-plugins-bad_*.bb"
-        self.recipes["gstd"].bb.name = "gstd_*.bb"
-        self.recipes["pulseaudio"].bb.name = "pulseaudio_*.bb"
 
         self.recipes["wayland"].bb_append.path = self.path_to_wayland_protocols_bbappend
+        self.recipes["plugins_base"].bb_append.path = self.path_to_gstreamer_recipes
         self.recipes["plugins_good"].bb_append.path = self.path_to_gstreamer_recipes
         self.recipes["plugins_bad"].bb_append.path = self.path_to_gstreamer_recipes
         self.recipes["gstd"].bb_append.path = self.path_to_gstreamer_recipes
-        self.recipes["pulseaudio"].bb_append.path = self.path_to_pulseaudio_bbappend
-
-        self.recipes["wayland"].bb.path = self.path_to_wayland_protocols_bb
-        self.recipes["plugins_good"].bb.path = self.path_to_gstreamer_recipes_bb
-        self.recipes["plugins_bad"].bb.path = self.path_to_gstreamer_recipes_bb
-        self.recipes["gstd"].bb.path = self.path_to_gstd_recipe_bb
-        self.recipes["pulseaudio"].bb.path = self.path_to_pulseaudio_recipe_bb
 
     def __get_content_of_bbappend(self, recipe: Recipe) -> Recipe:
 
@@ -181,29 +137,7 @@ class BBPatchParser(Parsable):
 
         recipe.content = recipe.content + content
         recipe.content = recipe.content.replace("require", "#")
-
-        return recipe
-
-    def __get_content_of_bb(self, recipe: Recipe) -> Recipe:
-
-        if ("wayland" == recipe.title):
-            return recipe
-
-        full_path_to_bb = os.path.join(
-            recipe.bb.path,
-            recipe.bb.name
-        )
-
-        for bb in glob.glob(full_path_to_bb):
-            with open(bb) as file:
-                recipe.content = file.read()
-
-            # Set BBPATH as {path_to_layers}/poky/meta
-            # to be able to inherit cmake or pkgconfig
-            recipe.content =                                                                       \
-                f"BBPATH = \"{self.path_to_layers}/poky/meta\"\n"                                  \
-                +                                                                                  \
-                recipe.content
+        recipe.content = recipe.content.replace("inherit", "#")
 
         return recipe
 
@@ -221,6 +155,8 @@ class BBPatchParser(Parsable):
             current_data_smart, include=True)
 
         my_temp_file = self._parse_helper(recipe.content)
+
+        current_data_smart.setVar("__bbclasstype", "recipe")
 
         bb_parsed = bb.parse.handle(
             my_temp_file.name, current_data_smart, include=True)
@@ -250,12 +186,13 @@ class BBPatchParser(Parsable):
         return recipe
 
     def process(self):
+        v = self.plugin_version
+
+        self.recipes["plugins_base"].bb_append.name = f"gstreamer1.0-plugins-base_{v}%.bbappend"
+        self.recipes["plugins_good"].bb_append.name = f"gstreamer1.0-plugins-good_{v}%.bbappend"
+        self.recipes["plugins_bad"].bb_append.name = f"gstreamer1.0-plugins-bad_{v}%.bbappend"
 
         for recipe in self.recipes.values():
-
-            recipe = self.__get_content_of_bb(
-                recipe
-            )
 
             recipe = self.__get_content_of_bbappend(
                 recipe
@@ -279,6 +216,7 @@ class BBPatchParser(Parsable):
         with open(path_to_json, "w") as recipes_patches:
             json_buffer = json.dumps(title_to_patches, indent=4)
             recipes_patches.write(json_buffer)
+
 
 class RecipeParser(Parsable):
 
@@ -416,14 +354,19 @@ class BuildCodeGenerator(RecipeParser):
 
             my_temp_file = self._parse_helper(content)
 
+            current_data_smart.setVar("__bbclasstype", "recipe")
+
             bb_parsed = bb.parse.handle(
                 my_temp_file.name, current_data_smart)['']
 
             bb_parsed.setVar("OVERRIDES", self.platform)
 
-            files_path = bb_parsed.getVar("FILESPATH").replace("${WORKSPACE}/gst-plugins-qti-oss/", "").replace("/:", "").replace(":", "")
-            src_uri = bb_parsed.getVar("SRC_URI").replace("file://", "")
-            self.plugin_src_uri[plugin] = os.path.join(files_path, src_uri)
+            files_path = bb_parsed.getVar("FILESPATH").replace("${WORKSPACE}/", "").replace("/:", "").replace(":", "")
+            s = bb_parsed.getVar("S").replace("${WORKDIR}/", "")
+            if files_path.strip() == "":
+                self.plugin_src_uri[plugin] = s
+            else:
+                self.plugin_src_uri[plugin] = os.path.join(files_path, s)
 
             extra_oecmake_string = bb_parsed.getVar("EXTRA_OECMAKE")
 
@@ -485,7 +428,7 @@ class BuildCodeGenerator(RecipeParser):
                 content="""
 # CMake Build ${plugin}
 function qimsdk-cmake-build-${plugin} () {
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/${dir} ${CONFIG_FLAGS} && \\
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/${dir} ${CONFIG_FLAGS} && \\
             print-green "${FUNCNAME} completed successfully!"
 }
 
@@ -538,7 +481,10 @@ print-yellow \"qimsdk-help-build\"
 echo \"    Print build and clean function of each gst plugins\"
 """)
 
+
 class RuntimeFlagsGenerator(RecipeParser):
+
+
     class Platform:
         def __init__(self, name: str, list_of_socs: list):
             self.name = name
@@ -576,6 +522,8 @@ class RuntimeFlagsGenerator(RecipeParser):
             bb.parse.siggen = bb.siggen.init(current_data_smart)
 
             my_temp_file = self._parse_helper(content)
+
+            current_data_smart.setVar("__bbclasstype", "recipe")
 
             bb_parsed = bb.parse.handle(
                 my_temp_file.name, current_data_smart)['']
@@ -648,7 +596,6 @@ class RuntimeFlagsGenerator(RecipeParser):
                 json_buffer = json.dumps(self.plugin_to_flags, indent=4)
                 runtime_flags_json.write(json_buffer)
 
-
 # Parse arguments function
 # Parses input arguments
 def parse_arguments() -> str:
@@ -661,10 +608,13 @@ def parse_arguments() -> str:
                         help="Path to meta layer of qimsdk")
 
     parser.add_argument("-p", "--platform", dest="platform", required=False,
-                        help="Platform e.g. qcm6490, qcs9100")
+                        help="Platform e.g. qcs6490, qcs9100, qcs8300")
 
     parser.add_argument("-t", "--tmp", dest="path_to_tmp", required=True,
                         help="Path to tmp directory of the current project")
+
+    parser.add_argument("-v", "--version", dest="version", required=False,
+                        help="gst-plugins good, bad and base version")
 
     parser.add_argument("action",
                         choices=['BuildCodeGenerator', 'BBPatchParser', 'RuntimeFlagsGenerator'],
@@ -688,11 +638,12 @@ def main():
         args.platform
     )
 
+    parser.plugin_version = str(args.version)
+
     parser.process()
     parser.export(args.path_to_tmp)
 
     return 0
-
 
 if __name__ == "__main__":
     main()
