@@ -228,6 +228,25 @@ function qimsdk-dev-docker-build-image() {
         return -1
     }
 
+    local PATH_TO_PULSEAUDIO_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
+        `poky/meta/recipes-multimedia/pulseaudio/pulseaudio/"
+
+    [ ! -d ${PATH_TO_PULSEAUDIO_PATCHES} ] && {
+        print-red "pulseaudio's patches NOT found !!!"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+        return -1
+    }
+
+    local QIMSDK_PATH_TO_PULSEAUDIO_META="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
+            `meta-qti-pulseaudio-plugins"
+    [ -d "${QIMSDK_PATH_TO_PULSEAUDIO_META}" ]                                                  || {
+        QIMSDK_PATH_TO_PULSEAUDIO_META="${QIMSDK_PATH_TO_eSDK_DIR}/layers/meta-qcom-hwe"
+        [ -d "${QIMSDK_PATH_TO_PULSEAUDIO_META}" ]                                              || {
+            echo "Cannot find path to pulseaudio meta !!!"
+            return -1
+        }
+    }
+
     local TARGET_SYSROOT=$(find ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots -name fastcv.h | head -n 1)
     TARGET_SYSROOT=${TARGET_SYSROOT%"/usr/include/fastcv/fastcv.h"}
 
@@ -335,6 +354,7 @@ function qimsdk-dev-docker-build-image() {
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.24.9/                              && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.24.9/                               && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                 && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                           && \
 
     rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
             ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.33/                                && \
@@ -347,6 +367,12 @@ function qimsdk-dev-docker-build-image() {
 
     rsync -a ${PATH_TO_GST_PLUGINS_BAD_PATCHES}/*.patch                                            \
             ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.24.9/                                && \
+
+    rsync -a ${QIMSDK_PATH_TO_PULSEAUDIO_META}/recipes-multimedia/audio/pulseaudio/*.patch         \
+            ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                            && \
+
+    rsync -a ${PATH_TO_PULSEAUDIO_PATCHES}/*.patch                                                 \
+            ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                            && \
 
     rsync -a ${PATH_TO_GSTD_PATCHES}/*.patch                                                       \
             ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                  || {
@@ -534,6 +560,25 @@ function qimsdk-docker-build-image() {
         return -1
     }
 
+    local PATH_TO_PULSEAUDIO_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
+        `poky/meta/recipes-multimedia/pulseaudio/pulseaudio/"
+
+    [ ! -d ${PATH_TO_PULSEAUDIO_PATCHES} ] && {
+        print-red "pulseaudio's patches NOT found !!!"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+        return -1
+    }
+
+    local QIMSDK_PATH_TO_PULSEAUDIO_META="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
+            `meta-qti-pulseaudio-plugins"
+    [ -d "${QIMSDK_PATH_TO_PULSEAUDIO_META}" ]                                                  || {
+        QIMSDK_PATH_TO_PULSEAUDIO_META="${QIMSDK_PATH_TO_eSDK_DIR}/layers/meta-qcom-hwe"
+        [ -d "${QIMSDK_PATH_TO_PULSEAUDIO_META}" ]                                              || {
+            echo "Cannot find path to pulseaudio meta !!!"
+            return -1
+        }
+    }
+
     local TARGET_SYSROOT=$(find ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots -name fastcv.h | head -n 1)
     TARGET_SYSROOT=${TARGET_SYSROOT%"/usr/include/fastcv/fastcv.h"}
 
@@ -641,6 +686,7 @@ function qimsdk-docker-build-image() {
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.24.9/                              && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.24.9/                               && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                 && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                           && \
 
     rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
             ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.33/                                && \
@@ -653,6 +699,12 @@ function qimsdk-docker-build-image() {
 
     rsync -a ${PATH_TO_GST_PLUGINS_BAD_PATCHES}/*.patch                                            \
             ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.24.9/                                && \
+
+    rsync -a ${QIMSDK_PATH_TO_PULSEAUDIO_META}/recipes-multimedia/audio/pulseaudio/*.patch         \
+            ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                            && \
+
+    rsync -a ${PATH_TO_PULSEAUDIO_PATCHES}/*.patch                                                 \
+            ${QIMSDK_TMP_FOLDER}/patches/pulseaudio/                                            && \
 
     rsync -a ${PATH_TO_GSTD_PATCHES}/*.patch                                                       \
             ${QIMSDK_TMP_FOLDER}/patches/gstd/                                                  || {
