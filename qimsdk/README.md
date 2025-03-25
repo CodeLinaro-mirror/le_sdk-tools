@@ -713,7 +713,16 @@ adb shell "export GBM_BACKEND=msm && export XDG_RUNTIME_DIR=/dev/socket/weston &
       # Example line to update docker-compose files in solutions-microservices:
       python3 <path/to/qimsdk>/scripts/tools/YamlUpdater.py
               -j <path/to/qimsdk>/targets/config.json
-              -s <path/to/solutions-microservices>
+              YamlUpdater
+      ```
+
+      <div style="color:#90EE90">Update docker_run files in solutions-microservices</div>
+
+      ```bash
+      # Example line to update docker-compose files in solutions-microservices:
+      python3 <path/to/qimsdk>/scripts/tools/YamlUpdater.py
+              -j <path/to/qimsdk>/targets/config.json
+              ShellUpdater
       ```
 
     </ul>

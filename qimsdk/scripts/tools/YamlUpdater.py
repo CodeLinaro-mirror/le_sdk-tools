@@ -57,7 +57,7 @@ class Json2Yaml():
                       Dumper=ExtendedDumper)
 
 
-class YamlUpdater:
+class Updater:
     class Platform:
         def __init__(self, name: str, qimsdk_targets_dir: str):
             self.name = name
@@ -66,15 +66,15 @@ class YamlUpdater:
                 f"mappings_{self.name}.json"
             )
 
-    def __init__(self, path_to_config_json: pathlib.Path, destination_docker_composes: list):
-
-        self.destination_docker_composes = destination_docker_composes
-
+    def __init__(self, path_to_config_json: pathlib.Path, platform_type=Platform):
         self.supported_targets = list(str())
 
         with open(path_to_config_json, "r") as config_json:
             self.config_json_content = json.load(config_json)
+
             self.supported_targets = self.config_json_content['Supported_targets']
+            self.solution_microservices_path = self.config_json_content[
+                'Solution_Microservices_Dir']
 
         qimsdk_targets_dir = os.path.dirname(path_to_config_json)
 
@@ -82,8 +82,15 @@ class YamlUpdater:
 
         for target in self.supported_targets:
             self.platforms.append(
-                self.Platform(target, qimsdk_targets_dir)
+                platform_type(target, qimsdk_targets_dir)
             )
+
+
+class YamlUpdater(Updater):
+    def __init__(self, path_to_config_json):
+        super().__init__(path_to_config_json)
+
+        self.destination_docker_composes = self.__grep_docker_compose()
 
         self.json2yaml_converters = list()
 
@@ -95,6 +102,18 @@ class YamlUpdater:
                         Json2Yaml(platform.target_json, docker_compose)
                     )
 
+    def __grep_docker_compose(self) -> list:
+        microservices_docker_composes = list()
+
+        for root, _, files in os.walk(self.solution_microservices_path):
+            for file in files:
+                result = os.path.join(root, file)
+
+                if "docker-compose" in result:
+                    microservices_docker_composes.append(result)
+
+        return microservices_docker_composes
+
     def update(self):
         for json2yaml in self.json2yaml_converters:
             json2yaml.convert()
@@ -104,17 +123,75 @@ class YamlUpdater:
             json2yaml.dump()
 
 
-def grep_docker_compose(solution_microservices_path: pathlib.Path) -> list:
-    microservices_docker_composes = list()
+class ShellUpdater(Updater):
+    class ExtendedPlatform(Updater.Platform):
+        def __init__(self, name, qimsdk_targets_dir):
+            super().__init__(name, qimsdk_targets_dir)
 
-    for root, _, files in os.walk(solution_microservices_path):
-        for file in files:
-            result = os.path.join(root, file)
+            with open(self.target_json, "r") as config_json:
+                json_data = json.load(config_json)
 
-            if "docker-compose" in result:
-                microservices_docker_composes.append(result)
+            self.devices = list(json_data['Platform_Specific_Mappings'])
+            self.volumes = list(json_data['Platform_Libraries_To_Mount'])
+            self.exports = list(json_data['Exports'])
 
-    return microservices_docker_composes
+            self.run_cmd = str()
+
+    def __init__(self, path_to_config_json):
+        super().__init__(path_to_config_json, self.ExtendedPlatform)
+
+        self.docker_runs = self.__grep_docker_run_shell()
+
+    def __grep_docker_run_shell(self) -> list:
+        microservices_docker_runs = list()
+
+        for root, _, files in os.walk(self.solution_microservices_path):
+            for file in files:
+                result = os.path.join(root, file)
+
+                if "docker_run.sh" in result:
+                    microservices_docker_runs.append(result)
+
+        return microservices_docker_runs
+
+    def update(self):
+
+        for platform in self.platforms:
+            platform.run_cmd = "docker run -it -d"
+
+            for device in platform.devices:
+                platform.run_cmd += f" --device {device}"
+
+            for volume in platform.volumes:
+                platform.run_cmd += f" -v {volume}:{volume}"
+
+            for export in platform.exports:
+                platform.run_cmd += f" -e {export}"
+
+            platform.run_cmd += " -h qimsdk --user qimsdk --name qimsdk qimsdk"
+            platform.run_cmd += "\n"
+
+    def dump(self):
+        for docker_run in self.docker_runs:
+
+            with open(docker_run, "r+") as run_shell:
+                copy_right = str()
+
+                run_shell_content = run_shell.readlines()
+                run_shell.seek(0)
+
+                for line in run_shell_content:
+                    if line.startswith("#"):
+                        copy_right += line
+
+                copy_right += "\n"
+
+                for platform in self.platforms:
+                    if platform.name in docker_run:
+                        dump = copy_right + platform.run_cmd
+
+                        run_shell.write(dump)
+                        run_shell.truncate()
 
 
 def parse_arguments():
@@ -123,8 +200,9 @@ def parse_arguments():
     parser.add_argument("-j", "--json", dest="path_to_config_json",
                         required=True, help="Path to config json of qimsdk")
 
-    parser.add_argument("-s", "--solutions-microservices", dest="solutions_microservices",
-                        required=True, help="Path to solutions-microservices")
+    parser.add_argument("action",
+                        choices=['ShellUpdater', 'YamlUpdater'],
+                        help="<ShellUpdater/YamlUpdater>")
 
     return parser.parse_args()
 
@@ -132,18 +210,17 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    solution_microservices_path = pathlib.Path(args.solutions_microservices)
+    updater_map = {
+        "YamlUpdater": YamlUpdater,
+        "ShellUpdater": ShellUpdater
+    }
 
-    microservices_docker_composes = grep_docker_compose(
-        solution_microservices_path)
+    updater = updater_map[args.action](
+        args.path_to_config_json
+    )
 
-    yaml_updater = YamlUpdater(
-        args.path_to_config_json, microservices_docker_composes)
-
-    yaml_updater.update()
-    yaml_updater.dump()
-
-    print(f"Success: docker compose files in {solution_microservices_path} have been updated!")
+    updater.update()
+    updater.dump()
 
 
 if __name__ == "__main__":
