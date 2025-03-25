@@ -18,9 +18,9 @@ RUN apt-get update                                                              
         libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev       \
         gettext libdaemon-dev libjansson-dev libreadline-dev protobuf-compiler libcairo2-dev       \
         libgstrtspserver-1.0-dev libgirepository1.0-dev opencl-headers libjson-glib-dev            \
-        libsoup2.4-dev libhiredis-dev libeigen3-dev libltdl-dev libsndfile1-dev libxtst-dev        \
-        libmosquitto-dev libxml-parser-perl python3 python3-pip python3-setuptools python3-gst-1.0 \
-        python3-wheel ninja-build python3-full pipx                                             && \
+        libsoup-3.0-dev libedit-dev libhiredis-dev libeigen3-dev libltdl-dev libsndfile1-dev       \
+        libxtst-dev libmosquitto-dev libxml-parser-perl python3 python3-pip python3-setuptools     \
+        python3-gst-1.0 python3-wheel ninja-build python3-full pipx                             && \
         pipx ensurepath                                                                         && \
         pipx install meson                                                                      && \
         apt-get autoremove -y                                                                   && \
@@ -201,11 +201,11 @@ RUN git init                                                                    
     git add --all                                                                               && \
     git commit -m "Initial Pulse Audio Commit"
 
-# gstd: fetch (hash is for v0.11.3) and install
+# gstd: fetch (hash is for v0.15.0) and install
 ENV QIMSDK_GSTD_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/gstd-1.x
 RUN git clone https://github.com/RidgeRun/gstd-1.x.git ${QIMSDK_GSTD_SRC_DIR}                   && \
     cd ${QIMSDK_GSTD_SRC_DIR}                                                                   && \
-    git checkout d924fcbc2123dcfcb35242ecf5dc2fc3049004b3
+    git checkout a011affa67f240cbc7aaff5b00fdfd6124bdaece
 
 WORKDIR ${QIMSDK_DOWNLOAD_DIR}
 RUN git clone https://github.com/abseil/abseil-cpp.git                                          && \
