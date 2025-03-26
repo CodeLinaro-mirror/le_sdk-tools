@@ -1049,6 +1049,30 @@ function qimsdk-docker-device-save-image() {
             return ${rc}
         }
 
+        qimsdk-generate-docker-compose-cdi-yaml ${MAPPINGS_JSON}                                   \
+                ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml                               \
+                ${QIMSDK_CONTAINER_NAME}                                                           \
+                ${QIMSDK_IMAGE_NAME}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "Generate qimsdk docker compose CDI file failed !!!"
+            rm -f ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml
+
+            return ${rc}
+        }
+
+        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml       \
+                ${DOCKER_IMAGE_PATH}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+            rm -f ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml
+
+            return ${rc}
+        }
+
         qimsdk-generate-docker-cdi-specs ${MAPPINGS_JSON}                                          \
                 ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json                                      \
                 ${QIMSDK_CONTAINER_NAME}
@@ -1912,7 +1936,7 @@ echo "    Build docker image based on Dockerfile in ${QIMSDK_DOCKER_DIR}"
 print-blue "qimsdk-docker-device-update-image                                 <path-to-config-json>"
 echo "    Update selected device image to the device"
 print-blue "qimsdk-docker-device-save-image                                   <path-to-config-json>"
-echo "    Save selected device image and docker run command"
+echo "    Save selected device image, compose file and run command"
 print-blue "qimsdk-docker-device-load-image                                   <path-to-config-json>"
 echo "    Loads device image on the device"
 print-blue "qimsdk-docker-device-run-container                                <path-to-config-json>"

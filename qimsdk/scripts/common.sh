@@ -436,6 +436,60 @@ function qimsdk-generate-docker-compose-yaml() {
     return 0
 }
 
+# Generate Docker compose CDI yaml file
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) path to Docker compose yaml
+#   $3 - (mandatory) container name from user's config json
+#   $4 - (mandatory) image name from user's config json
+function qimsdk-generate-docker-compose-cdi-yaml() {
+    local PATH_TO_CONFIG_JSON=${1}
+    local PATH_TO_DOCKER_COMPOSE_YAML=${2}
+    local CONTAINER_NAME=${3}
+    local IMAGE_NAME=${4}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    declare -a EXPORTS_ARRAY
+    EXPORTS_ARRAY=$(
+        echo ${JSON_CONTENT} | jq -r '.Exports[]'
+    )
+
+    EXPORTS_ARRAY=$(
+        echo ${EXPORTS_ARRAY} | tr -d '"'
+    )
+
+    local I
+    echo "services:" > ${PATH_TO_DOCKER_COMPOSE_YAML}                                           && \
+            yq -i ".services.qimsdk.image=\"${IMAGE_NAME}\""                                       \
+                    ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
+            yq -i ".services.qimsdk.container_name=\"${CONTAINER_NAME}\""                          \
+                    ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
+            yq -i ".services.qimsdk.hostname=\"${CONTAINER_NAME}\""                                \
+                    ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
+            yq -i ".services.qimsdk.user=\"qimsdk\"" ${PATH_TO_DOCKER_COMPOSE_YAML}             && \
+            yq -i ".services.qimsdk.stdin_open=true" ${PATH_TO_DOCKER_COMPOSE_YAML}             && \
+            yq -i ".services.qimsdk.tty=true" ${PATH_TO_DOCKER_COMPOSE_YAML}                    && \
+            yq -i ".services.qimsdk.restart=\"always\"" ${PATH_TO_DOCKER_COMPOSE_YAML}          && \
+            for I in ${EXPORTS_ARRAY[@]}; do
+                yq -i ".services.qimsdk.environment += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
+            done                                                                                && \
+            yq -i ".services.qimsdk.deploy.resources.reservations.devices[0].driver = \"cdi\""     \
+                ${PATH_TO_DOCKER_COMPOSE_YAML} && \
+            yq -i ".services.qimsdk.deploy.resources.reservations.devices[0].device_ids[0] = `
+                `\"qualcomm.com/device=${CONTAINER_NAME}\"" ${PATH_TO_DOCKER_COMPOSE_YAML}      || {
+        print-red "Failed to generate Docker compose CDI yaml file !!!"
+        rm -rf  ${PATH_TO_DOCKER_COMPOSE_YAML}
+        return -1
+    }
+
+    return 0
+}
+
 # Generate Docker CDI json file
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) path to Docker CDI json
