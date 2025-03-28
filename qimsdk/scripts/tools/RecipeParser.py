@@ -119,6 +119,7 @@ class BBPatchParser(Parsable):
 
         self.recipes = {
             "wayland": self.Recipe(),
+            "gstreamer": self.Recipe(),
             "plugins_base": self.Recipe(),
             "plugins_good": self.Recipe(),
             "plugins_bad": self.Recipe(),
@@ -127,6 +128,7 @@ class BBPatchParser(Parsable):
         }
 
         self.recipes["wayland"].title = "wayland"
+        self.recipes["gstreamer"].title = "gstreamer"
         self.recipes["plugins_base"].title = "plugins_base"
         self.recipes["plugins_good"].title = "plugins_good"
         self.recipes["plugins_bad"].title = "plugins_bad"
@@ -134,12 +136,14 @@ class BBPatchParser(Parsable):
         self.recipes["pulseaudio"].title = "pulseaudio"
 
         self.recipes["wayland"].bb_append.name = "wayland-protocols_%.bbappend"
+        self.recipes["gstreamer"].bb_append.name = "gstreamer1.0_*.bbappend"
         self.recipes["gstd"].bb_append.name = "gstd_*%.bbappend"
         self.recipes["pulseaudio"].bb_append.name = "pulseaudio_*.bbappend"
 
         self.recipes["pulseaudio"].bb.name = "pulseaudio_*.bb"
 
         self.recipes["wayland"].bb_append.path = self.path_to_wayland_protocols_bbappend
+        self.recipes["gstreamer"].bb_append.path = self.path_to_gstreamer_recipes
         self.recipes["plugins_base"].bb_append.path = self.path_to_gstreamer_recipes
         self.recipes["plugins_good"].bb_append.path = self.path_to_gstreamer_recipes
         self.recipes["plugins_bad"].bb_append.path = self.path_to_gstreamer_recipes
@@ -236,6 +240,7 @@ class BBPatchParser(Parsable):
     def process(self):
         v = self.plugin_version
 
+        self.recipes["gstreamer"].bb_append.name = f"gstreamer1.0_{v}%.bbappend"
         self.recipes["plugins_base"].bb_append.name = f"gstreamer1.0-plugins-base_{v}%.bbappend"
         self.recipes["plugins_good"].bb_append.name = f"gstreamer1.0-plugins-good_{v}%.bbappend"
         self.recipes["plugins_bad"].bb_append.name = f"gstreamer1.0-plugins-bad_{v}%.bbappend"

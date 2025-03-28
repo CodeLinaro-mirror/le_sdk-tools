@@ -20,7 +20,7 @@ RUN apt-get update                                                              
         libgstrtspserver-1.0-dev libgirepository1.0-dev opencl-headers libjson-glib-dev            \
         libsoup-3.0-dev libedit-dev libhiredis-dev libeigen3-dev libltdl-dev libsndfile1-dev       \
         libxtst-dev libmosquitto-dev libxml-parser-perl python3 python3-pip python3-setuptools     \
-        python3-gst-1.0 python3-wheel ninja-build python3-full pipx                             && \
+        python3-gst-1.0 python3-wheel ninja-build python3-full pipx flex bison                  && \
         pipx ensurepath                                                                         && \
         pipx install meson                                                                      && \
         apt-get autoremove -y                                                                   && \
@@ -116,6 +116,29 @@ RUN git init                                                                    
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
     git commit -m "Initial wayland protocols Commit"
+
+# gstreamer: fetch and prepare git repo
+RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
+        'https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.24.9.tar.xz'               && \
+    wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
+        'https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.24.9.tar.xz.asc'           && \
+    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
+        D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
+    gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9.tar.xz.asc                                \
+        ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9.tar.xz                                          && \
+    cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
+    tar -xf gstreamer-1.24.9.tar.xz                                                             && \
+    gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
+    rm -f gstreamer-1.24.9.tar.xz*
+
+WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9
+RUN git init                                                                                    && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9            && \
+    git config --global user.name "username"                                                    && \
+    git config --global user.email "email"                                                      && \
+    git add --all                                                                               && \
+    git commit -m "Initial Gstreamer Commit"
 
 # gst-plugins-base: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \

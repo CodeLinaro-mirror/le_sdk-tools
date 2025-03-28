@@ -16,11 +16,32 @@ function qimsdk-apply-patch() {
 # Wrapper function to apply qti patches to all needed opensource libs
 function qimsdk-apply-patches() {
     qimsdk-apply-patches-wayland-protocols-1-33                                                 && \
+            qimsdk-apply-patches-gstreamer-1-24-9                                               && \
             qimsdk-apply-patches-gst-plugins-base-1-24-9                                        && \
             qimsdk-apply-patches-gst-plugins-good-1-24-9                                        && \
             qimsdk-apply-patches-gst-plugins-bad-1-24-9                                         && \
             qimsdk-apply-patches-pulseaudio                                                     && \
             qimsdk-apply-patches-gstd
+}
+
+# Apply patches to gstreamer-1-24-9
+function qimsdk-apply-patches-gstreamer-1-24-9() {
+    [ -d "${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9" ] && (
+        local PATH_TO_PATCHES="${QIMSDK_PATCHES_DIR}/gstreamer-1.24.9"
+
+        local PLUGINS_BASE_PATCHES=$(
+            cat ${QIMSDK_RECIPES_JSON} | jq '.gstreamer[]' | tr -d '"'
+        )
+
+        cd ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9
+
+        for PATCH in ${PLUGINS_BASE_PATCHES}; do
+            qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
+        done
+    ) || {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9 !"
+        return -1
+    }
 }
 
 # Apply patches to wayland-protocols-1.33

@@ -180,6 +180,15 @@ function qimsdk-dev-docker-build-image() {
 
     QIMSDK_PATH_TO_eSDK_DIR=${QIMSDK_PATH_TO_eSDK_DIR%/}
 
+    local PATH_TO_GSTREAMER_PATCHES="${QIMSDK_GST_META}/`
+        `recipes-gst/gstreamer/gstreamer1.0/1.24/"
+
+    [ ! -d ${PATH_TO_GSTREAMER_PATCHES} ] && {
+        print-red "gstreamer's patches NOT found !!!"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+        return -1
+    }
+
     local PATH_TO_GST_PLUGINS_BASE_PATCHES="${QIMSDK_GST_META}/`
         `recipes-gst/gstreamer/gstreamer1.0-plugins-base/1.24/"
 
@@ -350,6 +359,7 @@ function qimsdk-dev-docker-build-image() {
     popd 1>/dev/null                                                                            && \
 
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.33/                               && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gstreamer-1.24.9/                                     && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-base-1.24.9/                              && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.24.9/                              && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.24.9/                               && \
@@ -358,6 +368,9 @@ function qimsdk-dev-docker-build-image() {
 
     rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
             ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.33/                                && \
+
+    rsync -a ${PATH_TO_GSTREAMER_PATCHES}/*.patch                                                  \
+            ${QIMSDK_TMP_FOLDER}/patches/gstreamer-1.24.9/                                      && \
 
     rsync -a ${PATH_TO_GST_PLUGINS_BASE_PATCHES}/*.patch                                           \
             ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-base-1.24.9/                               && \
@@ -512,6 +525,15 @@ function qimsdk-docker-build-image() {
 
     QIMSDK_PATH_TO_eSDK_DIR=${QIMSDK_PATH_TO_eSDK_DIR%/}
 
+    local PATH_TO_GSTREAMER_PATCHES="${QIMSDK_GST_META}/`
+        `recipes-gst/gstreamer/gstreamer1.0/1.24/"
+
+    [ ! -d ${PATH_TO_GSTREAMER_PATCHES} ] && {
+        print-red "gstreamer's patches NOT found !!!"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+        return -1
+    }
+
     local PATH_TO_GST_PLUGINS_BASE_PATCHES="${QIMSDK_GST_META}/`
         `recipes-gst/gstreamer/gstreamer1.0-plugins-base/1.24/"
 
@@ -682,6 +704,7 @@ function qimsdk-docker-build-image() {
     popd 1>/dev/null                                                                            && \
 
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.33/                               && \
+    mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gstreamer-1.24.9/                                     && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-base-1.24.9/                              && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-good-1.24.9/                              && \
     mkdir -p ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-bad-1.24.9/                               && \
@@ -690,6 +713,9 @@ function qimsdk-docker-build-image() {
 
     rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
             ${QIMSDK_TMP_FOLDER}/patches/wayland-protocols-1.33/                                && \
+
+    rsync -a ${PATH_TO_GSTREAMER_PATCHES}/*.patch                                                  \
+            ${QIMSDK_TMP_FOLDER}/patches/gstreamer-1.24.9/                                      && \
 
     rsync -a ${PATH_TO_GST_PLUGINS_BASE_PATCHES}/*.patch                                           \
             ${QIMSDK_TMP_FOLDER}/patches/gst-plugins-base-1.24.9/                               && \
