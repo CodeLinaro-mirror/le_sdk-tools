@@ -36,7 +36,7 @@ function qml-install-libraries-snpe() {
     }
 
     local rc=$?
-    rc=$(curl -iL --write-out "%{http_code}\n" --output ${SDK_VER}.zip "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/${SDK_VER}.zip")
+    rc=$(curl -iL --write-out "%{http_code}\n" --output ${SDK_VER}.zip "https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/${SDK_VER:1:13}/${SDK_VER}.zip")
     [ $rc -ne 200 ] && {
         echo "FAILED: to download SNPE SDK ${SDK_VER}"
         return -2
