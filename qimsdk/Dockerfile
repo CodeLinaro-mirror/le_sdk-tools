@@ -237,24 +237,6 @@ ENV QIMSDK_RECIPES_PATCHES_DIR=${QIMSDK_BASE_DIR}/tmp/recipes_patches/
 COPY tmp/recipes_patches.json ${QIMSDK_RECIPES_PATCHES_DIR}
 ENV QIMSDK_RECIPES_JSON=${QIMSDK_RECIPES_PATCHES_DIR}/recipes_patches.json
 
-# Copy qimsdk microservices shell scripts
-COPY --chmod=755                                                                                   \
-        tmp/solutions-microservices/ai/24-stream-ai-concurrency/qimsdk_24_stream_ai_concurrency.sh \
-        ${QIMSDK_INSTALL_DIR}/usr/bin/
-COPY --chmod=755                                                                                   \
-        tmp/solutions-microservices/ai/access-control/qimsdk_access_control.sh                     \
-        ${QIMSDK_INSTALL_DIR}/usr/bin/
-COPY --chmod=755                                                                                   \
-        tmp/solutions-microservices/ai/daisy-chain/qimsdk_daisy_chain.sh                           \
-        ${QIMSDK_INSTALL_DIR}/usr/bin/
-COPY --chmod=755                                                                                   \
-        tmp/solutions-microservices/ai/person-detect/qimsdk_person_detect.sh                       \
-        ${QIMSDK_INSTALL_DIR}/usr/bin/
-COPY --chmod=755                                                                                   \
-        tmp/solutions-microservices/ai/ppe/qimsdk_ppe.sh ${QIMSDK_INSTALL_DIR}/usr/bin/
-COPY --chmod=755                                                                                   \
-        tmp/solutions-microservices/ai/rz/qimsdk_restricted_zone.sh ${QIMSDK_INSTALL_DIR}/usr/bin/
-
 # Change workdir back to base dir from downloads dir
 WORKDIR ${QIMSDK_BASE_DIR}
 
@@ -342,6 +324,26 @@ COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-pyth
 COPY --from=qimsdk_dev_image                                                                       \
     ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-plugin-tools/gst-scripts/demo_setup_wizard.sh   \
     /usr/bin
+
+# Copy qimsdk microservices shell scripts
+COPY --from=qimsdk_dev_image --chmod=755                                                           \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/ai/24-stream-ai-concurrency/qimsdk_24_stream_ai_concurrency.sh \
+        /usr/bin/
+COPY --from=qimsdk_dev_image --chmod=755                                                           \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/ai/access-control/qimsdk_access_control.sh  \
+        /usr/bin/
+COPY --from=qimsdk_dev_image --chmod=755                                                           \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/ai/daisy-chain/qimsdk_daisy_chain.sh        \
+        /usr/bin/
+COPY --from=qimsdk_dev_image --chmod=755                                                           \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/ai/person-detect/qimsdk_person_detect.sh    \
+        /usr/bin/
+COPY --from=qimsdk_dev_image --chmod=755                                                           \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/ai/ppe/qimsdk_ppe.sh                        \
+        /usr/bin/
+COPY --from=qimsdk_dev_image --chmod=755                                                           \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/ai/rz/qimsdk_restricted_zone.sh             \
+        /usr/bin/
 
 # Add json file with content of runtime flags
 ENV QIMSDK_RUNTIME_FLAGS_DIR=/opt/qti/runtime_flags/
