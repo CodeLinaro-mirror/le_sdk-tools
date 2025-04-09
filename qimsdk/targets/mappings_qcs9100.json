@@ -10,6 +10,8 @@
         "/dev/socket/weston",
         "/var/run/pulse/native",
         "/tmp/socket/cam_server/",
+        "/usr/lib/dri/kms_swrast_dri.so",
+        "/usr/lib/dri/swrast_dri.so",
         "/usr/lib/gbm/default_fmt_alignment.xml",
         "/usr/lib/gbm/msm_gbm.so",
         "/usr/lib/gbm/msm_gbm.so.1",
