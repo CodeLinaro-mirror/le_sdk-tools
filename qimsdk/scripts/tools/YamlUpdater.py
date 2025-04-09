@@ -157,7 +157,7 @@ class ShellUpdater(Updater):
     def update(self):
 
         for platform in self.platforms:
-            platform.run_cmd = "docker run -it -d"
+            platform.run_cmd = "docker run -it -d --net host"
 
             for device in platform.devices:
                 platform.run_cmd += f" --device {device}"

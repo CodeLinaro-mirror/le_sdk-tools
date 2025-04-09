@@ -427,7 +427,8 @@ function qimsdk-generate-docker-compose-yaml() {
             done                                                                                && \
             for I in ${PLATFORM_SPECIFIC_LIBS_ARRAY[@]}; do
                 yq -i ".services.qimsdk.volumes += [\"${I}:${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
-            done                                                                                || {
+            done                                                                                && \
+                yq -i ".services.qimsdk.network_mode=\"host\"" ${PATH_TO_DOCKER_COMPOSE_YAML}   || {
         print-red "Failed to generate docker compose yaml file !!!"
         rm -rf  ${PATH_TO_DOCKER_COMPOSE_YAML}
         return -1
@@ -481,7 +482,8 @@ function qimsdk-generate-docker-compose-cdi-yaml() {
             yq -i ".services.qimsdk.deploy.resources.reservations.devices[0].driver = \"cdi\""     \
                 ${PATH_TO_DOCKER_COMPOSE_YAML} && \
             yq -i ".services.qimsdk.deploy.resources.reservations.devices[0].device_ids[0] = `
-                `\"qualcomm.com/device=${CONTAINER_NAME}\"" ${PATH_TO_DOCKER_COMPOSE_YAML}      || {
+                `\"qualcomm.com/device=${CONTAINER_NAME}\"" ${PATH_TO_DOCKER_COMPOSE_YAML}      && \
+            yq -i ".services.qimsdk.network_mode=\"host\"" ${PATH_TO_DOCKER_COMPOSE_YAML}       || {
         print-red "Failed to generate Docker compose CDI yaml file !!!"
         rm -rf  ${PATH_TO_DOCKER_COMPOSE_YAML}
         return -1
@@ -587,8 +589,9 @@ function qimsdk-generate-docker-run-cmd() {
         return ${rc}
     }
 
-    echo "docker run -it -d ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT} ${EXPORTS}          \
-            -h ${CONTAINER_NAME} --user qimsdk --name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}
+    echo "docker run -it -d --net host ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT}          \
+            ${EXPORTS} -h ${CONTAINER_NAME} --user qimsdk --name ${CONTAINER_NAME}                 \
+            ${IMAGE_NAME}" > ${RESULT}
 
     rc=$?
     [ ${rc} -ne 0 ] && {
@@ -620,7 +623,7 @@ function qimsdk-generate-docker-run-cdi-cmd() {
         return ${rc}
     }
 
-    echo "docker run -it -d --device qualcomm.com/device=${CONTAINER_NAME} ${EXPORTS}              \
+    echo "docker run -it -d --net host --device qualcomm.com/device=${CONTAINER_NAME} ${EXPORTS}   \
             -h ${CONTAINER_NAME} --user qimsdk --name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}
 
     rc=$?

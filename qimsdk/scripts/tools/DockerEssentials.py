@@ -180,7 +180,7 @@ class Docker():
             for export in self.exports:
                 exports += f"-e {export} "
 
-            docker_run_cmd = f"docker run -it -d                               \
+            docker_run_cmd = f"docker run -it -d --net host                    \
                     {platform_specific_maps_array}                             \
                     {platform_specific_libs_array} {exports}                   \
                     -h {self.container_name}                                   \

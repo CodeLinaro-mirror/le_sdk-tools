@@ -1255,7 +1255,8 @@ function qimsdk-dev-docker-run-container() {
     qimsdk-get-map-for-dev-container ${PATH_TO_CONFIG_JSON}                                        \
             DEVELOPMENT_MAP
 
-    docker run -it -d -h ${QIMSDK_CONTAINER_NAME}_dev --name ${QIMSDK_CONTAINER_NAME}_dev          \
+    docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME}_dev                                   \
+            --name ${QIMSDK_CONTAINER_NAME}_dev                                                    \
             --device /dev/bus/usb ${DEVELOPMENT_MAP}                                               \
             ${QIMSDK_IMAGE_NAME}_dev bash
 
@@ -1325,8 +1326,8 @@ function qimsdk-device-docker-run-container() {
         return ${rc}
     }
 
-    docker run -it -d -h ${QIMSDK_CONTAINER_NAME} --user qimsdk --name ${QIMSDK_CONTAINER_NAME}    \
-        ${QIMSDK_IMAGE_NAME} bash
+    docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME} --user qimsdk                         \
+            --name ${QIMSDK_CONTAINER_NAME} ${QIMSDK_IMAGE_NAME} bash
 
     rc=$?
     [ ${rc} -ne 0 ] && {
