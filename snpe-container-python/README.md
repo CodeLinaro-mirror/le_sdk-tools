@@ -180,7 +180,8 @@ Only one docker image QML is build for device.
 2. To make use of multi-stage build approach, build a QML_builder image first, download SNPE SDK and models.
 3. Now for the final image QML, start from specified base image.
 4. Add required libs and tools for simplified usage of Qualcomm hardware accelerators.
-5. Copy the SDK, model files and python wrappers from the builder image to final image.
+5. Install required Python packages in the default virtual environment.
+6. Copy the SDK, model files and python wrappers from the builder image to final image.
 
 <div id="Host_Side_Helper_Scripts_And_Configuration">
 
