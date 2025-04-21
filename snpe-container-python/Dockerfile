@@ -45,14 +45,22 @@ ARG QML_ARG_BASE_DIR
 ENV QML_BASE_DIR=${QML_ARG_BASE_DIR}
 
 # Enable color prompt
-# Install required apt and python packages
+# Install required apt packages
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc                   && \
     apt-get update                                                                              && \
-    apt-get install -y --no-install-recommends python3 python3-pip                              && \
+    apt-get install -y --no-install-recommends python3 python3-pip python3-venv                 && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
-    rm -rf /var/lib/apt/lists* /tmp/* /var/tmp/*                                                && \
-    pip3 install --no-cache-dir numpy==1.24.4 opencv-python-headless==4.10.0.84 pillow==10.4.0
+    rm -rf /var/lib/apt/lists* /tmp/* /var/tmp/*
+
+# Install Python packages in virtual environment
+ENV VIRTUAL_ENV=${QML_BASE_DIR}/venv
+RUN python3 -m venv ${VIRTUAL_ENV}                                                              && \
+    . ${VIRTUAL_ENV}/bin/activate                                                               && \
+    pip3 install --no-cache-dir numpy>=1.24.4 opencv-python-headless>=4.10.0.84 pillow>=10.4.0
+
+# Set virtual environment as default
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Set workdir
 WORKDIR "${QML_BASE_DIR}"

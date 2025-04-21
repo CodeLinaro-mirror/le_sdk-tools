@@ -112,11 +112,15 @@ def FloatToTfN(output: np.array,
         encodingRange = encodingMax - encodingMin
 
     if (bitWidth == 8):
-        np.clip(np.round((int(trueBitWidthMax) * (input[0:numElement].astype(np.float32) - encodingMin) / encodingRange)), 0, int(
-            trueBitWidthMax), out=output[dataStartPos:dataStartPos + numElement]).astype(np.uint8)
+        output[dataStartPos:dataStartPos + numElement] = np.clip(
+            np.round((int(trueBitWidthMax) * (input[0:numElement].astype(np.float32) - encodingMin) / encodingRange)),
+            0, int(trueBitWidthMax)
+        ).astype(np.uint8)
     elif (bitWidth == 16):
-        np.clip(np.round((trueBitWidthMax * (input[0:numElement].astype(np.float32) - encodingMin) / encodingRange)),
-                0, trueBitWidthMax, out=output[dataStartPos:dataStartPos + numElement]).astype(np.uint16)
+        output[dataStartPos:dataStartPos + numElement] = np.clip(
+            np.round((trueBitWidthMax * (input[0:numElement].astype(np.float32) - encodingMin) / encodingRange)),
+            0, trueBitWidthMax
+        ).astype(np.uint16)
 
     return (True, stepEquivalentTo0, quantizedStepSize)
 

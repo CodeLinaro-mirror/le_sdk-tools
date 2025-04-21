@@ -1,6 +1,6 @@
 {
     "SNPE_version":"v2.32.0.250228",
-    "Base_Image": "ubuntu:22.04",
+    "Base_Image": "ubuntu:24.04",
     "Target_platform": "qcm6490",
 
     "Additional_tag_container": "",
