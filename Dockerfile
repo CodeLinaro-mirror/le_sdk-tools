@@ -149,7 +149,13 @@ ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                    
 ADD --chown=${QIMSDK_ARG_HOST_USER}:${QIMSDK_ARG_HOST_GROUP}                                       \
         ${QIMSDK_ARG_QIM_PATH}/src ${QIMSDK_ARG_BASE_DIR}/repo/src
 RUN [ -d ${QIMSDK_ESDK_BASE_DIR}/src ] || mkdir ${QIMSDK_ESDK_BASE_DIR}/src
-RUN ln -sf ${QIMSDK_ARG_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/
+RUN for item in ${QIMSDK_ARG_BASE_DIR}/repo/src/*; do                                              \
+      name=$(basename "$item");                                                                    \
+      if [ -e ${QIMSDK_ESDK_BASE_DIR}/src/"$name" ]; then                                          \
+        rm -rf ${QIMSDK_ESDK_BASE_DIR}/src/"$name";                                                \
+      fi;                                                                                          \
+    done                                                                                        && \
+    ln -sf ${QIMSDK_ARG_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/
 RUN ln -sf ${QIMSDK_ARG_BASE_DIR}/repo/poky ${QIMSDK_ARG_BASE_DIR}/poky
 
 # Add sdk-tools git log

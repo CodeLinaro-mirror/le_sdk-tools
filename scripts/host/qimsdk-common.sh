@@ -168,8 +168,14 @@ function qimsdk-fetch-scripts-src-poky() {
     rsync -a ${QIMSDK_TOOLS_DIR}/../poky/* ${QIMSDK_BASE_DIR}/repo/poky/                        && \
     rsync -a ${REPO_FILE_PATH}/.repo/projects/* ${QIMSDK_BASE_DIR}/repo/.repo/projects/         && \
     rsync -a ${REPO_FILE_PATH}/.repo/project-objects/*                                             \
-	     ${QIMSDK_BASE_DIR}/repo/.repo/project-objects/                                     && \
+             ${QIMSDK_BASE_DIR}/repo/.repo/project-objects/                                     && \
     rsync -a ${REPO_FILE_PATH}/.repo/repo/hooks/* ${QIMSDK_BASE_DIR}/repo/.repo/repo/hooks/     && \
+    for item in ${QIMSDK_BASE_DIR}/repo/src/*; do                                                  \
+             name=$(basename "$item");                                                             \
+             if [ -e ${QIMSDK_ESDK_BASE_DIR}/src/"$name" ]; then                                   \
+                 rm -rf ${QIMSDK_ESDK_BASE_DIR}/src/"$name";                                       \
+             fi;                                                                                   \
+    done                                                                                        && \
     ln -sf ${QIMSDK_BASE_DIR}/repo/src/* ${QIMSDK_ESDK_BASE_DIR}/src/                           && \
     ln -sf ${QIMSDK_BASE_DIR}/repo/poky ${QIMSDK_BASE_DIR}/poky
 }
