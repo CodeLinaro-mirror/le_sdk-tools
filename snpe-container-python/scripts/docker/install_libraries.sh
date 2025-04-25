@@ -36,19 +36,19 @@ function qml-install-libraries-snpe() {
     }
 
     local rc=$?
-    rc=$(curl -iL --write-out "%{http_code}\n" --output ${SDK_VER}.zip "https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/${SDK_VER:1:13}/${SDK_VER}.zip")
+    rc=$(curl -iL --write-out "%{http_code}\n" --output ${VER_PREFIX}${SDK_VER}.zip "https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/${SDK_VER}/${VER_PREFIX}${SDK_VER}.zip")
     [ $rc -ne 200 ] && {
-        echo "FAILED: to download SNPE SDK ${SDK_VER}"
+        echo "FAILED: to download SNPE SDK ${VER_PREFIX}${SDK_VER}"
         return -2
     }
 
-    rc=$(unzip -q ${SDK_VER}.zip -d ${QML_BASE_DIR}/downloads/)
+    rc=$(unzip -q ${VER_PREFIX}${SDK_VER}.zip -d ${QML_BASE_DIR}/downloads/)
     [ $rc -ne 200 ] && {
-        echo "FAILED: to unzip ${QML_SDK_VER}.zip"
+        echo "FAILED: to unzip ${VER_PREFIX}${SDK_VER}.zip"
         return $rc
     }
 
-    local ACCELERATION_ENGINE_PATH="${QML_BASE_DIR}/downloads/qairt/${SDK_VER#${VER_PREFIX}}"
+    local ACCELERATION_ENGINE_PATH="${QML_BASE_DIR}/downloads/qairt/${SDK_VER}"
 
     cp ${ACCELERATION_ENGINE_PATH}/lib/${TARGET_ACCELERATION_ENGINE_LIBRARY}/* /deploy/snpe/usr/lib/
     cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-${TARGET_HEXAGON_LIBRARY_VERSION}/unsigned/lib* /deploy/snpe/usr/lib/rfsa/adsp/

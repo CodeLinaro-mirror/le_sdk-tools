@@ -41,21 +41,21 @@ function qml-install-libraries() {
     }
 
     local rc=$?
-    rc=$(curl -iL --write-out "%{http_code}\n" --output ${QML_SDK_VER}.zip                         \
-    "https://softwarecenter.qualcomm.com/api/download/software/qualcomm_neural_processing_sdk/${QML_SDK_VER}.zip")
+    rc=$(curl -iL --write-out "%{http_code}\n" --output ${VER_PREFIX}${QML_SDK_VER}.zip           \
+    "https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/${QML_SDK_VER}/${VER_PREFIX}${QML_SDK_VER}.zip")
 
     [ $rc -ne 200 ] && {
-        echo "FAILED: to download SDK ${QML_SDK_VER}"
+        echo "FAILED: to download SDK ${VER_PREFIX}${QML_SDK_VER}"
         return -3
     }
 
-    rc=$(unzip -q ${QML_SDK_VER}.zip -d ${QML_BASE_DIR}/downloads/)
+    rc=$(unzip -q ${VER_PREFIX}${QML_SDK_VER}.zip -d ${QML_BASE_DIR}/downloads/)
     [ $rc -ne 200 ] && {
-        echo "FAILED: to unzip ${QML_SDK_VER}.zip"
+        echo "FAILED: to unzip ${VER_PREFIX}${QML_SDK_VER}.zip"
         return $rc
     }
 
-    local ACCELERATION_ENGINE_PATH="${QML_BASE_DIR}/downloads/qairt/${QML_SDK_VER#${VER_PREFIX}}"
+    local ACCELERATION_ENGINE_PATH="${QML_BASE_DIR}/downloads/qairt/${QML_SDK_VER}"
 
     cp ${ACCELERATION_ENGINE_PATH}/lib/${TARGET_ACCELERATION_ENGINE_LIBRARY}/*                     \
     /deploy/snpe/usr/lib/

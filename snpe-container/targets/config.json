@@ -1,5 +1,5 @@
 {
-    "SNPE_version":"v2.27.0.240926",
+    "SNPE_version":"2.34.0.250424",
     "Base_Image": "ubuntu:24.04",
     "Target_platform": "qcs8300",
 
