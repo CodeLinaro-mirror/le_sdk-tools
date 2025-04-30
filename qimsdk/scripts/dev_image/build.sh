@@ -299,6 +299,21 @@ qimsdk-meson-build-wayland-protocols() {
     qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.33 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
+# Meson build gstreamer1.0
+qimsdk-meson-build-gstreamer() {
+    local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
+            --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
+            --includedir include --mandir share/man --infodir share/info --sysconfdir /etc         \
+            --localstatedir /var --sharedstatedir /com --wrap-mode nodownload                      \
+            -Dintrospection=enabled -Ddoc=disabled -Dexamples=disabled -Ddbghelp=disabled          \
+            -Dnls=enabled -Dbash-completion=disabled -Dcheck=enabled -Dcoretracers=disabled        \
+            -Dgst_debug=true -Dlibdw=disabled -Dtests=enabled -Dtools=enabled                      \
+            -Dtracer_hooks=false -Dlibunwind=disabled -Dbuild-all-plugins=false"
+    local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
+
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+}
+
 # Meson build gst-plugins-base-1.24.9
 qimsdk-meson-build-gst-plugins-base() {
     local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
@@ -426,6 +441,13 @@ function qimsdk-meson-clean-wayland-protocols() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
+# Clean meson gstreamer1.0 build directory
+function qimsdk-meson-clean-gstreamer() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gstreamer-1.24.9
+
+    print-green "${FUNCNAME} completed successfully!"
+}
+
 # Clean meson gst-plugins-base build directory
 function qimsdk-meson-clean-gst-plugins-base() {
     rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-base-1.24.9
@@ -477,6 +499,7 @@ function qimsdk-cmake-clean-solutions-microservices() {
 function qimsdk-incremental-build() {
     qimsdk-meson-build-wayland-protocols                                                        && \
             qimsdk-meson-build-pulseaudio                                                       && \
+            qimsdk-meson-build-gstreamer                                                        && \
             qimsdk-meson-build-gst-plugins-base                                                 && \
             qimsdk-meson-build-gst-plugins-good                                                 && \
             qimsdk-meson-build-gst-plugins-bad                                                  && \
