@@ -152,7 +152,8 @@ newgrp docker
 2. Restart the docker service to take the new settings.
 
 ```bash
-sudo fromdos /etc/docker/daemon.json
+sudo fromdos -f /etc/docker/daemon.json
+sudo systemctl daemon-reload
 sudo systemctl restart docker
 ```
 
@@ -180,6 +181,7 @@ sudo systemctl restart docker
 
 ```bash
 sudo fromdos -f /etc/docker/daemon.json
+sudo systemctl daemon-reload
 sudo systemctl restart docker
 ```
 
@@ -458,7 +460,9 @@ qimsdk-docker-device-run-container <path-to-config-json>
   ```
 3. Docker service needs to be restarted in order the new changes to take effect.
 ```bash
-systemctl restart docker
+sudo fromdos -f /etc/docker/daemon.json
+sudo systemctl daemon-reload
+sudo systemctl restart docker
 ```
 *Note: If restarting the docker service fails, please check /etc/docker/daemon.json for syntax errors.*
 
@@ -1106,6 +1110,7 @@ docker run -it -d                                                               
 -v /etc/media:/etc/media                                                                           \
 -v /etc/models:/etc/models                                                                         \
 -e XDG_RUNTIME_DIR=/dev/socket/weston -e WAYLAND_DISPLAY=wayland-1 -e GST_DEBUG_NO_COLOR=1         \
+-e "GST_PLUGIN_SCANNER=/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner    \
 -h qimsdk-<container-name> --user qimsdk --name qimsdk-<container-name> qimsdk-<image-name>
 ```
 
