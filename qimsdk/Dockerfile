@@ -74,7 +74,7 @@ RUN git config --global http.postBuffer 157286400                               
     git checkout 63f5a65c7cd7b6241bede8d2e0082058566ea364
 
 # qnp-sdk: fetch and copy the needed headers
-ENV QIMSDK_QNP_VER=2.32.0.250228
+ENV QIMSDK_QNP_VER=2.34.0.250424
 ENV QIMSDK_QNP_SDK=v${QIMSDK_QNP_VER}.zip
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
         https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/${QIMSDK_QNP_VER}/${QIMSDK_QNP_SDK} && \
