@@ -119,22 +119,22 @@ RUN git init                                                                    
 
 # gstreamer: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        'https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.24.9.tar.xz'               && \
+        'https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.24.2.tar.xz'               && \
     wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-        'https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.24.9.tar.xz.asc'           && \
+        'https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.24.2.tar.xz.asc'           && \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
         D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
     gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9.tar.xz.asc                                \
-        ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9.tar.xz                                          && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2.tar.xz.asc                                \
+        ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2.tar.xz                                          && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf gstreamer-1.24.9.tar.xz                                                             && \
+    tar -xf gstreamer-1.24.2.tar.xz                                                             && \
     gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
-    rm -f gstreamer-1.24.9.tar.xz*
+    rm -f gstreamer-1.24.2.tar.xz*
 
-WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9
+WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9            && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2            && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
@@ -142,22 +142,22 @@ RUN git init                                                                    
 
 # gst-plugins-base: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-    'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.9.tar.xz'     && \
+    'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.2.tar.xz'     && \
     wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-    'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.9.tar.xz.asc' && \
+    'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.2.tar.xz.asc' && \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
     D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                    && \
     gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9.tar.xz.asc                         \
-        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9.tar.xz                                   && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2.tar.xz.asc                         \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2.tar.xz                                   && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf gst-plugins-base-1.24.9.tar.xz                                                      && \
+    tar -xf gst-plugins-base-1.24.2.tar.xz                                                      && \
     gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
-    rm -f gst-plugins-base-1.24.9.tar.xz*
+    rm -f gst-plugins-base-1.24.2.tar.xz*
 
-WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9
+WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9     && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2     && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
@@ -165,22 +165,22 @@ RUN git init                                                                    
 
 # gst-plugins-good: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.9.tar.xz' && \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.2.tar.xz' && \
     wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.9.tar.xz.asc' && \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.2.tar.xz.asc' && \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
         D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
     gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9.tar.xz.asc                         \
-        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9.tar.xz                                   && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2.tar.xz.asc                         \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2.tar.xz                                   && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf gst-plugins-good-1.24.9.tar.xz                                                      && \
+    tar -xf gst-plugins-good-1.24.2.tar.xz                                                      && \
     gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
-    rm -f gst-plugins-good-1.24.9.tar.xz*
+    rm -f gst-plugins-good-1.24.2.tar.xz*
 
-WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9
+WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9     && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2     && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
@@ -188,22 +188,22 @@ RUN git init                                                                    
 
 # gst-plugins-bad: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.24.9.tar.xz'   && \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.24.2.tar.xz'   && \
     wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.24.9.tar.xz.asc' && \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.24.2.tar.xz.asc' && \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
         D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
     gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9.tar.xz.asc                          \
-        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9.tar.xz                                    && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2.tar.xz.asc                          \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2.tar.xz                                    && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf gst-plugins-bad-1.24.9.tar.xz                                                       && \
+    tar -xf gst-plugins-bad-1.24.2.tar.xz                                                       && \
     gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
-    rm -f gst-plugins-bad-1.24.9.tar.xz*
+    rm -f gst-plugins-bad-1.24.2.tar.xz*
 
-WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9
+WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9      && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2      && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \

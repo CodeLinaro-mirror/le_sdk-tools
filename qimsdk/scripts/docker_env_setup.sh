@@ -209,7 +209,7 @@ function qimsdk-docker-build-initialize() {
     }
 
     local PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_GST_META}/`
-        `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.24/"
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.24.2/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_GOOD_PATCHES} ] && {
         print-red "gstreamer-plugins-good's patches NOT found !!!"
@@ -218,7 +218,7 @@ function qimsdk-docker-build-initialize() {
     }
 
     local PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_GST_META}/`
-        `recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.24/"
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.24.2/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ] && {
         print-red "gstreamer-plugins-bad's patches NOT found !!!"
@@ -369,10 +369,10 @@ function qimsdk-docker-build-initialize() {
     popd 1>/dev/null                                                                            && \
 
     mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/wayland-protocols-1.33/                           && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gstreamer-1.24.9/                                 && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-base-1.24.9/                          && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-good-1.24.9/                          && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-bad-1.24.9/                           && \
+    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gstreamer-1.24.2/                                 && \
+    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-base-1.24.2/                          && \
+    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-good-1.24.2/                          && \
+    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-bad-1.24.2/                           && \
     mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gstd/                                             && \
     mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/pulseaudio/                                       && \
 
@@ -380,16 +380,16 @@ function qimsdk-docker-build-initialize() {
             ${QIMSDK_TMP_FOLDER_PTR}/patches/wayland-protocols-1.33/                            && \
 
     rsync -a ${PATH_TO_GSTREAMER_PATCHES}/*.patch                                                  \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gstreamer-1.24.9/                                  && \
+            ${QIMSDK_TMP_FOLDER_PTR}/patches/gstreamer-1.24.2/                                  && \
 
     rsync -a ${PATH_TO_GST_PLUGINS_BASE_PATCHES}/*.patch                                           \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-base-1.24.9/                           && \
+            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-base-1.24.2/                           && \
 
     rsync -a ${PATH_TO_GST_PLUGINS_GOOD_PATCHES}/*.patch                                           \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-good-1.24.9/                           && \
+            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-good-1.24.2/                           && \
 
     rsync -a ${PATH_TO_GST_PLUGINS_BAD_PATCHES}/*.patch                                            \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-bad-1.24.9/                            && \
+            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-bad-1.24.2/                            && \
 
     rsync -a ${QIMSDK_PATH_TO_PULSEAUDIO_META}/recipes-multimedia/audio/pulseaudio/*.patch         \
             ${QIMSDK_TMP_FOLDER_PTR}/patches/pulseaudio/                                        && \
@@ -435,7 +435,7 @@ function qimsdk-docker-build-initialize() {
                 -m ${QIMSDK_GST_META}                                                              \
                 -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
                 -t ${QIMSDK_TMP_FOLDER_PTR}                                                        \
-                -v "1.24"                                                                          \
+                -v "1.24.2"                                                                        \
                 BBPatchParser                                                                   || {
             print-red "Python Parser returns error, mode BBPatchParser !!!"
             rm -rf ${QIMSDK_TMP_FOLDER_PTR}
