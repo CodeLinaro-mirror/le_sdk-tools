@@ -335,6 +335,9 @@ RUN addgroup qcom                                                               
 # Enable color prompt
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /home/qimsdk/.bashrc
 
+# Increase max number of fd to be opened by one process
+RUN ulimit -n 16192
+
 # Copy installed binaries to device image
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/usr /usr
