@@ -472,7 +472,7 @@ function qimsdk-dev-docker-build-image() {
             --build-arg QIMSDK_ARG_HTTP_PROXY=${QIMSDK_HTTP_PROXY}                                 \
             --build-arg QIMSDK_ARG_HTTPS_PROXY=${QIMSDK_HTTPS_PROXY}                               \
             --build-arg QIMSDK_ARG_NO_PROXY=${QIMSDK_NO_PROXY}                                     \
-            --progress=plain --target QIMSDK_dev_image                                             \
+            --progress=plain --target qimsdk_dev_image                                             \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}_dev
 
     rc=$?
@@ -814,7 +814,7 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_HTTP_PROXY=${QIMSDK_HTTP_PROXY}                                 \
             --build-arg QIMSDK_ARG_HTTPS_PROXY=${QIMSDK_HTTPS_PROXY}                               \
             --build-arg QIMSDK_ARG_NO_PROXY=${QIMSDK_NO_PROXY}                                     \
-            --progress=plain --target QIMSDK_device_image                                          \
+            --progress=plain --target qimsdk_device_image                                          \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}
 
     rc=$?
