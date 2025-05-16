@@ -281,6 +281,10 @@ ENV QIMSDK_DEVICE_ID=${QIMSDK_ARG_DEVICE_ID}
 ARG QIMSDK_ARG_CONTAINER_NAME
 ENV QIMSDK_CONTAINER_NAME=${QIMSDK_ARG_CONTAINER_NAME}
 
+# Setup pkg-config dir
+ENV QIMSDK_PKGCONFIG_DIR=/usr/lib/pkgconfig/
+COPY tmp/lib/pkgconfig/*.pc ${QIMSDK_PKGCONFIG_DIR}
+
 # # # # # # # # # # # # # # #
 
 # QIMSDK Device Image
