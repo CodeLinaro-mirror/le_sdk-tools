@@ -1,6 +1,3 @@
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
-# SPDX-License-Identifier: BSD-3-Clause-Clear
-
 # QIMSDK Development Image
 FROM --platform=arm64 ubuntu:24.04 AS qimsdk_dev_image
 

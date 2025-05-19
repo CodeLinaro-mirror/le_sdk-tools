@@ -1,4 +1,4 @@
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 import tempfile
@@ -488,7 +488,7 @@ class BuildCodeGenerator(RecipeParser):
         with open(path_to_sh, "w") as build_plugins_sh:
             build_plugins_sh.write("""#!/bin/bash
 
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # THIS CODE IS AUTOMATICALLY GENERATED. DO NOT MODIFY IT !!!
