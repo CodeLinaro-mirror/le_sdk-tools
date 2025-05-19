@@ -247,6 +247,41 @@ function qimsdk-get-platform-specific-mapping() {
     return 0
 }
 
+# Get User_Specific_Mappings from json
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) give User specific map as argument
+function qimsdk-get-user-specific-mapping() {
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_USER_SPECIFIC_MAP=${2}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    declare -a USER_SPECIFIC_MAPS_ARRAY
+
+    USER_SPECIFIC_MAPS_ARRAY=$(
+        echo ${JSON_CONTENT} | jq '.User_Specific_Mappings[]' | tr -d '"'
+    )
+
+    [ -z "${USER_SPECIFIC_MAPS_ARRAY}" ] && {
+        declare -a USER_SPECIFIC_MAPS_ARRAY_TEMP=""
+
+        for SPECIFIC_MAP in ${USER_SPECIFIC_MAPS_ARRAY[@]}; do
+            USER_SPECIFIC_MAPS_ARRAY_TEMP+="--device ${SPECIFIC_MAP} "
+        done
+
+        OUT_USER_SPECIFIC_MAP=${USER_SPECIFIC_MAPS_ARRAY_TEMP}
+    } || {
+        OUT_USER_SPECIFIC_MAP=""
+    }
+
+    return 0
+}
+
 # Get Platform_Libraries_To_Mount from json
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) give Platform specific libraries to be mounted as argument
@@ -285,6 +320,41 @@ function qimsdk-get-platform-libs-to-mount() {
     return 0
 }
 
+# Get User_Libraries_To_Mount from json
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) give User specific libraries to be mounted as argument
+function qimsdk-get-user-libs-to-mount() {
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_USER_SPECIFIC_LIBS=${2}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    declare -a USER_SPECIFIC_LIBS_ARRAY
+
+    USER_SPECIFIC_LIBS_ARRAY=$(
+        echo ${JSON_CONTENT} | jq '.User_Libraries_To_Mount[]' | tr -d '"'
+    )
+
+    [ ! -z "${USER_SPECIFIC_LIBS_ARRAY}" ] && {
+        declare -a USER_SPECIFIC_LIBS_ARRAY_TEMP=""
+
+        for PLATFORM_LIB in ${USER_SPECIFIC_LIBS_ARRAY[@]}; do
+            USER_SPECIFIC_LIBS_ARRAY_TEMP+="-v ${PLATFORM_LIB}:${PLATFORM_LIB} "
+        done
+
+        OUT_USER_SPECIFIC_LIBS=${USER_SPECIFIC_LIBS_ARRAY_TEMP}
+    } || {
+        OUT_USER_SPECIFIC_LIBS=""
+    }
+
+    return 0
+}
+
 # Get Exports from json
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) EXPORTS: set of variables, which will be exported
@@ -310,6 +380,35 @@ function qimsdk-get-variables-to-export() {
     done
 
     OUT_EXPORTS=${EXPORT_TEMP}
+
+    return 0
+}
+
+# Get User_Exports from json
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) USER_EXPORTS: set of variables, which will be exported
+function qimsdk-get-user-variables-to-export() {
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_USER_EXPORTS=${2}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    local USER_EXPORTS_LOCAL=$(
+        echo ${JSON_CONTENT} | jq -r '.User_Exports[]'
+    )
+
+    declare -a USER_EXPORT_TEMP=""
+
+    for USER_EXPORT in ${USER_EXPORTS_LOCAL[@]}; do
+        USER_EXPORT_TEMP+="-e ${USER_EXPORT} "
+    done
+
+    OUT_USER_EXPORTS=${USER_EXPORT_TEMP}
 
     return 0
 }
@@ -364,20 +463,28 @@ function qimsdk-remove-if-temp() {
 
 # Generate docker compose yaml file
 #   $1 - (mandatory) path to target config json
-#   $2 - (mandatory) path to docker compose yaml
-#   $3 - (mandatory) container name from user's config json
-#   $4 - (mandatory) image name from user's config json
+#   $2 - (mandatory) path to mappings config json
+#   $3 - (mandatory) path to docker compose yaml
+#   $4 - (mandatory) container name from user's config json
+#   $5 - (mandatory) image name from user's config json
 function qimsdk-generate-docker-compose-yaml() {
-    local PATH_TO_CONFIG_JSON=${1}
-    local PATH_TO_DOCKER_COMPOSE_YAML=${2}
-    local CONTAINER_NAME=${3}
-    local IMAGE_NAME=${4}
+    local PATH_TO_TARGET_CONFIG_JSON=${1}
+    local PATH_TO_CONFIG_JSON=${2}
+    local PATH_TO_DOCKER_COMPOSE_YAML=${3}
+    local CONTAINER_NAME=${4}
+    local IMAGE_NAME=${5}
+
+    [ ! -f "${PATH_TO_TARGET_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
         return -1
     }
 
+    local TARGET_JSON_CONTENT=$(cat ${PATH_TO_TARGET_CONFIG_JSON})
     local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
 
     declare -a PLATFORM_SPECIFIC_LIBS_ARRAY
@@ -398,6 +505,16 @@ function qimsdk-generate-docker-compose-yaml() {
         return -1
     }
 
+    declare -a USER_SPECIFIC_LIBS_ARRAY
+    USER_SPECIFIC_LIBS_ARRAY=$(
+        echo ${TARGET_JSON_CONTENT} | jq '.User_Libraries_To_Mount[]' | tr -d '"'
+    )
+
+    declare -a USER_SPECIFIC_MAPS_ARRAY
+    USER_SPECIFIC_MAPS_ARRAY=$(
+        echo ${TARGET_JSON_CONTENT} | jq '.User_Specific_Mappings[]' | tr -d '"'
+    )
+
     declare -a EXPORTS_ARRAY
     EXPORTS_ARRAY=$(
         echo ${JSON_CONTENT} | jq -r '.Exports[]'
@@ -405,6 +522,15 @@ function qimsdk-generate-docker-compose-yaml() {
 
     EXPORTS_ARRAY=$(
         echo ${EXPORTS_ARRAY} | tr -d '"'
+    )
+
+    declare -a USER_EXPORTS_ARRAY
+    USER_EXPORTS_ARRAY=$(
+        echo ${TARGET_JSON_CONTENT} | jq -r '.User_Exports[]'
+    )
+
+    USER_EXPORTS_ARRAY=$(
+        echo ${USER_EXPORTS_ARRAY} | tr -d '"'
     )
 
     local I
@@ -422,10 +548,19 @@ function qimsdk-generate-docker-compose-yaml() {
             for I in ${EXPORTS_ARRAY[@]}; do
                 yq -i ".services.qimsdk.environment += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
             done                                                                                && \
+            for I in ${USER_EXPORTS_ARRAY[@]}; do
+                yq -i ".services.qimsdk.environment += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
+            done                                                                                && \
             for I in ${PLATFORM_SPECIFIC_MAPS_ARRAY[@]}; do
                 yq -i ".services.qimsdk.devices += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
             done                                                                                && \
             for I in ${PLATFORM_SPECIFIC_LIBS_ARRAY[@]}; do
+                yq -i ".services.qimsdk.volumes += [\"${I}:${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
+            done                                                                                && \
+            for I in ${USER_SPECIFIC_MAPS_ARRAY[@]}; do
+                yq -i ".services.qimsdk.devices += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
+            done                                                                                && \
+            for I in ${USER_SPECIFIC_LIBS_ARRAY[@]}; do
                 yq -i ".services.qimsdk.volumes += [\"${I}:${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
             done                                                                                && \
                 yq -i ".services.qimsdk.network_mode=\"host\"" ${PATH_TO_DOCKER_COMPOSE_YAML}   || {
@@ -439,21 +574,39 @@ function qimsdk-generate-docker-compose-yaml() {
 
 # Generate Docker compose CDI yaml file
 #   $1 - (mandatory) path to target config json
-#   $2 - (mandatory) path to Docker compose yaml
-#   $3 - (mandatory) container name from user's config json
-#   $4 - (mandatory) image name from user's config json
+#   $2 - (mandatory) path to mappings config json
+#   $3 - (mandatory) path to Docker compose yaml
+#   $4 - (mandatory) container name from user's config json
+#   $5 - (mandatory) image name from user's config json
 function qimsdk-generate-docker-compose-cdi-yaml() {
-    local PATH_TO_CONFIG_JSON=${1}
-    local PATH_TO_DOCKER_COMPOSE_YAML=${2}
-    local CONTAINER_NAME=${3}
-    local IMAGE_NAME=${4}
+    local PATH_TO_TARGET_CONFIG_JSON=${1}
+    local PATH_TO_CONFIG_JSON=${2}
+    local PATH_TO_DOCKER_COMPOSE_YAML=${3}
+    local CONTAINER_NAME=${4}
+    local IMAGE_NAME=${5}
+
+    [ ! -f "${PATH_TO_TARGET_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
         return -1
     }
 
+    local TARGET_JSON_CONTENT=$(cat ${PATH_TO_TARGET_CONFIG_JSON})
     local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    declare -a USER_SPECIFIC_LIBS_ARRAY
+    USER_SPECIFIC_LIBS_ARRAY=$(
+        echo ${TARGET_JSON_CONTENT} | jq '.User_Libraries_To_Mount[]' | tr -d '"'
+    )
+
+    declare -a USER_SPECIFIC_MAPS_ARRAY
+    USER_SPECIFIC_MAPS_ARRAY=$(
+        echo ${TARGET_JSON_CONTENT} | jq '.User_Specific_Mappings[]' | tr -d '"'
+    )
 
     declare -a EXPORTS_ARRAY
     EXPORTS_ARRAY=$(
@@ -462,6 +615,15 @@ function qimsdk-generate-docker-compose-cdi-yaml() {
 
     EXPORTS_ARRAY=$(
         echo ${EXPORTS_ARRAY} | tr -d '"'
+    )
+
+    declare -a USER_EXPORTS_ARRAY
+    USER_EXPORTS_ARRAY=$(
+        echo ${TARGET_JSON_CONTENT} | jq -r '.User_Exports[]'
+    )
+
+    USER_EXPORTS_ARRAY=$(
+        echo ${USER_EXPORTS_ARRAY} | tr -d '"'
     )
 
     local I
@@ -478,6 +640,15 @@ function qimsdk-generate-docker-compose-cdi-yaml() {
             yq -i ".services.qimsdk.restart=\"always\"" ${PATH_TO_DOCKER_COMPOSE_YAML}          && \
             for I in ${EXPORTS_ARRAY[@]}; do
                 yq -i ".services.qimsdk.environment += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
+            done                                                                                && \
+            for I in ${USER_EXPORTS_ARRAY[@]}; do
+                yq -i ".services.qimsdk.environment += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
+            done                                                                                && \
+            for I in ${USER_SPECIFIC_MAPS_ARRAY[@]}; do
+                yq -i ".services.qimsdk.devices += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
+            done                                                                                && \
+            for I in ${USER_SPECIFIC_LIBS_ARRAY[@]}; do
+                yq -i ".services.qimsdk.volumes += [\"${I}:${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
             done                                                                                && \
             yq -i ".services.qimsdk.deploy.resources.reservations.devices[0].driver = \"cdi\""     \
                 ${PATH_TO_DOCKER_COMPOSE_YAML} && \
@@ -551,17 +722,22 @@ function qimsdk-generate-docker-cdi-specs() {
 
 # Generate docker run cmd in shell file
 #   $1 - (mandatory) path to target config json
-#   $2 - (mandatory) remote path
-#   $3 - (mandatory) container name from user's config json
-#   $4 - (mandatory) image name from user's config json
+#   $2 - (mandatory) path to mappings config json
+#   $3 - (mandatory) remote path
+#   $4 - (mandatory) container name from user's config json
+#   $5 - (mandatory) image name from user's config json
 function qimsdk-generate-docker-run-cmd() {
-    local PATH_TO_CONFIG_JSON=${1}
-    local RESULT=${2}
-    local CONTAINER_NAME=${3}
-    local IMAGE_NAME=${4}
+    local PATH_TO_TARGET_CONFIG_JSON=${1}
+    local PATH_TO_CONFIG_JSON=${2}
+    local RESULT=${3}
+    local CONTAINER_NAME=${4}
+    local IMAGE_NAME=${5}
 
     local PLATFORM_SPECIFIC_MAP
     local PLATFORM_LIBS_TO_MOUNT
+
+    local USER_SPECIFIC_MAP
+    local USER_LIBS_TO_MOUNT
 
     qimsdk-get-platform-specific-mapping ${PATH_TO_CONFIG_JSON} PLATFORM_SPECIFIC_MAP
 
@@ -571,11 +747,27 @@ function qimsdk-generate-docker-run-cmd() {
         return ${rc}
     }
 
+    qimsdk-get-user-specific-mapping ${PATH_TO_TARGET_CONFIG_JSON} USER_SPECIFIC_MAP
+
+    local rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-user-specific-mapping  !!!"
+        return ${rc}
+    }
+
     qimsdk-get-platform-libs-to-mount ${PATH_TO_CONFIG_JSON} PLATFORM_LIBS_TO_MOUNT
 
     rc=$?
     [ ${rc} -ne 0 ] && {
         print-red "FAILED: qimsdk-get-platform-libs-to-mount  !!!"
+        return ${rc}
+    }
+
+    qimsdk-get-user-libs-to-mount ${PATH_TO_TARGET_CONFIG_JSON} USER_LIBS_TO_MOUNT
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-user-libs-to-mount  !!!"
         return ${rc}
     }
 
@@ -589,9 +781,19 @@ function qimsdk-generate-docker-run-cmd() {
         return ${rc}
     }
 
-    echo "docker run -it -d --net host ${PLATFORM_SPECIFIC_MAP} ${PLATFORM_LIBS_TO_MOUNT}          \
-            ${EXPORTS} -h ${CONTAINER_NAME} --user qimsdk --name ${CONTAINER_NAME}                 \
-            ${IMAGE_NAME}" > ${RESULT}
+    local USER_EXPORTS
+    qimsdk-get-user-variables-to-export ${PATH_TO_TARGET_CONFIG_JSON}                              \
+            USER_EXPORTS
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-user-variables-to-export !!!"
+        return ${rc}
+    }
+
+    echo "docker run -it -d --net host ${PLATFORM_SPECIFIC_MAP} ${USER_SPECIFIC_MAP}               \
+            ${PLATFORM_LIBS_TO_MOUNT} ${USER_LIBS_TO_MOUNT} ${EXPORTS} ${USER_EXPORTS}             \
+            -h ${CONTAINER_NAME} --user qimsdk --name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}
 
     rc=$?
     [ ${rc} -ne 0 ] && {
@@ -604,14 +806,35 @@ function qimsdk-generate-docker-run-cmd() {
 
 # Generate docker run cdi cmd in shell file
 #   $1 - (mandatory) path to target config json
-#   $2 - (mandatory) remote path
-#   $3 - (mandatory) container name from user's config json
-#   $4 - (mandatory) image name from user's config json
+#   $2 - (mandatory) path to mappings config json
+#   $3 - (mandatory) remote path
+#   $4 - (mandatory) container name from user's config json
+#   $5 - (mandatory) image name from user's config json
 function qimsdk-generate-docker-run-cdi-cmd() {
-    local PATH_TO_CONFIG_JSON=${1}
-    local RESULT=${2}
-    local CONTAINER_NAME=${3}
-    local IMAGE_NAME=${4}
+    local PATH_TO_TARGET_CONFIG_JSON=${1}
+    local PATH_TO_CONFIG_JSON=${2}
+    local RESULT=${3}
+    local CONTAINER_NAME=${4}
+    local IMAGE_NAME=${5}
+
+    local USER_SPECIFIC_MAP
+    local USER_LIBS_TO_MOUNT
+
+    qimsdk-get-user-specific-mapping ${PATH_TO_TARGET_CONFIG_JSON} USER_SPECIFIC_MAP
+
+    local rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-user-specific-mapping  !!!"
+        return ${rc}
+    }
+
+    qimsdk-get-user-libs-to-mount ${PATH_TO_TARGET_CONFIG_JSON} USER_LIBS_TO_MOUNT
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-user-libs-to-mount  !!!"
+        return ${rc}
+    }
 
     local EXPORTS
     qimsdk-get-variables-to-export ${PATH_TO_CONFIG_JSON}                                          \
@@ -623,7 +846,18 @@ function qimsdk-generate-docker-run-cdi-cmd() {
         return ${rc}
     }
 
-    echo "docker run -it -d --net host --device qualcomm.com/device=${CONTAINER_NAME} ${EXPORTS}   \
+    local USER_EXPORTS
+    qimsdk-get-user-variables-to-export ${PATH_TO_TARGET_CONFIG_JSON}                              \
+            USER_EXPORTS
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-user-variables-to-export !!!"
+        return ${rc}
+    }
+
+    echo "docker run -it -d --net host --device qualcomm.com/device=${CONTAINER_NAME}              \
+            ${USER_SPECIFIC_MAP} ${USER_LIBS_TO_MOUNT} ${EXPORTS} ${USER_EXPORTS}                  \
             -h ${CONTAINER_NAME} --user qimsdk --name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}
 
     rc=$?
