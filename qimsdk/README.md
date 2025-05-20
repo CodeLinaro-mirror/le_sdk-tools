@@ -274,7 +274,7 @@ Two QIMSDK docker images are built. One for development. One for device target.
 
 Two configuration json files are used in QIMSDK project:
  - One is generic config json *(config.json)*. Used to configure environment compilation.
- - The others are target specific json *(mappings_\<target-name\>.json)*. Used to configure containers to be run for that specific target.
+ - The others are target specific json *(\<target-name\>.json)*. Used to configure containers to be run for that specific target.
 
 Config json files *(config.json)* must contain the following data:
  1. ***OPTIONAL*** - **Additional_tag_container** - Additional tag for container - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
@@ -292,7 +292,7 @@ Config json files *(config.json)* must contain the following data:
  13. ***OPTIONAL*** - **User_Libraries_To_Mount** - User libraries to mount to device docker container.
  14. ***OPTIONAL*** - **User_Specific_Mappings** - User specific mappings to be mounted during device docker run container function.
 
-Target specific json files *(mappings_\<target-name\>.json)* must contain the following data:
+Target specific json files *(\<target-name\>.json)* must contain the following data:
  1. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
  2. ***OPTIONAL*** - **Platform_Libraries_To_Mount** - Platform libraries to mount to device docker container.
  3. ***OPTIONAL*** - **Platform_Specific_Mappings** - Platform specific mappings to be mounted during device docker run container function.
@@ -437,12 +437,6 @@ qimsdk-docker-device-save-image <path-to-config-json>
 qimsdk-docker-device-load-image <path-to-config-json>
 ```
 
-#### Run Device Container
-
-```bash
-qimsdk-docker-device-run-container <path-to-config-json>
-```
-
 <div id="Docker_Container_In_CDI_Mode">
 
 ## Docker Container In CDI Mode
@@ -530,7 +524,7 @@ Load docker image and run the container on remote machine with device connected 
 # Load docker image from Docker_image_path
 qimsdk-docker-device-load-image <path-to-config-json>
 # Run device container
-qimsdk-docker-device-run-container <path-to-config-json>
+qimsdk-docker-device-run-cdi-container <path-to-config-json>
 ```
 
 <div id="Local_Device_With_Verity_Check">
@@ -565,7 +559,7 @@ qimsdk-docker-build-image <path-to-config-json>
 # Update docker image on the device
 qimsdk-docker-device-update-image <path-to-config-json>
 # Run device container
-qimsdk-docker-device-run-container <path-to-config-json>
+qimsdk-docker-device-run-cdi-container <path-to-config-json>
 ```
 
 <div id="Contributing_to_the_GStreamer_Project">
@@ -735,15 +729,6 @@ adb shell "export GBM_BACKEND=msm && export XDG_RUNTIME_DIR=/dev/socket/weston &
       ```bash
       # Example line to send synced project to temporary directory to be used by dev container:
       ln -s <path/to/sources>/solutions-microservices <current/docker/dir>/tmp/solutions-microservices
-      ```
-
-      <div style="color:#90EE90">Update docker-compose files in solutions-microservices</div>
-
-      ```bash
-      # Example line to update docker-compose files in solutions-microservices:
-      python3 <path/to/qimsdk>/scripts/tools/YamlUpdater.py
-              -j <path/to/qimsdk>/targets/config.json
-              YamlUpdater
       ```
 
       <div style="color:#90EE90">Update docker_run files in solutions-microservices</div>
@@ -993,127 +978,10 @@ docker load -i /tmp/qimsdk.tar
 
 ```bash
 ### adb shell
-docker run -it -d                                                                                  \
---device /dev/dri/card0                                                                            \
---device /dev/dri/renderD128                                                                       \
---device /dev/kgsl-3d0                                                                             \
---device /dev/video32                                                                              \
---device /dev/video33                                                                              \
---device /dev/dma_heap/system                                                                      \
---device /dev/dma_heap/qcom,system                                                                 \
---device /dev/fastrpc-cdsp                                                                         \
--v /dev/socket/weston:/dev/socket/weston                                                           \
--v /tmp/socket/cam_server/:/tmp/socket/cam_server/                                                 \
--v /var/run/pulse/native:/var/run/pulse/native                                                     \
--v /usr/lib/gbm/default_fmt_alignment.xml:/usr/lib/gbm/default_fmt_alignment.xml                   \
--v /usr/lib/gbm/msm_gbm.so:/usr/lib/gbm/msm_gbm.so                                                 \
--v /usr/lib/gbm/msm_gbm.so.1:/usr/lib/gbm/msm_gbm.so.1                                             \
--v /usr/lib/gbm/msm_gbm.so.1.0.0:/usr/lib/gbm/msm_gbm.so.1.0.0                                     \
--v /usr/lib/libgbm.so.1:/usr/lib/libgbm.so.1                                                       \
--v /usr/lib/libgbm.so.1.0.0:/usr/lib/libgbm.so.1.0.0                                               \
--v /usr/lib/libatomic.so.1:/usr/lib/libatomic.so.1                                                 \
--v /usr/lib/libatomic.so.1.2.0:/usr/lib/libatomic.so.1.2.0                                         \
--v /usr/lib/libgsl.so:/usr/lib/libgsl.so                                                           \
--v /usr/lib/libgsl.so.1:/usr/lib/libgsl.so.1                                                       \
--v /usr/lib/libdmabufheap.so.0:/usr/lib/libdmabufheap.so.0                                         \
--v /usr/lib/libhta_hexagon_runtime_snpe.so:/usr/lib/libhta_hexagon_runtime_snpe.so                 \
--v /usr/lib/libPlatformValidatorShared.so:/usr/lib/libPlatformValidatorShared.so                   \
--v /usr/lib/libSNPE.so:/usr/lib/libSNPE.so                                                         \
--v /usr/lib/libSnpeDspV66Stub.so:/usr/lib/libSnpeDspV66Stub.so                                     \
--v /usr/lib/libSnpeHta.so:/usr/lib/libSnpeHta.so                                                   \
--v /usr/lib/libSnpeHtpPrepare.so:/usr/lib/libSnpeHtpPrepare.so                                     \
--v /usr/lib/libSnpeHtpV68Stub.so:/usr/lib/libSnpeHtpV68Stub.so                                     \
--v /usr/lib/libQnnChrometraceProfilingReader.so:/usr/lib/libQnnChrometraceProfilingReader.so       \
--v /usr/lib/libQnnGpu.so:/usr/lib/libQnnGpu.so                                                     \
--v /usr/lib/libQnnHtpProfilingReader.so:/usr/lib/libQnnHtpProfilingReader.so                       \
--v /usr/lib/libQnnCpu.so:/usr/lib/libQnnCpu.so                                                     \
--v /usr/lib/libQnnDspV66Stub.so:/usr/lib/libQnnDspV66Stub.so                                       \
--v /usr/lib/libQnnHtpNetRunExtensions.so:/usr/lib/libQnnHtpNetRunExtensions.so                     \
--v /usr/lib/libQnnHtp.so:/usr/lib/libQnnHtp.so                                                     \
--v /usr/lib/libQnnJsonProfilingReader.so:/usr/lib/libQnnJsonProfilingReader.so                     \
--v /usr/lib/libQnnDspNetRunExtensions.so:/usr/lib/libQnnDspNetRunExtensions.so                     \
--v /usr/lib/libQnnGpuNetRunExtensions.so:/usr/lib/libQnnGpuNetRunExtensions.so                     \
--v /usr/lib/libQnnHtpOptraceProfilingReader.so:/usr/lib/libQnnHtpOptraceProfilingReader.so         \
--v /usr/lib/libQnnSaver.so:/usr/lib/libQnnSaver.so                                                 \
--v /usr/lib/libQnnDsp.so:/usr/lib/libQnnDsp.so                                                     \
--v /usr/lib/libQnnGpuProfilingReader.so:/usr/lib/libQnnGpuProfilingReader.so                       \
--v /usr/lib/libQnnHtpPrepare.so:/usr/lib/libQnnHtpPrepare.so                                       \
--v /usr/lib/libQnnSystem.so:/usr/lib/libQnnSystem.so                                               \
--v /usr/lib/libQnnHtpV68Stub.so:/usr/lib/libQnnHtpV68Stub.so                                       \
--v /usr/lib/rfsa/adsp/libSnpeHtpV68Skel.so:/usr/lib/rfsa/adsp/libSnpeHtpV68Skel.so                 \
--v /usr/lib/rfsa/adsp/libQnnHtpV68Skel.so:/usr/lib/rfsa/adsp/libQnnHtpV68Skel.so                   \
--v /usr/lib/rfsa/adsp/libQnnHtpV68.so:/usr/lib/rfsa/adsp/libQnnHtpV68.so                           \
--v /usr/lib/rfsa/adsp/libQnnSaver.so:/usr/lib/rfsa/adsp/libQnnSaver.so                             \
--v /usr/lib/rfsa/adsp/libQnnSystem.so:/usr/lib/rfsa/adsp/libQnnSystem.so                           \
--v /usr/lib/libenv_time.so:/usr/lib/libenv_time.so                                                 \
--v /usr/lib/libevaluation_proto.so:/usr/lib/libevaluation_proto.so                                 \
--v /usr/lib/libimage_metrics.so:/usr/lib/libimage_metrics.so                                       \
--v /usr/lib/libjpeg_internal.so:/usr/lib/libjpeg_internal.so                                       \
--v /usr/lib/libtensorflowlite_c.so:/usr/lib/libtensorflowlite_c.so                                 \
--v /usr/lib/libtf_logging.so:/usr/lib/libtf_logging.so                                             \
--v /usr/lib/libVideoCtrl.so:/usr/lib/libVideoCtrl.so                                               \
--v /usr/lib/libIB2C.so:/usr/lib/libIB2C.so                                                         \
--v /usr/lib/libIB2C.so.1:/usr/lib/libIB2C.so.1                                                     \
--v /usr/lib/libIB2C.so.1.0:/usr/lib/libIB2C.so.1.0                                                 \
--v /usr/lib/libEGL_adreno.so:/usr/lib/libEGL_adreno.so                                             \
--v /usr/lib/libEGL_adreno.so.1:/usr/lib/libEGL_adreno.so.1                                         \
--v /usr/lib/libGLESv2_adreno.so:/usr/lib/libGLESv2_adreno.so                                       \
--v /usr/lib/libGLESv2_adreno.so.2:/usr/lib/libGLESv2_adreno.so.2                                   \
--v /usr/lib/libpropertyvault.so.0:/usr/lib/libpropertyvault.so.0                                   \
--v /usr/lib/libpropertyvault.so.0.0.0:/usr/lib/libpropertyvault.so.0.0.0                           \
--v /usr/lib/libwayland-client.so.0:/usr/lib/libwayland-client.so.0                                 \
--v /usr/lib/libwayland-egl.so.1:/usr/lib/libwayland-egl.so.1                                       \
--v /usr/lib/libadreno_utils.so:/usr/lib/libadreno_utils.so                                         \
--v /usr/lib/libadreno_utils.so.1:/usr/lib/libadreno_utils.so.1                                     \
--v /usr/lib/libCB.so:/usr/lib/libCB.so                                                             \
--v /usr/lib/libEGL.so:/usr/lib/libEGL.so                                                           \
--v /usr/lib/libEGL.so.1:/usr/lib/libEGL.so.1                                                       \
--v /usr/lib/libEGL.so.1.0:/usr/lib/libEGL.so.1.0                                                   \
--v /usr/lib/libEGL.so.1.0.0:/usr/lib/libEGL.so.1.0.0                                               \
--v /usr/lib/libeglSubDriverWayland.so:/usr/lib/libeglSubDriverWayland.so                           \
--v /usr/lib/libGLESv1_CM.so:/usr/lib/libGLESv1_CM.so                                               \
--v /usr/lib/libGLESv1_CM.so.1:/usr/lib/libGLESv1_CM.so.1                                           \
--v /usr/lib/libGLESv1_CM.so.1.0:/usr/lib/libGLESv1_CM.so.1.0                                       \
--v /usr/lib/libGLESv1_CM.so.1.0.0:/usr/lib/libGLESv1_CM.so.1.0.0                                   \
--v /usr/lib/libGLESv1_CM_adreno.so:/usr/lib/libGLESv1_CM_adreno.so                                 \
--v /usr/lib/libGLESv2.so:/usr/lib/libGLESv2.so                                                     \
--v /usr/lib/libGLESv2.so.2:/usr/lib/libGLESv2.so.2                                                 \
--v /usr/lib/libGLESv2.so.2.0:/usr/lib/libGLESv2.so.2.0                                             \
--v /usr/lib/libGLESv2.so.2.0.0:/usr/lib/libGLESv2.so.2.0.0                                         \
--v /usr/lib/libllvm-glnext.so:/usr/lib/libllvm-glnext.so                                           \
--v /usr/lib/libllvm-glnext.so.1:/usr/lib/libllvm-glnext.so.1                                       \
--v /usr/lib/libllvm-qcom.so:/usr/lib/libllvm-qcom.so                                               \
--v /usr/lib/libllvm-qgl.so:/usr/lib/libllvm-qgl.so                                                 \
--v /usr/lib/libOpenCL.so:/usr/lib/libOpenCL.so                                                     \
--v /usr/lib/libOpenCL_adreno.so:/usr/lib/libOpenCL_adreno.so                                       \
--v /usr/lib/libq3dtools_adreno.so:/usr/lib/libq3dtools_adreno.so                                   \
--v /usr/lib/libq3dtools_esx.so:/usr/lib/libq3dtools_esx.so                                         \
--v /usr/lib/libvulkan_adreno.so:/usr/lib/libvulkan_adreno.so                                       \
--v /usr/lib/libQnnTFLiteDelegate.so:/usr/lib/libQnnTFLiteDelegate.so                               \
--v /usr/lib/libadsprpc.so:/usr/lib/libadsprpc.so                                                   \
--v /usr/lib/libcdsprpc.so:/usr/lib/libcdsprpc.so                                                   \
--v /usr/lib/libcdsprpc.so.1:/usr/lib/libcdsprpc.so.1                                               \
--v /usr/lib/libcdsprpc.so.1.0.0:/usr/lib/libcdsprpc.so.1.0.0                                       \
--v /usr/lib/libfastcvopt.so:/usr/lib/libfastcvopt.so                                               \
--v /usr/lib/libfastcvopt.so.1:/usr/lib/libfastcvopt.so.1                                           \
--v /usr/lib/libfastcvopt.so.1.8.0:/usr/lib/libfastcvopt.so.1.8.0                                   \
--v /usr/lib/dsp/cdsp/cv/v68/KODIAK/libfastcvdsp_skel.so:/usr/lib/dsp/cdsp/cv/v68/KODIAK/libfastcvdsp_skel.so \
--v /usr/lib/dsp/cdsp/cv/v68/KODIAK/libfastcvadsp.so:/usr/lib/dsp/cdsp/cv/v68/KODIAK/libfastcvadsp.so \
--v /usr/lib/libfastcvdsp_stub.so:/usr/lib/libfastcvdsp_stub.so                                     \
--v /usr/lib/libfastcvdsp_stub.so.1:/usr/lib/libfastcvdsp_stub.so.1                                 \
--v /usr/lib/libfastcvdsp_stub.so.1.8.0:/usr/lib/libfastcvdsp_stub.so.1.8.0                         \
--v /usr/lib/libdmabufheap.so.0.0.0:/usr/lib/libdmabufheap.so.0.0.0                                 \
--v /usr/lib/dsp/cdsp/libc++.so.1:/usr/lib/dsp/cdsp/libc++.so.1                                     \
--v /usr/lib/dsp/cdsp/libc++abi.so.1:/usr/lib/dsp/cdsp/libc++abi.so.1                               \
--v /usr/lib/libcamera_metadata.so:/usr/lib/libcamera_metadata.so                                   \
--v /usr/lib/librv.so:/usr/lib/librv.so                                                             \
--v /usr/lib/libmv1.so:/usr/lib/libmv1.so                                                           \
--v /usr/lib/libmv3.so:/usr/lib/libmv3.so                                                           \
--v /etc/labels:/etc/labels                                                                         \
--v /etc/media:/etc/media                                                                           \
--v /etc/models:/etc/models                                                                         \
+docker run -it -d --net host --device qualcomm.com/device=cdi-hw-acc                               \
+-v /etc/labels:/etc/labels -v /etc/media:/etc/media -v /etc/models:/etc/models                     \
 -e XDG_RUNTIME_DIR=/dev/socket/weston -e WAYLAND_DISPLAY=wayland-1 -e GST_DEBUG_NO_COLOR=1         \
--e "GST_PLUGIN_SCANNER=/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner    \
+-e GST_PLUGIN_SCANNER="/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner"   \
 -h qimsdk-<container-name> --user qimsdk --name qimsdk-<container-name> qimsdk-<image-name>
 ```
 
@@ -1220,7 +1088,7 @@ qimsdk-docker-device-rm-container <path-to-config-json>
 
 ```bash
 # Run container
-qimsdk-docker-device-run-container <path-to-config-json>
+qimsdk-docker-device-run-cdi-container <path-to-config-json>
 ```
 
 5. From here any qimsdk-docker-device... functions can be used freely on remote PC.

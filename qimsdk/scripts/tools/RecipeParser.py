@@ -568,7 +568,7 @@ class RuntimeFlagsGenerator(RecipeParser):
         super().__init__(path_to_layers, path_to_meta, platform)
 
         target_json = os.path.join(
-            os.getcwd(), f"targets/mappings_{self.platform}.json"
+            os.getcwd(), f"targets/{self.platform}.json"
         )
 
         list_of_socs = list(str())
