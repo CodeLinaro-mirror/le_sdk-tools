@@ -6,7 +6,8 @@
     "Supported_targets": [
         "qcs6490",
         "qcs9100",
-        "qcs8300"
+        "qcs8300",
+        "qcs6490_ubun"
     ],
     "IM_SDK_Source_Dir" : "<path-to-gst-plugins-qti-oss-dir>",
     "IM_SDK_Meta_Dir" : "<path-to-meta-qti-gst>",
