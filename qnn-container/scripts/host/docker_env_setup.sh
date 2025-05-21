@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 echo "Docker build environment setup"
@@ -36,7 +36,7 @@ function print-blue() {
 
 # Build specified docker image as first argument
 #   $1 - (mandatory) path to target config json
-function qnn-tools-host-build-image() {
+function qnn-tools-build-image() {
     local PATH_TO_CONFIG_JSON=$1
     local QNN_BASE_IMAGE
     local QNN_TARGET_PLATFORM
@@ -44,7 +44,7 @@ function qnn-tools-host-build-image() {
     local QNN_IMAGE_NAME
     local QNN_VERSION
 
-    qnn-tools-host-parse-json ${PATH_TO_CONFIG_JSON} QNN_BASE_IMAGE QNN_TARGET_PLATFORM QNN_CONTAINER_NAME QNN_IMAGE_NAME QNN_VERSION
+    qnn-tools-parse-json ${PATH_TO_CONFIG_JSON} QNN_BASE_IMAGE QNN_TARGET_PLATFORM QNN_CONTAINER_NAME QNN_IMAGE_NAME QNN_VERSION
 
     local rc=$?
     [ $rc -ne 0 ] && print-red "parsing json failed !!!" && return -1
@@ -59,7 +59,7 @@ function qnn-tools-host-build-image() {
             --build-arg QNN_ARG_VERSION=${QNN_VERSION} \
             --build-arg QNN_ARG_TARGET_PLATFORM=${QNN_TARGET_PLATFORM} \
             --build-arg QNN_ARG_BASE_IMAGE=${QNN_BASE_IMAGE} \
-            --progress=plain --target ${QNN_IMAGE_NAME} ${QNN_DOCKER_BASE_DIR} -t ${QNN_CONTAINER_NAME}    || \
+            --progress=plain --target qnn ${QNN_DOCKER_BASE_DIR} -t ${QNN_IMAGE_NAME}    || \
         {
             print-red "Build image failed !!!"
             rm -rf ${QNN_TOOLS_TMP_FOLDER}
@@ -73,28 +73,45 @@ function qnn-tools-host-build-image() {
 
 # Save selected device image
 #   $1 - (mandatory) path to target config json
-function qnn-tools-host-save-image() {
+function qnn-tools-save-image() {
     local PATH_TO_CONFIG_JSON=$1
     local QNN_CONTAINER_NAME
     local QNN_IMAGE_NAME
+    local QNN_URL
 
     qnn-tools-get-container-image-name ${PATH_TO_CONFIG_JSON} QNN_CONTAINER_NAME QNN_IMAGE_NAME
-
     local rc=$?
     [ $rc -ne 0 ] && {
         print-red "FAILED: qnn-get-container-and-image-name !!!"
         return $rc
     }
 
+    qnn-get-url ${PATH_TO_CONFIG_JSON} QNN_URL
+    rc=$?
+    [ $rc -ne 0 ] && {
+        print-red "FAILED: qnn-get-url !!!"
+        return $rc
+    }
+
+    [ ! -d "${QNN_URL}" ]                               && {
+        mkdir -p ${QNN_URL}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: mkdir -p ${QNN_URL} !!!"
+            return ${rc}
+        }
+    }
+
     local FILE_NAME="${QNN_IMAGE_NAME}.tar"
 
     print-green "Saving qnn-tools-image : ${FILE_NAME}"
-    docker save ${QNN_CONTAINER_NAME} -o ${FILE_NAME}
+    docker save ${QNN_IMAGE_NAME}:latest -o ${QNN_URL}/${FILE_NAME}
 
     rc=$?
     [ $rc -ne 0 ] && {
-        print-red "Device load image failed: docker save failed !!!"
-        rm ${FILE_NAME}
+        print-red "Device save image failed: docker save failed !!!"
+        rm ${QNN_URL}/${FILE_NAME}
 
         return $rc
     }
@@ -109,7 +126,6 @@ function qnn-tools-device-load-image() {
     local PATH_TO_CONFIG_JSON=$1
     local QNN_CONTAINER_NAME
     local QNN_IMAGE_NAME
-    local URL
     local QNN_DEVICE_ID
 
     qnn-tools-get-container-image-name ${PATH_TO_CONFIG_JSON} QNN_CONTAINER_NAME QNN_IMAGE_NAME
@@ -138,7 +154,7 @@ function qnn-tools-device-load-image() {
             return -1
         }
 
-        qnn-tools-device-command "mkdir -p /data/docker_images" ${QNN_DEVICE_ID}
+        qnn-tools-device-command "mkdir -p /tmp/docker_images" ${QNN_DEVICE_ID}
 
         local rc=$?
         [ $rc -ne 0 ] && {
@@ -148,15 +164,15 @@ function qnn-tools-device-load-image() {
             return $rc
         }
 
-        adb push ${FILE_NAME} /data/docker_images
+        adb push ${FILE_NAME} /tmp/docker_images
 
         rc=$?
         [ $rc -ne 0 ] && {
-            print-red "FAILED: adb push ${FILE_NAME} /data/docker_images !!!"
+            print-red "FAILED: adb push ${FILE_NAME} /tmp/docker_images !!!"
             return $rc
         }
 
-        qnn-tools-device-command "docker load -i /data/docker_images/${FILE_NAME}" ${QNN_DEVICE_ID}
+        qnn-tools-device-command "docker load -i /tmp/docker_images/${FILE_NAME}" ${QNN_DEVICE_ID}
 
         rc=$?
         [ $rc -ne 0 ] && {
@@ -164,7 +180,7 @@ function qnn-tools-device-load-image() {
             return $rc
         }
 
-        qnn-tools-device-command "rm /data/docker_images/${FILE_NAME}" ${QNN_DEVICE_ID}
+        qnn-tools-device-command "rm /tmp/docker_images/${FILE_NAME}" ${QNN_DEVICE_ID}
 
         rc=$?
         [ $rc -ne 0 ] && {
@@ -217,7 +233,7 @@ function qnn-tools-device-run-container() {
             -v /usr/lib/libCB.so:/usr/lib/libCB.so \
             -v /usr/lib/libOpenCL.so:/usr/lib/libOpenCL.so \
             -v /usr/lib/libOpenCL_adreno.so:/usr/lib/libOpenCL_adreno.so \
-            -v /usr/lib/libadreno_utils.so:/usr/lib/libadreno_utils.so \
+            -v /usr/lib/libadreno_utils.so.1:/usr/lib/libadreno_utils.so.1 \
             -v /usr/lib/libdmabufheap.so.0:/usr/lib/libdmabufheap.so.0 \
             -v /usr/lib/libgsl.so:/usr/lib/libgsl.so \
             -v /usr/lib/libllvm-qcom.so:/usr/lib/libllvm-qcom.so \
@@ -388,13 +404,13 @@ source ${QNN_DOCKER_BASE_DIR}/scripts/host/common.sh
 echo    "=================================="
 echo -e "Docker environment setup ready !!!\n"
 
-print-green "qnn-tools-host-build-image <targets/.json>"
+print-green "qnn-tools-build-image <targets/.json>"
 echo "    Build qnn-tools docker image on host"
 print-green "qnn-tools-device-run-container <targets/.json>"
 echo "    Run tflite container on device"
 print-green "qnn-tools-device-start-container <targets/.json>"
 echo "    Once image is loaded, start the container"
-print-blue "qnn-tools-host-save-image <targets/.json>"
+print-blue "qnn-tools-save-image <targets/.json>"
 echo "    Save selected docker image on host"
 print-blue "qnn-tools-device-load-image <targets/.json>"
 echo "    Load selected docker image image on device"
