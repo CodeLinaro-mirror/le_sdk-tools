@@ -169,9 +169,9 @@ service docker start
 
 ## Docker Images
 
-Only one docker image QML is build for device
+Only one docker image qml is build for device
 
-<div id="QML_Image">
+<div id="qml_Image">
 
 ### QML Image
 1. Start from specified base image
@@ -268,6 +268,12 @@ qml-docker-device-update-image <path-to-config-json>
 
 ```bash
 qml-docker-device-run-container <path-to-config-json>
+```
+
+#### Save Compiled Image To The Host
+
+```bash
+qml-docker-host-save-image <path-to-config-json>
 ```
 
 <div id="Examples_For_Development">

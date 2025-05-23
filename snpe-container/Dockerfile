@@ -1,10 +1,10 @@
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
-ARG QML_ARG_BASE_IMAGE
+ARG QML_ARG_BASE_IMAGE=ubuntu:24.04
 
 # QML_builder Image
-FROM --platform=linux/arm64 ${QML_ARG_BASE_IMAGE} as QML_builder
+FROM --platform=linux/arm64 ${QML_ARG_BASE_IMAGE} AS qml_builder
 
 RUN apt-get update                                                                              && \
     apt-get install -y curl unzip                                                               && \
@@ -36,7 +36,7 @@ RUN mkdir -p /deploy/snpe/usr/bin/
 RUN bash ${QML_BASE_DIR}/scripts/all_scripts.sh qml-install-libraries
 
 # QML Image
-FROM --platform=linux/arm64 ${QML_ARG_BASE_IMAGE} as QML
+FROM --platform=linux/arm64 ${QML_ARG_BASE_IMAGE} AS qml
 
 # Installing required apt packages
 RUN apt-get update                                                                              && \

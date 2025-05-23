@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 function print-red() {
@@ -131,7 +131,7 @@ function qml-get-container-and-image-name() {
 
     local QML_ADDITIONAL_TAG=$(echo ${JSON_CONTENT} |  jq '.Additional_tag_container' | tr -d '"')
 
-    if [ -z "${QML_ADDITIONAL_TAG}" -o "${QML_ADDITIONAL_TAG}"="null" ]; then
+    if [ -z "${QML_ADDITIONAL_TAG}" ] || [ "${QML_ADDITIONAL_TAG}" = "null" ]; then
         QML_ADDITIONAL_TAG=""
     else
         QML_ADDITIONAL_TAG="-${QML_ADDITIONAL_TAG}"
@@ -141,7 +141,7 @@ function qml-get-container-and-image-name() {
 
     local ADDITIONAL_TAG_IMAGE=$(echo ${JSON_CONTENT} |  jq '.Additional_tag_image' | tr -d '"')
 
-    if [ -z "${ADDITIONAL_TAG_IMAGE}" -o "${ADDITIONAL_TAG_IMAGE}"="null" ]; then
+    if [ -z "${ADDITIONAL_TAG_IMAGE}" ] || [ "${ADDITIONAL_TAG_IMAGE}" = "null" ]; then
         ADDITIONAL_TAG_IMAGE=""
     else
         ADDITIONAL_TAG_IMAGE="-${ADDITIONAL_TAG_IMAGE}"
