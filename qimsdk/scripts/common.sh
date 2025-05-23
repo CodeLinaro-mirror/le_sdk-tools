@@ -462,15 +462,17 @@ function qimsdk-remove-if-temp() {
 }
 
 # Generate Docker compose CDI yaml file
-#   $1 - (mandatory) path to target config json
-#   $2 - (mandatory) path to Docker compose yaml
-#   $3 - (mandatory) container name from user's config json
-#   $4 - (mandatory) image name from user's config json
+#   $1 - (mandatory) path to qimsdk config json
+#   $2 - (mandatory) path to target config json
+#   $3 - (mandatory) path to Docker compose yaml
+#   $4 - (mandatory) container name from user's config json
+#   $5 - (mandatory) image name from user's config json
 function qimsdk-generate-docker-compose-cdi-yaml() {
     local PATH_TO_CONFIG_JSON=${1}
-    local PATH_TO_DOCKER_COMPOSE_YAML=${2}
-    local CONTAINER_NAME=${3}
-    local IMAGE_NAME=${4}
+    local PATH_TO_TARGET_CONFIG_JSON=${2}
+    local PATH_TO_DOCKER_COMPOSE_YAML=${3}
+    local CONTAINER_NAME=${4}
+    local IMAGE_NAME=${5}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -478,6 +480,7 @@ function qimsdk-generate-docker-compose-cdi-yaml() {
     }
 
     local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+    local TARGET_JSON_CONTENT=$(cat ${PATH_TO_TARGET_CONFIG_JSON})
 
     declare -a USER_SPECIFIC_LIBS_ARRAY
     USER_SPECIFIC_LIBS_ARRAY=$(
@@ -498,6 +501,15 @@ function qimsdk-generate-docker-compose-cdi-yaml() {
         echo ${USER_EXPORTS_ARRAY} | tr -d '"'
     )
 
+    declare -a TARGET_EXPORTS_ARRAY
+    TARGET_EXPORTS_ARRAY=$(
+        echo ${TARGET_JSON_CONTENT} | jq -r '.Exports[]'
+    )
+
+    TARGET_EXPORTS_ARRAY=$(
+        echo ${TARGET_EXPORTS_ARRAY} | tr -d '"'
+    )
+
     local I
     echo "services:" > ${PATH_TO_DOCKER_COMPOSE_YAML}                                           && \
             yq -i ".services.qimsdk.image=\"${IMAGE_NAME}\""                                       \
@@ -510,10 +522,10 @@ function qimsdk-generate-docker-compose-cdi-yaml() {
             yq -i ".services.qimsdk.stdin_open=true" ${PATH_TO_DOCKER_COMPOSE_YAML}             && \
             yq -i ".services.qimsdk.tty=true" ${PATH_TO_DOCKER_COMPOSE_YAML}                    && \
             yq -i ".services.qimsdk.restart=\"always\"" ${PATH_TO_DOCKER_COMPOSE_YAML}          && \
-            for I in ${EXPORTS_ARRAY[@]}; do
+            for I in ${USER_EXPORTS_ARRAY[@]}; do
                 yq -i ".services.qimsdk.environment += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
             done                                                                                && \
-            for I in ${USER_EXPORTS_ARRAY[@]}; do
+            for I in ${TARGET_EXPORTS_ARRAY[@]}; do
                 yq -i ".services.qimsdk.environment += [\"${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
             done                                                                                && \
             for I in ${USER_SPECIFIC_MAPS_ARRAY[@]}; do
@@ -536,15 +548,17 @@ function qimsdk-generate-docker-compose-cdi-yaml() {
 }
 
 # Generate docker run cdi cmd in shell file
-#   $1 - (mandatory) path to target config json
-#   $2 - (mandatory) remote path
-#   $3 - (mandatory) container name from user's config json
-#   $4 - (mandatory) image name from user's config json
+#   $1 - (mandatory) path to qimsdk config json
+#   $2 - (mandatory) path to target config json
+#   $3 - (mandatory) remote path
+#   $4 - (mandatory) container name from user's config json
+#   $5 - (mandatory) image name from user's config json
 function qimsdk-generate-docker-run-cdi-cmd() {
     local PATH_TO_CONFIG_JSON=${1}
-    local RESULT=${2}
-    local CONTAINER_NAME=${3}
-    local IMAGE_NAME=${4}
+    local PATH_TO_TARGET_CONFIG_JSON=${2}
+    local RESULT=${3}
+    local CONTAINER_NAME=${4}
+    local IMAGE_NAME=${5}
 
     local USER_SPECIFIC_MAP
     local USER_LIBS_TO_MOUNT
@@ -566,7 +580,7 @@ function qimsdk-generate-docker-run-cdi-cmd() {
     }
 
     local USER_EXPORTS
-    qimsdk-get-user-variables-to-export ${PATH_TO_CONFIG_JSON}                                     \
+    qimsdk-get-user-variables-to-export ${PATH_TO_CONFIG_JSON}                              \
             USER_EXPORTS
 
     rc=$?
@@ -575,8 +589,18 @@ function qimsdk-generate-docker-run-cdi-cmd() {
         return ${rc}
     }
 
+    local TARGET_EXPORTS
+    qimsdk-get-variables-to-export ${PATH_TO_TARGET_CONFIG_JSON}                                   \
+            TARGET_EXPORTS
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-variables-to-export !!!"
+        return ${rc}
+    }
+
     echo "docker run -it -d --net host --device qualcomm.com/device=cdi-hw-acc                     \
-            ${USER_SPECIFIC_MAP} ${USER_LIBS_TO_MOUNT} ${USER_EXPORTS}                             \
+            ${USER_SPECIFIC_MAP} ${USER_LIBS_TO_MOUNT} ${USER_EXPORTS} ${TARGET_EXPORTS}           \
             -h ${CONTAINER_NAME} --user qimsdk --name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}
 
     rc=$?

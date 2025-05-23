@@ -749,7 +749,9 @@ function qimsdk-docker-device-save-image() {
     )
 
     for SUFFIX_NAME in ${PLATFORMS[@]}; do
-        qimsdk-generate-docker-run-cdi-cmd ${PATH_TO_CONFIG_JSON}                                  \
+        local DEVICE_JSON="${QIMSDK_DOCKER_DIR}/targets/${SUFFIX_NAME}.json"
+
+        qimsdk-generate-docker-run-cdi-cmd ${PATH_TO_CONFIG_JSON} ${DEVICE_JSON}                   \
                 ${COMMON_PATH}/docker_run_cdi_${SUFFIX_NAME}.sh                                    \
                 ${QIMSDK_CONTAINER_NAME}                                                           \
                 ${QIMSDK_IMAGE_NAME}
@@ -773,7 +775,7 @@ function qimsdk-docker-device-save-image() {
             return ${rc}
         }
 
-        qimsdk-generate-docker-compose-cdi-yaml ${PATH_TO_CONFIG_JSON}                             \
+        qimsdk-generate-docker-compose-cdi-yaml ${PATH_TO_CONFIG_JSON} ${DEVICE_JSON}              \
                 ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml                               \
                 ${QIMSDK_CONTAINER_NAME}                                                           \
                 ${QIMSDK_IMAGE_NAME}
@@ -1119,7 +1121,7 @@ function qimsdk-docker-device-run-cdi-container() {
         for SUFFIX_NAME in ${PLATFORMS[@]}; do
             local DEVICE_JSON="${QIMSDK_DOCKER_DIR}/targets/${SUFFIX_NAME}.json"
 
-            qimsdk-generate-docker-run-cdi-cmd ${PATH_TO_CONFIG_JSON}                              \
+            qimsdk-generate-docker-run-cdi-cmd ${PATH_TO_CONFIG_JSON} ${DEVICE_JSON}               \
                     ${TMP_RUN_CMD_DIR}/docker_run_cdi_${SUFFIX_NAME}.sh                            \
                     ${QIMSDK_CONTAINER_NAME}                                                       \
                     ${QIMSDK_IMAGE_NAME}
