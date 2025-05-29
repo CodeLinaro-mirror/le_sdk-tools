@@ -417,6 +417,11 @@ function qimsdk-docker-build-initialize() {
 
     for ((INDEX=0 ; INDEX<${QIMSDK_SUPPORTED_TARGETS_COUNT} ; INDEX++)); do
 
+        # Skipping ubuntu targets
+        [[ "${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}" == *_ubun ]]                                 && {
+            continue
+        }
+
         python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
                 -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
                 -m ${QIMSDK_GST_META}                                                              \
