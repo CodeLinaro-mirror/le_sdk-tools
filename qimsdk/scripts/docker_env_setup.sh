@@ -52,6 +52,8 @@ function qimsdk-docker-parse-json() {
     OUT_QIMSDK_GST_SOURCES=$(echo ${JSON_CONTENT} | jq '.IM_SDK_Source_Dir' | tr -d '"')
     OUT_QIMSDK_GST_SOURCES=${OUT_QIMSDK_GST_SOURCES%/}
 
+    qimsdk-expand-tilde OUT_QIMSDK_GST_SOURCES
+
     [ -d "${OUT_QIMSDK_GST_SOURCES}/.git" ]                                                     || \
             [ -d "${OUT_QIMSDK_GST_SOURCES}/gst-plugin-base" ]                                  || {
         print-red "Please provide path to gst-plugins-qti-oss directory in config json!!!"
@@ -61,6 +63,8 @@ function qimsdk-docker-parse-json() {
 
     OUT_QIMSDK_GST_META=$(echo ${JSON_CONTENT} | jq '.IM_SDK_Meta_Dir' | tr -d '"')
     OUT_QIMSDK_GST_META=${OUT_QIMSDK_GST_META%/}
+
+    qimsdk-expand-tilde OUT_QIMSDK_GST_META
 
     [ -d "${OUT_QIMSDK_GST_META}/.git" ]                                                        || \
             [ -d "${OUT_QIMSDK_GST_META}/recipes-gst/gstreamer" ]                               || {
@@ -74,6 +78,8 @@ function qimsdk-docker-parse-json() {
     )
     OUT_QIMSDK_PATH_MICROSERVICES=${OUT_QIMSDK_PATH_MICROSERVICES%/}
 
+    qimsdk-expand-tilde OUT_QIMSDK_PATH_MICROSERVICES
+
     [ -d "${OUT_QIMSDK_PATH_MICROSERVICES}/.git" ]                                              || \
             [ -d "${OUT_QIMSDK_PATH_MICROSERVICES}/ai" ]                                        || {
         print-red "Please provide path to solutions-microservices directory in config json!!!"
@@ -83,6 +89,8 @@ function qimsdk-docker-parse-json() {
 
     OUT_QIMSDK_LE_SERVICES_SOURCES=$(echo ${JSON_CONTENT} | jq '.LE_Services_Source_Dir' | tr -d '"')
     OUT_QIMSDK_LE_SERVICES_SOURCES=${OUT_QIMSDK_LE_SERVICES_SOURCES%/}
+
+    qimsdk-expand-tilde OUT_QIMSDK_LE_SERVICES_SOURCES
 
     [ -d "${OUT_QIMSDK_LE_SERVICES_SOURCES}/.git" ]                                             || \
             [ -d "${OUT_QIMSDK_LE_SERVICES_SOURCES}/recorder" ]                                 || {
@@ -94,6 +102,8 @@ function qimsdk-docker-parse-json() {
     OUT_QIMSDK_PATH_TO_eSDK_DIR=$(
         echo ${JSON_CONTENT} | jq '.Path_to_eSDK_dir' | tr -d '"'
     )
+
+    qimsdk-expand-tilde OUT_QIMSDK_PATH_TO_eSDK_DIR
 
     [ ! -d "${OUT_QIMSDK_PATH_TO_eSDK_DIR}" ] && {
         OUT_QIMSDK_PATH_TO_eSDK_DIR="no-eSDK-provided"
@@ -116,7 +126,7 @@ function qimsdk-docker-parse-json() {
     return 0
 }
 
-# Parse json configuraiton
+# Qimsdk initialize docker build
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) variable to take container name value
 #   $3 - (mandatory) variable to take image name value

@@ -177,6 +177,8 @@ function qimsdk-get-docker-image-path() {
 
     OUT_DOCKER_IMAGE_PATH=$(echo ${JSON_CONTENT} |  jq '.Docker_image_path' | tr -d '"')
 
+    qimsdk-expand-tilde OUT_DOCKER_IMAGE_PATH
+
     [ -z "${OUT_DOCKER_IMAGE_PATH}" ] && {
         print-red "Docker_image_path attribute in config.json is not set !!!"
         return -1
@@ -637,13 +639,19 @@ function qimsdk-get-map-for-dev-container() {
         echo ${JSON_CONTENT} |  jq '.IM_SDK_Source_Dir' | tr -d '"'
     )
 
+    qimsdk-expand-tilde GST_SRC_DIR
+
     local LE_SERVICES_DIR=$(
         echo ${JSON_CONTENT} |  jq '.LE_Services_Source_Dir' | tr -d '"'
     )
 
+    qimsdk-expand-tilde LE_SERVICES_DIR
+
     local SOLUTION_MICROSERVICES_DIR=$(
         echo ${JSON_CONTENT} |  jq '.Solution_Microservices_Dir' | tr -d '"'
     )
+
+    qimsdk-expand-tilde SOLUTION_MICROSERVICES_DIR
 
     [[ -z ${GST_SRC_DIR} ]]                                                                     || \
     [[ -z ${LE_SERVICES_DIR} ]]                                                                 || \
@@ -668,4 +676,13 @@ function qimsdk-get-map-for-dev-container() {
     OUT_DEV_MAP=${DEV_MAP_ARR}
 
     return 0
+}
+
+function qimsdk-expand-tilde() {
+    local -n INPUT_PATH=${1}
+
+    [[ "$INPUT_PATH" == ~* ]] && {
+        # Swap "~" with ${HOME} variable
+        INPUT_PATH="${INPUT_PATH/#\~/${HOME}}"
+    }
 }
