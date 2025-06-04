@@ -466,6 +466,7 @@ class BuildCodeGenerator(RecipeParser):
                         string.find("${PKG_CONFIG_SYSROOT_DIR}") != -1 or \
                         string.find("${bindir}") != -1 or \
                         string.find("${libdir}") != -1 or \
+                        string.find("${sysconfdir}") != -1 or \
                         string.find("${includedir}") != -1 or \
                         string.find("${PV}") != -1 or \
                         string.find("GST_VERSION_REQUIRED") != -1:
