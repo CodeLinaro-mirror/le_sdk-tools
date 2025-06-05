@@ -240,12 +240,26 @@ class BBPatchParser(Parsable):
     def process(self):
         v = self.plugin_version
 
-        self.recipes["gstreamer"].bb_append.name = f"gstreamer1.0_{v}%.bbappend"
-        self.recipes["plugins_base"].bb_append.name = f"gstreamer1.0-plugins-base_{v}%.bbappend"
-        self.recipes["plugins_good"].bb_append.name = f"gstreamer1.0-plugins-good_{v}%.bbappend"
-        self.recipes["plugins_bad"].bb_append.name = f"gstreamer1.0-plugins-bad_{v}%.bbappend"
+        self.recipes["gstreamer"].bb_append.name = f"gstreamer1.0_{v}.bbappend"
+        self.recipes["plugins_base"].bb_append.name = f"gstreamer1.0-plugins-base_{v}.bbappend"
+        self.recipes["plugins_good"].bb_append.name = f"gstreamer1.0-plugins-good_{v}.bbappend"
+        self.recipes["plugins_bad"].bb_append.name = f"gstreamer1.0-plugins-bad_{v}.bbappend"
 
         for recipe in self.recipes.values():
+            path = recipe.bb_append.path
+
+            if "gstreamer1.0" in recipe.bb_append.name:
+                parts = recipe.bb_append.name.split("_")
+                prefix = parts[0]
+                suffix = parts[1].split(".")[-1]
+
+                full_path = os.path.join(path, recipe.bb_append.name)
+
+                if not os.path.exists(full_path):
+
+                    # Replace the middle part
+                    v_minor = "1.24%"
+                    recipe.bb_append.name = f"{prefix}_{v_minor}.{suffix}"
 
             recipe = self.__get_content_of_bb(
                 recipe

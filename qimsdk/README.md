@@ -835,24 +835,24 @@ adb shell "export GBM_BACKEND=msm && export XDG_RUNTIME_DIR=/dev/socket/weston &
       ```
     </ul>
 
-    <div>Get source code of gst-plugins-base-1.24.9 and gst-plugins-good-1.24.9
+    <div>Get source code of gst-plugins-base-1.24.2 and gst-plugins-good-1.24.2
     <ul>
-      <div name="gst-plugins-base", style="color:#90EE90">gst-plugins-base-1.24.9</div>
+      <div name="gst-plugins-base", style="color:#90EE90">gst-plugins-base-1.24.2</div>
 
       ```bash
       wget -t 2 -T 30 --passive-ftp -P <current/docker/dir>/tmp/                                   \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.9.tar.xz' && \
-        cd <current/docker/dir>/tmp/ && tar -xf gst-plugins-base-1.24.9.tar.xz                  && \
-        rm -f gst-plugins-base-1.24.9.tar.xz
+        'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.2.tar.xz' && \
+        cd <current/docker/dir>/tmp/ && tar -xf gst-plugins-base-1.24.2.tar.xz                  && \
+        rm -f gst-plugins-base-1.24.2.tar.xz
       ```
 
-      <div name="gst-plugins-good", style="color:#90EE90">gst-plugins-good-1.24.9</div>
+      <div name="gst-plugins-good", style="color:#90EE90">gst-plugins-good-1.24.2</div>
 
       ```bash
       wget -t 2 -T 30 --passive-ftp -P <current/docker/dir>/tmp/                                   \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.9.tar.xz' && \
-        cd <current/docker/dir>/tmp/ && tar -xf gst-plugins-good-1.24.9.tar.xz                  && \
-        rm -f gst-plugins-good-1.24.9.tar.xz
+        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.2.tar.xz' && \
+        cd <current/docker/dir>/tmp/ && tar -xf gst-plugins-good-1.24.2.tar.xz                  && \
+        rm -f gst-plugins-good-1.24.2.tar.xz
       ```
     </ul>
     </div>
@@ -862,17 +862,17 @@ adb shell "export GBM_BACKEND=msm && export XDG_RUNTIME_DIR=/dev/socket/weston &
       <div style="color:#90EE90">DIR: patches</div>
 
       content of patches directory:
-      <div name="gst-plugins-base">gst-plugins-base-1.24.9</div>
+      <div name="gst-plugins-base">gst-plugins-base-1.24.2</div>
 
       ```bash
-        rsync -a <path/to/unarchived/eSDK/directory>/layers/meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-base/1.24/*.patch \
-          <current/docker/dir>/tmp/patches/gst-plugins-base-1.24.9/
+        rsync -a <path/to/unarchived/eSDK/directory>/layers/meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-base/1.24.2/*.patch \
+          <current/docker/dir>/tmp/patches/gst-plugins-base-1.24.2/
       ```
-      <div name="gst-plugins-good">gst-plugins-good-1.24.9</div>
+      <div name="gst-plugins-good">gst-plugins-good-1.24.2</div>
 
       ```bash
-        rsync -a <path/to/unarchived/eSDK/directory>/layers/meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.24/*.patch \
-          <current/docker/dir>/tmp/patches/gst-plugins-good-1.24.9/
+        rsync -a <path/to/unarchived/eSDK/directory>/layers/meta-qti-gst/recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.24.2/*.patch \
+          <current/docker/dir>/tmp/patches/gst-plugins-good-1.24.2/
       ```
     </ul>
 
