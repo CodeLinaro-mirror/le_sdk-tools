@@ -366,6 +366,15 @@ function qimsdk-docker-build-initialize() {
         }
     }
 
+    [ -d ./usr/lib/pkgconfig/ ] && {
+        rsync -a ./usr/lib/pkgconfig ${QIMSDK_TMP_FOLDER_PTR}/lib/                             || {
+            echo "Cannot get pkg-config files from eSDK !!!"
+            popd 1>/dev/null
+            rm -rf ${QIMSDK_TMP_FOLDER_PTR}
+            return -1
+        }
+    }
+
     popd 1>/dev/null                                                                            && \
 
     mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/wayland-protocols-1.33/                           && \
@@ -838,25 +847,29 @@ function qimsdk-docker-device-save-image() {
             return ${rc}
         }
 
+        mkdir -p ${COMMON_PATH}/${SUFFIX_NAME}
+
         qimsdk-generate-docker-cdi-specs ${MAPPINGS_JSON}                                          \
-                ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json                                      \
+                ${COMMON_PATH}/${SUFFIX_NAME}/docker-run-cdi-hw-acc.json                           \
                 ${QIMSDK_CONTAINER_NAME}
 
         rc=$?
         [ ${rc} -ne 0 ] && {
             print-red "Generate qimsdk docker cdi file failed !!!"
-            rm -f ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json
+            rm -f ${COMMON_PATH}/${SUFFIX_NAME}/docker-run-cdi-hw-acc.json
 
             return ${rc}
         }
 
-        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json              \
-                ${DOCKER_IMAGE_PATH}
+        mkdir -p ${DOCKER_IMAGE_PATH}/${SUFFIX_NAME}
+
+        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/${SUFFIX_NAME}/docker-run-cdi-hw-acc.json   \
+                ${DOCKER_IMAGE_PATH}/${SUFFIX_NAME}/
 
         rc=$?
         [ ${rc} -ne 0 ] && {
             print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-            rm -f ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json
+            rm -f ${COMMON_PATH}/${SUFFIX_NAME}/docker-run-cdi-hw-acc.json
 
             return ${rc}
         }
@@ -1293,16 +1306,16 @@ function qimsdk-docker-device-run-cdi-container() {
             local MAPPINGS_JSON="${QIMSDK_DOCKER_DIR}/targets/mappings_${SUFFIX_NAME}.json"
             local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
 
-            [ -d ${QIMSDK_TMP_FOLDER} ] || mkdir -p ${QIMSDK_TMP_FOLDER}
+            mkdir -p ${QIMSDK_TMP_FOLDER}/${SUFFIX_NAME}
 
             qimsdk-generate-docker-cdi-specs ${MAPPINGS_JSON}                                      \
-                    ${QIMSDK_TMP_FOLDER}/docker-cdi-${SUFFIX_NAME}.json                            \
+                    ${QIMSDK_TMP_FOLDER}/${SUFFIX_NAME}/docker-run-cdi-hw-acc.json                 \
                     ${QIMSDK_CONTAINER_NAME}
 
             rc=$?
             [ ${rc} -ne 0 ] && {
                 print-red "Generate qimsdk docker cdi file failed !!!"
-                rm -f ${QIMSDK_TMP_FOLDER}/docker-cdi-${SUFFIX_NAME}.json
+                rm -f ${QIMSDK_TMP_FOLDER}/${SUFFIX_NAME}/docker-run-cdi-hw-acc.json
 
                 return ${rc}
             }
@@ -1336,7 +1349,7 @@ function qimsdk-docker-device-run-cdi-container() {
         }
 
         adb shell "[ -d /etc/cdi ] || mkdir /etc/cdi"                                           && \
-        adb push ${QIMSDK_TMP_FOLDER}/docker-cdi-${TARGET_PLATFORM}.json /etc/cdi/              && \
+        adb push ${QIMSDK_TMP_FOLDER}/${TARGET_PLATFORM}/docker-run-cdi-hw-acc.json /etc/cdi/   && \
         adb push ${TMP_RUN_CMD_DIR}/docker_run_cdi_${TARGET_PLATFORM}.sh /tmp/                  && \
         qimsdk-device-command "source /tmp/docker_run_cdi_${TARGET_PLATFORM}.sh"                || {
             rm -rf ${TMP_RUN_CMD_DIR}
