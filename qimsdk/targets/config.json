@@ -16,5 +16,19 @@
 
     "Path_to_eSDK_dir" : "<path-to-installed-eSDK-dir>",
 
-    "MAP_sources_to_dev_container" : "FALSE"
+    "MAP_sources_to_dev_container" : "FALSE",
+
+    "User_Exports" : [
+        ""
+    ],
+
+    "User_Libraries_To_Mount" : [
+        "/etc/labels",
+        "/etc/media",
+        "/etc/models"
+    ],
+
+    "User_Specific_Mappings" : [
+        ""
+    ]
 }

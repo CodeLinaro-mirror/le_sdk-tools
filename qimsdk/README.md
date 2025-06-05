@@ -288,6 +288,9 @@ Config json files *(config.json)* must contain the following data:
  9. ***MANDATORY*** - **LE_Services_Source_Dir** - PATH to le-services directory, which contains source code of camera recorder client and camera metadata libs compiled inside dev container. ***Note: Path provided must point to le-services directory!***
  10. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
  11. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir or Solution_Microservices_Dir is wanted to be mapped to the development container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
+ 12. ***OPTIONAL*** - **User_Exports** - User variables, which will be exported as environment variables in qimsdk device container.
+ 13. ***OPTIONAL*** - **User_Libraries_To_Mount** - User libraries to mount to device docker container.
+ 14. ***OPTIONAL*** - **User_Specific_Mappings** - User specific mappings to be mounted during device docker run container function.
 
 Target specific json files *(mappings_\<target-name\>.json)* must contain the following data:
  1. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
