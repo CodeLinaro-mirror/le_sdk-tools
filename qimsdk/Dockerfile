@@ -263,6 +263,10 @@ WORKDIR ${QIMSDK_BASE_DIR}
 # Call wrapper function to apply all patches
 RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-apply-patches
 
+# Setup pkg-config dir
+ENV QIMSDK_PKGCONFIG_DIR=/usr/lib/pkgconfig/
+COPY tmp/lib/pkgconfig/*.pc ${QIMSDK_PKGCONFIG_DIR}
+
 # Call wrapper build function to compile and install gst plugins
 RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-incremental-build
 
@@ -277,10 +281,6 @@ ENV QIMSDK_DEVICE_ID=${QIMSDK_ARG_DEVICE_ID}
 # Set device container name
 ARG QIMSDK_ARG_CONTAINER_NAME
 ENV QIMSDK_CONTAINER_NAME=${QIMSDK_ARG_CONTAINER_NAME}
-
-# Setup pkg-config dir
-ENV QIMSDK_PKGCONFIG_DIR=/usr/lib/pkgconfig/
-COPY tmp/lib/pkgconfig/*.pc ${QIMSDK_PKGCONFIG_DIR}
 
 # # # # # # # # # # # # # # #
 
@@ -343,7 +343,7 @@ RUN ulimit -n 16192
 # Copy installed binaries to device image
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/usr /usr
-COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/configs /etc/configs
+COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/etc/configs /etc/configs
 
 # Copy python examples
 COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-python-examples /usr/bin

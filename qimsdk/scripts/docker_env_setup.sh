@@ -376,13 +376,50 @@ function qimsdk-docker-build-initialize() {
         }
     }
 
-    [ -d ./usr/lib/pkgconfig/ ] && {
-        rsync -a ./usr/lib/pkgconfig ${QIMSDK_TMP_FOLDER_PTR}/lib/                             || {
-            echo "Cannot get pkg-config files from eSDK !!!"
-            popd 1>/dev/null
-            rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-            return -1
-        }
+    local PKG_CONFIG_FILES_DIR="./usr/lib/pkgconfig/"
+
+    [ -d ${PKG_CONFIG_FILES_DIR} ] && {
+        mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig
+        declare -a PLATFORM_LIBS="msm_gbm libgbm libatomic libgsl libib2C libegl_adreno `
+                                 `libglesv2_adreno libpropertyvault libwayland-client `
+                                 `libwayland-egl libadreno_utils libcb libegl libdmabufheap `
+                                 `libeglsubdriverwayland libglesv1_cm libglesv1_cm_adreno `
+                                 `libglesv2 libllvm-glnext libllvm-qcom libllvm-qgl libopencl `
+                                 `libopencl_adreno libq3dtools_adreno libq3dtools_esx `
+                                 `libvulkan_adreno libadsprpc libcdsprpc libfastcvopt `
+                                 `libfastcvdsp_stub libc++ libc++abi"
+
+        for LIB_NAME in ${PLATFORM_LIBS[@]}; do
+            local PREFIX=`echo ${LIB_NAME} | cut -c1-3`
+
+            [ "${PREFIX}" == "lib" ] && {
+                local NO_PREFIX_LIB_NAME=${LIB_NAME#*lib}
+                [ -f "${PKG_CONFIG_FILES_DIR}/${NO_PREFIX_LIB_NAME}.pc" ] && {
+                    rsync -a "${PKG_CONFIG_FILES_DIR}/${NO_PREFIX_LIB_NAME}.pc" \
+                        ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig/ || {
+                        echo "Failed to copy pkg-config file ${LIB_NAME}.pc !!!"
+                        popd 1>/dev/null
+                        return -1
+                    }
+                }
+            }
+
+            [ -f "${PKG_CONFIG_FILES_DIR}/${LIB_NAME}.pc" ] && {
+                rsync -a "${PKG_CONFIG_FILES_DIR}/${LIB_NAME}.pc" \
+                    ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig/ || {
+                    echo "Failed to copy pkg-config file ${LIB_NAME}.pc !!!"
+                    popd 1>/dev/null
+                    return -1
+                }
+            }
+            continue
+        done
+
+    } || {
+        echo "Cannot get pkg-config files from eSDK !!!"
+        popd 1>/dev/null
+        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
+        return -1
     }
 
     popd 1>/dev/null                                                                            && \
