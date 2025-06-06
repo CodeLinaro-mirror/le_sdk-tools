@@ -12,5 +12,19 @@
         "SA8775P",
         "QCS9100",
         "QCS9075"
+    ],
+
+    "User_Exports" : [
+        ""
+    ],
+
+    "User_Libraries_To_Mount" : [
+        "/etc/labels",
+        "/etc/media",
+        "/etc/models"
+    ],
+
+    "User_Specific_Mappings" : [
+        ""
     ]
 }

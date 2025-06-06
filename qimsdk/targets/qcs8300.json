@@ -11,5 +11,19 @@
         "QCS8300",
         "QCS8275",
         "SA7255P"
+    ],
+
+    "User_Exports" : [
+        ""
+    ],
+
+    "User_Libraries_To_Mount" : [
+        "/etc/labels",
+        "/etc/media",
+        "/etc/models"
+    ],
+
+    "User_Specific_Mappings" : [
+        ""
     ]
 }

@@ -11,5 +11,19 @@
         "QCS6490",
         "QCM6490",
         "SC7280"
+    ],
+
+    "User_Exports" : [
+        ""
+    ],
+
+    "User_Libraries_To_Mount" : [
+        "/etc/labels",
+        "/etc/media",
+        "/etc/models"
+    ],
+
+    "User_Specific_Mappings" : [
+        ""
     ]
 }
