@@ -488,6 +488,11 @@ RUN mkdir -p ${QIMSDK_RUNTIME_FLAGS_DIR}
 
 COPY --chmod=644 tmp/*runtime_flags.json ${QIMSDK_RUNTIME_FLAGS_DIR}
 
+# Temporary: Resolve mismatching versioned libs versions
+RUN ln -s /usr/lib/libadreno_utils.so.1 /usr/lib/libadreno_utils.so.
+RUN ln -s /usr/lib/libadreno_utils.so.1 /usr/lib/libadreno_utils.so
+RUN ln -s /usr/lib/libcamera_metadata.so /usr/lib/libcamera_metadata.so.0
+
 # Change user to qimsdk
 USER qimsdk
 
