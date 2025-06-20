@@ -1,0 +1,10 @@
+{
+    "Qnn_Version": "2.34.0.250424",
+    "Base_Image": "ubuntu:24.04",
+    "Target_platform": "qcs8300",
+
+    "Additional_tag": "",
+    "URL": "",
+
+    "DeviceID": "<device-id>"
+}

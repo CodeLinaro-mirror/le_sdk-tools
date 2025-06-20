@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # Parse json configuraiton
@@ -52,6 +52,8 @@ function qimsdk-docker-parse-json() {
     OUT_QIMSDK_GST_SOURCES=$(echo ${JSON_CONTENT} | jq '.IM_SDK_Source_Dir' | tr -d '"')
     OUT_QIMSDK_GST_SOURCES=${OUT_QIMSDK_GST_SOURCES%/}
 
+    qimsdk-expand-tilde OUT_QIMSDK_GST_SOURCES
+
     [ -d "${OUT_QIMSDK_GST_SOURCES}/.git" ]                                                     || \
             [ -d "${OUT_QIMSDK_GST_SOURCES}/gst-plugin-base" ]                                  || {
         print-red "Please provide path to gst-plugins-qti-oss directory in config json!!!"
@@ -61,6 +63,8 @@ function qimsdk-docker-parse-json() {
 
     OUT_QIMSDK_GST_META=$(echo ${JSON_CONTENT} | jq '.IM_SDK_Meta_Dir' | tr -d '"')
     OUT_QIMSDK_GST_META=${OUT_QIMSDK_GST_META%/}
+
+    qimsdk-expand-tilde OUT_QIMSDK_GST_META
 
     [ -d "${OUT_QIMSDK_GST_META}/.git" ]                                                        || \
             [ -d "${OUT_QIMSDK_GST_META}/recipes-gst/gstreamer" ]                               || {
@@ -74,6 +78,8 @@ function qimsdk-docker-parse-json() {
     )
     OUT_QIMSDK_PATH_MICROSERVICES=${OUT_QIMSDK_PATH_MICROSERVICES%/}
 
+    qimsdk-expand-tilde OUT_QIMSDK_PATH_MICROSERVICES
+
     [ -d "${OUT_QIMSDK_PATH_MICROSERVICES}/.git" ]                                              || \
             [ -d "${OUT_QIMSDK_PATH_MICROSERVICES}/ai" ]                                        || {
         print-red "Please provide path to solutions-microservices directory in config json!!!"
@@ -83,6 +89,8 @@ function qimsdk-docker-parse-json() {
 
     OUT_QIMSDK_LE_SERVICES_SOURCES=$(echo ${JSON_CONTENT} | jq '.LE_Services_Source_Dir' | tr -d '"')
     OUT_QIMSDK_LE_SERVICES_SOURCES=${OUT_QIMSDK_LE_SERVICES_SOURCES%/}
+
+    qimsdk-expand-tilde OUT_QIMSDK_LE_SERVICES_SOURCES
 
     [ -d "${OUT_QIMSDK_LE_SERVICES_SOURCES}/.git" ]                                             || \
             [ -d "${OUT_QIMSDK_LE_SERVICES_SOURCES}/recorder" ]                                 || {
@@ -94,6 +102,8 @@ function qimsdk-docker-parse-json() {
     OUT_QIMSDK_PATH_TO_eSDK_DIR=$(
         echo ${JSON_CONTENT} | jq '.Path_to_eSDK_dir' | tr -d '"'
     )
+
+    qimsdk-expand-tilde OUT_QIMSDK_PATH_TO_eSDK_DIR
 
     [ ! -d "${OUT_QIMSDK_PATH_TO_eSDK_DIR}" ] && {
         OUT_QIMSDK_PATH_TO_eSDK_DIR="no-eSDK-provided"
@@ -116,7 +126,7 @@ function qimsdk-docker-parse-json() {
     return 0
 }
 
-# Parse json configuraiton
+# Qimsdk initialize docker build
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) variable to take container name value
 #   $3 - (mandatory) variable to take image name value
@@ -209,7 +219,7 @@ function qimsdk-docker-build-initialize() {
     }
 
     local PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_GST_META}/`
-        `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.24/"
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.24.2/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_GOOD_PATCHES} ] && {
         print-red "gstreamer-plugins-good's patches NOT found !!!"
@@ -218,7 +228,7 @@ function qimsdk-docker-build-initialize() {
     }
 
     local PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_GST_META}/`
-        `recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.24/"
+        `recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.24.2/"
 
     [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ] && {
         print-red "gstreamer-plugins-bad's patches NOT found !!!"
@@ -366,13 +376,59 @@ function qimsdk-docker-build-initialize() {
         }
     }
 
+    local PKG_CONFIG_FILES_DIR="./usr/lib/pkgconfig/"
+
+    [ -d ${PKG_CONFIG_FILES_DIR} ] && {
+        mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig
+        declare -a PLATFORM_LIBS="msm_gbm libgbm libatomic libgsl libib2C libegl_adreno `
+                                 `libglesv2_adreno libpropertyvault libwayland-client `
+                                 `libwayland-egl libadreno_utils libcb libegl libdmabufheap `
+                                 `libeglsubdriverwayland libglesv1_cm libglesv1_cm_adreno `
+                                 `libglesv2 libllvm-glnext libllvm-qcom libllvm-qgl libopencl `
+                                 `libopencl_adreno libq3dtools_adreno libq3dtools_esx `
+                                 `libvulkan_adreno libadsprpc libcdsprpc libfastcvopt `
+                                 `libfastcvdsp_stub libc++ libc++abi"
+
+        for LIB_NAME in ${PLATFORM_LIBS[@]}; do
+            local PREFIX=`echo ${LIB_NAME} | cut -c1-3`
+
+            [ "${PREFIX}" == "lib" ] && {
+                local NO_PREFIX_LIB_NAME=${LIB_NAME#*lib}
+                [ -f "${PKG_CONFIG_FILES_DIR}/${NO_PREFIX_LIB_NAME}.pc" ] && {
+                    rsync -a "${PKG_CONFIG_FILES_DIR}/${NO_PREFIX_LIB_NAME}.pc" \
+                        ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig/ || {
+                        echo "Failed to copy pkg-config file ${LIB_NAME}.pc !!!"
+                        popd 1>/dev/null
+                        return -1
+                    }
+                }
+            }
+
+            [ -f "${PKG_CONFIG_FILES_DIR}/${LIB_NAME}.pc" ] && {
+                rsync -a "${PKG_CONFIG_FILES_DIR}/${LIB_NAME}.pc" \
+                    ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig/ || {
+                    echo "Failed to copy pkg-config file ${LIB_NAME}.pc !!!"
+                    popd 1>/dev/null
+                    return -1
+                }
+            }
+            continue
+        done
+
+    } || {
+        echo "Cannot get pkg-config files from eSDK !!!"
+        popd 1>/dev/null
+        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
+        return -1
+    }
+
     popd 1>/dev/null                                                                            && \
 
     mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/wayland-protocols-1.33/                           && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gstreamer-1.24.9/                                 && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-base-1.24.9/                          && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-good-1.24.9/                          && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-bad-1.24.9/                           && \
+    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gstreamer-1.24.2/                                 && \
+    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-base-1.24.2/                          && \
+    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-good-1.24.2/                          && \
+    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-bad-1.24.2/                           && \
     mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gstd/                                             && \
     mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/pulseaudio/                                       && \
 
@@ -380,16 +436,16 @@ function qimsdk-docker-build-initialize() {
             ${QIMSDK_TMP_FOLDER_PTR}/patches/wayland-protocols-1.33/                            && \
 
     rsync -a ${PATH_TO_GSTREAMER_PATCHES}/*.patch                                                  \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gstreamer-1.24.9/                                  && \
+            ${QIMSDK_TMP_FOLDER_PTR}/patches/gstreamer-1.24.2/                                  && \
 
     rsync -a ${PATH_TO_GST_PLUGINS_BASE_PATCHES}/*.patch                                           \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-base-1.24.9/                           && \
+            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-base-1.24.2/                           && \
 
     rsync -a ${PATH_TO_GST_PLUGINS_GOOD_PATCHES}/*.patch                                           \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-good-1.24.9/                           && \
+            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-good-1.24.2/                           && \
 
     rsync -a ${PATH_TO_GST_PLUGINS_BAD_PATCHES}/*.patch                                            \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-bad-1.24.9/                            && \
+            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-bad-1.24.2/                            && \
 
     rsync -a ${QIMSDK_PATH_TO_PULSEAUDIO_META}/recipes-multimedia/audio/pulseaudio/*.patch         \
             ${QIMSDK_TMP_FOLDER_PTR}/patches/pulseaudio/                                        && \
@@ -407,6 +463,11 @@ function qimsdk-docker-build-initialize() {
     local QIMSDK_SUPPORTED_TARGETS_COUNT=${#QIMSDK_SUPPORTED_TARGETS[@]}
 
     for ((INDEX=0 ; INDEX<${QIMSDK_SUPPORTED_TARGETS_COUNT} ; INDEX++)); do
+
+        # Skipping ubuntu targets
+        [[ "${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}" == *_ubun ]]                                 && {
+            continue
+        }
 
         python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
                 -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
@@ -435,7 +496,7 @@ function qimsdk-docker-build-initialize() {
                 -m ${QIMSDK_GST_META}                                                              \
                 -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
                 -t ${QIMSDK_TMP_FOLDER_PTR}                                                        \
-                -v "1.24"                                                                          \
+                -v "1.24.2"                                                                        \
                 BBPatchParser                                                                   || {
             print-red "Python Parser returns error, mode BBPatchParser !!!"
             rm -rf ${QIMSDK_TMP_FOLDER_PTR}
@@ -740,33 +801,9 @@ function qimsdk-docker-device-save-image() {
     )
 
     for SUFFIX_NAME in ${PLATFORMS[@]}; do
-        local MAPPINGS_JSON="${QIMSDK_DOCKER_DIR}/targets/mappings_${SUFFIX_NAME}.json"
+        local DEVICE_JSON="${QIMSDK_DOCKER_DIR}/targets/${SUFFIX_NAME}.json"
 
-        qimsdk-generate-docker-run-cmd ${MAPPINGS_JSON}                                            \
-                ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                                        \
-                ${QIMSDK_CONTAINER_NAME}                                                           \
-                ${QIMSDK_IMAGE_NAME}
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-red "Generate ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh file failed !!!"
-            rm -f ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh
-
-            return ${rc}
-        }
-
-        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                \
-                ${DOCKER_IMAGE_PATH}
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-            rm -f ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh
-
-            return ${rc}
-        }
-
-        qimsdk-generate-docker-run-cdi-cmd ${MAPPINGS_JSON}                                        \
+        qimsdk-generate-docker-run-cdi-cmd ${DEVICE_JSON}                                          \
                 ${COMMON_PATH}/docker_run_cdi_${SUFFIX_NAME}.sh                                    \
                 ${QIMSDK_CONTAINER_NAME}                                                           \
                 ${QIMSDK_IMAGE_NAME}
@@ -790,31 +827,7 @@ function qimsdk-docker-device-save-image() {
             return ${rc}
         }
 
-        qimsdk-generate-docker-compose-yaml ${MAPPINGS_JSON}                                       \
-                ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml                                   \
-                ${QIMSDK_CONTAINER_NAME}                                                           \
-                ${QIMSDK_IMAGE_NAME}
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-red "Generate qimsdk docker compose file failed !!!"
-            rm -f ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml
-
-            return ${rc}
-        }
-
-        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml           \
-                ${DOCKER_IMAGE_PATH}
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-            rm -f ${COMMON_PATH}/docker-compose-${SUFFIX_NAME}.yml
-
-            return ${rc}
-        }
-
-        qimsdk-generate-docker-compose-cdi-yaml ${MAPPINGS_JSON}                                   \
+        qimsdk-generate-docker-compose-cdi-yaml ${DEVICE_JSON}                                     \
                 ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml                               \
                 ${QIMSDK_CONTAINER_NAME}                                                           \
                 ${QIMSDK_IMAGE_NAME}
@@ -837,30 +850,6 @@ function qimsdk-docker-device-save-image() {
 
             return ${rc}
         }
-
-        qimsdk-generate-docker-cdi-specs ${MAPPINGS_JSON}                                          \
-                ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json                                      \
-                ${QIMSDK_CONTAINER_NAME}
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-red "Generate qimsdk docker cdi file failed !!!"
-            rm -f ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json
-
-            return ${rc}
-        }
-
-        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json              \
-                ${DOCKER_IMAGE_PATH}
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-            rm -f ${COMMON_PATH}/docker-cdi-${SUFFIX_NAME}.json
-
-            return ${rc}
-        }
-
     done
 
     print-green "Device save image successful !!!"
@@ -1127,114 +1116,6 @@ function qimsdk-device-docker-run-container() {
     return 0
 }
 
-# Run selected device container
-#   $1 - (mandatory) path to target config json
-function qimsdk-docker-device-run-container() {
-    local PATH_TO_CONFIG_JSON=${1}
-    local QIMSDK_CONTAINER_NAME
-    local QIMSDK_IMAGE_NAME
-    local QIMSDK_DEVICE_ID
-
-    qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
-            QIMSDK_CONTAINER_NAME                                                                  \
-            QIMSDK_IMAGE_NAME
-
-    local rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "FAILED: qimsdk-get-container-and-image-name !!!"
-        return ${rc}
-    }
-
-    qimsdk-get-device-id ${PATH_TO_CONFIG_JSON} QIMSDK_DEVICE_ID
-
-    rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "FAILED: qimsdk-get-device-id  !!!"
-        return ${rc}
-    }
-
-    (
-        local PLATFORMS=(
-            $(cat ${PATH_TO_CONFIG_JSON} | jq '.Supported_targets[]' | tr -d '"')
-        )
-
-        export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
-
-        local MACHINE=$(adb shell "cat /sys/devices/soc0/machine" | tr -d '\r')
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-red "FAILED: adb shell "cat /sys/devices/soc0/machine"  !!!"
-            return ${rc}
-        }
-
-        local MEDIA_DIRS=("labels" "media" "models")
-
-        for idx in ${!MEDIA_DIRS[@]}; do
-            qimsdk-device-command "mkdir -m 777 -p /etc/${MEDIA_DIRS[$idx]}"                    || {
-                print-red "FAILED: /etc/${MEDIA_DIRS[$idx]} can not be created in device !!!"
-                return -1
-            }
-        done
-
-        local TARGET_PLATFORM=""
-
-        local TMP_RUN_CMD_DIR=$(mktemp -d)
-
-        for SUFFIX_NAME in ${PLATFORMS[@]}; do
-            local MAPPINGS_JSON="${QIMSDK_DOCKER_DIR}/targets/mappings_${SUFFIX_NAME}.json"
-
-            qimsdk-generate-docker-run-cmd ${MAPPINGS_JSON}                                        \
-                    ${TMP_RUN_CMD_DIR}/docker_run_${SUFFIX_NAME}.sh                                \
-                    ${QIMSDK_CONTAINER_NAME}                                                       \
-                    ${QIMSDK_IMAGE_NAME}
-
-            rc=$?
-            [ ${rc} -ne 0 ] && {
-                print-red "Generate ${TMP_RUN_CMD_DIR}/docker_run_${SUFFIX_NAME}.sh file failed !!!"
-                rm -rf ${TMP_RUN_CMD_DIR}
-
-                return ${rc}
-            }
-
-            declare -A SOC_LIST=$(cat ${MAPPINGS_JSON} | jq '.Soc[]' | tr -d '"')
-
-            for SOC in ${SOC_LIST[@]}; do
-                [[ ${MACHINE} == ${SOC} ]] && {
-                    TARGET_PLATFORM="${SUFFIX_NAME}"
-                    break
-                }
-            done
-        done
-
-        [ -z ${TARGET_PLATFORM} ] && {
-            print-red "Target platform is not set !!!"
-            return -1
-        }
-
-        adb push ${TMP_RUN_CMD_DIR}/docker_run_${TARGET_PLATFORM}.sh /tmp/                      && \
-        qimsdk-device-command "source /tmp/docker_run_${TARGET_PLATFORM}.sh"                    || {
-            rm -rf ${TMP_RUN_CMD_DIR}
-            qimsdk-device-command "rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh"
-            echo "qimsdk-docker-device-run-container failed !!!"
-            return -1
-        }
-
-        rm -rf ${TMP_RUN_CMD_DIR}
-        qimsdk-device-command "rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh"
-    )
-
-    rc=$?
-    [ ${rc} -ne 0 ] && {
-        print-red "Device run container failed !!!"
-        return ${rc}
-    }
-
-    print-green "Device run container successful !!!"
-
-    return 0
-}
-
 # Run selected device container in cdi mode
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-run-cdi-container() {
@@ -1290,24 +1171,9 @@ function qimsdk-docker-device-run-cdi-container() {
         local TMP_RUN_CMD_DIR=$(mktemp -d)
 
         for SUFFIX_NAME in ${PLATFORMS[@]}; do
-            local MAPPINGS_JSON="${QIMSDK_DOCKER_DIR}/targets/mappings_${SUFFIX_NAME}.json"
-            local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
+            local DEVICE_JSON="${QIMSDK_DOCKER_DIR}/targets/${SUFFIX_NAME}.json"
 
-            [ -d ${QIMSDK_TMP_FOLDER} ] || mkdir -p ${QIMSDK_TMP_FOLDER}
-
-            qimsdk-generate-docker-cdi-specs ${MAPPINGS_JSON}                                      \
-                    ${QIMSDK_TMP_FOLDER}/docker-cdi-${SUFFIX_NAME}.json                            \
-                    ${QIMSDK_CONTAINER_NAME}
-
-            rc=$?
-            [ ${rc} -ne 0 ] && {
-                print-red "Generate qimsdk docker cdi file failed !!!"
-                rm -f ${QIMSDK_TMP_FOLDER}/docker-cdi-${SUFFIX_NAME}.json
-
-                return ${rc}
-            }
-
-            qimsdk-generate-docker-run-cdi-cmd ${MAPPINGS_JSON}                                    \
+            qimsdk-generate-docker-run-cdi-cmd ${DEVICE_JSON}                                      \
                     ${TMP_RUN_CMD_DIR}/docker_run_cdi_${SUFFIX_NAME}.sh                            \
                     ${QIMSDK_CONTAINER_NAME}                                                       \
                     ${QIMSDK_IMAGE_NAME}
@@ -1320,7 +1186,7 @@ function qimsdk-docker-device-run-cdi-container() {
                 return ${rc}
             }
 
-            declare -A SOC_LIST=$(cat ${MAPPINGS_JSON} | jq '.Soc[]' | tr -d '"')
+            declare -A SOC_LIST=$(cat ${DEVICE_JSON} | jq '.Soc[]' | tr -d '"')
 
             for SOC in ${SOC_LIST[@]}; do
                 [[ ${MACHINE} == ${SOC} ]] && {
@@ -1335,8 +1201,6 @@ function qimsdk-docker-device-run-cdi-container() {
             return -1
         }
 
-        adb shell "[ -d /etc/cdi ] || mkdir /etc/cdi"                                           && \
-        adb push ${QIMSDK_TMP_FOLDER}/docker-cdi-${TARGET_PLATFORM}.json /etc/cdi/              && \
         adb push ${TMP_RUN_CMD_DIR}/docker_run_cdi_${TARGET_PLATFORM}.sh /tmp/                  && \
         qimsdk-device-command "source /tmp/docker_run_cdi_${TARGET_PLATFORM}.sh"                || {
             rm -rf ${TMP_RUN_CMD_DIR}
@@ -1347,7 +1211,6 @@ function qimsdk-docker-device-run-cdi-container() {
 
         rm -rf ${TMP_RUN_CMD_DIR}
         qimsdk-device-command "rm -rf /tmp/docker_run_cdi_${TARGET_PLATFORM}.sh"
-        rm -rf ${QIMSDK_TMP_FOLDER}
     )
 
     rc=$?
@@ -1705,8 +1568,6 @@ print-blue "qimsdk-docker-device-save-image                                   <p
 echo "    Save selected device image, compose file and run command"
 print-blue "qimsdk-docker-device-load-image                                   <path-to-config-json>"
 echo "    Loads device image on the device"
-print-blue "qimsdk-docker-device-run-container                                <path-to-config-json>"
-echo "    Run device container"
 print-blue "qimsdk-docker-device-run-cdi-container                            <path-to-config-json>"
 echo "    Run device container in CDI mode"
 print-blue "qimsdk-docker-device-rm-container                                 <path-to-config-json>"

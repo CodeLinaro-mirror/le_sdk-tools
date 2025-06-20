@@ -159,13 +159,13 @@ service docker start
 
 ## Docker Images
 
-<div id="qnn-tools-builder">
-### qnn-tools-builder:
+<div id="qnn_builder">
+### qnn_builder:
     1. Clone QNN libs from host
     2. Put artifacts into Deploy directories
 
-<div id="qnn-tools-image">
-### qnn-tools-image:
+<div id="qnn">
+### qnn:
     1. Install additional developer tools
     2. Copy qnn artifacts from builder
 
@@ -178,17 +178,12 @@ service docker start
 ### How to fill out Configuration JSON File
 
 The json file must contain certain data :
- 1. ***MANDATORY*** - **Image** - Available options are "builder" and "image" - builder image is for development, while image is final image with qnn sdk
- 2. ***MANDATORY*** - **Acceleration_engines** - An array of Acceleration engines to be used in QML environment. If not needed, leave as is in the example config json. ***Every Acceleration engine from the array must contain:***
-    * 1.1. ***MANDATORY*** - **Acceleration_engine** - Acceleration engine to be used. If not needed, leave this field and the "Acceleration_engine_path" field with "-" value
-    * 1.2. ***MANDATORY*** - **Acceleration_engine_path** - path to unzipped acceleration engine archive directory with unzipped files for the AI engine specified in the "Acceleration_engine" field ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
- 3. ***MANDATORY*** - **Device_OS** - Available options are "la" and "le" - Linux Android or Linux Embedded
- 4. ***OPTIONAL*** - **Additional_tag** - Additional tag to be appended to the name of the container - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
- 5. ***MANDATORY*** -  **Target_platform** - Target device to select correct lib version for qnn.
+ 1. ***MANDATORY*** - **Qnn_Version** - SDK Version for QNP to be downloaded and installed. Example Value `"v2.25.0.240728"`
+ 2. ***MANDATORY*** - **Base_Image** - Base docker image to be used on the device. By default, it's ubuntu:24.04
+ 3. ***MANDATORY*** -  **Target_platform** - Target device platform, which can be kalama, qcs6490, qrb5165, etc.
+ 4. ***OPTIONAL*** - **Additional_tag** - Additional tag to be appended to the name of the container and image - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
+ 5. ***MANDATORY*** - **URL** - Remote destination to be able to sync image tar to this destination folder
  6. ***MANDATORY*** -  **DeviceID** - adb devices command ID of the device.
- 7. ***MANDATORY*** - **Qnn_Version** - for Lemans, it should be > 2.24
- 8. ***MANDATORY*** - **Base_Image** - by default Base image for final container image Ubuntu:22.04
-
 
 The json files must be created in the ```targets/``` directory. Example json files for each supported combination are located in ```targets/``` directory.
 
@@ -209,13 +204,13 @@ source scripts/host/docker_env_setup.sh
 
 qnn-device-prepare <Device-ID (optional argument)>
     Prepare device after reboot
-qnn-tools-host-build-image <targets/.json>
+qnn-tools-build-image <targets/.json>
     Build qnn-tools docker image on host
 qnn-tools-device-run-container <targets/.json>
     Run qnn container on device
 qnn-tools-device-start-container <targets/.json>
     Once image is loaded, start the container
-qnn-tools-host-save-image <targets/.json>
+qnn-tools-save-image <targets/.json>
     Save selected docker image on host
 qnn-tools-device-load-image <targets/.json>
     Load selected docker image image on device
@@ -229,10 +224,10 @@ qnn-tools-device-images-cleanup <targets/.json>
 
 The developer generally needs to build the image, load the image to the device and run the container.
 
-- qnn-tools-host-build-image <path-to-config-json> - Build docker image based on Dockerfile
+- qnn-tools-build-image <path-to-config-json> - Build docker image based on Dockerfile
 - qnn-tools-device-run-container <path-to-config-json> - Run loaded qnn-tools  image
 - qnn-device-prepare <Optional Device Id> - Prepare device after reboot
-- qnn-tools-host-save-image <path-to-config-json> - Saves the device images
+- qnn-tools-save-image <path-to-config-json> - Saves the device images
 - qnn-tools-device-load-image <path-to-config-json> - Takes the .tar file from host and loads device image on the device
 - qnn-tools-device-rm-container <path-to-config-json> - Remove device container
 - qnn-tools-device-start-container <path-to-config-json> - Start device container
@@ -274,12 +269,12 @@ qnn-device-prepare
 #### Compiling Device Docker Image
 
 ```bash
-qnn-tools-host-build-image <path-to-config-json>
+qnn-tools-build-image <path-to-config-json>
 ```
 #### Save Compiled Docker Image To Remote URL
 
 ```bash
-qnn-tools-host-save-image <path-to-config-json>
+qnn-tools-save-image <path-to-config-json>
 ```
 
 #### Load Saved Docker Image From Remote URL To Locally Connected Device

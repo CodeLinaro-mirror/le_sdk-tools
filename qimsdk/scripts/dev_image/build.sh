@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # Configure qimsdk meson Target
@@ -311,10 +311,10 @@ qimsdk-meson-build-gstreamer() {
             -Dtracer_hooks=false -Dlibunwind=disabled -Dbuild-all-plugins=false"
     local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
 
-    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
-# Meson build gst-plugins-base-1.24.9
+# Meson build gst-plugins-base-1.24.2
 qimsdk-meson-build-gst-plugins-base() {
     local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
             --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
@@ -328,10 +328,10 @@ qimsdk-meson-build-gst-plugins-base() {
             -Dx11=disabled -Dxvideo=disabled -Dxshm=disabled -Dbuild-all-plugins=false"
     local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
 
-    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
-# Meson build gst-plugins-good-1.24.9
+# Meson build gst-plugins-good-1.24.2
 qimsdk-meson-build-gst-plugins-good() {
     local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
             --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
@@ -350,7 +350,7 @@ qimsdk-meson-build-gst-plugins-good() {
             -Dadaptivedemux2=disabled -Dbuild-all-plugins=false"
     local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
 
-    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
 # Meson build pulseaudio
@@ -376,7 +376,7 @@ qimsdk-meson-build-pulseaudio() {
     qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-17.0 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
-# Meson build gst-plugins-bad-1.24.9
+# Meson build gst-plugins-bad-1.24.2
 qimsdk-meson-build-gst-plugins-bad() {
     local CONFIG_FLAGS="--prefix /usr --buildtype debug --bindir bin --sbindir sbin                \
             --datadir share --libdir lib/aarch64-linux-gnu --libexecdir libexec                    \
@@ -411,7 +411,7 @@ qimsdk-meson-build-gst-plugins-bad() {
             -Dbuild-all-plugins=false"
     local DESTINATION_DIR=${QIMSDK_INSTALL_DIR}
 
-    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9 ${DESTINATION_DIR} ${CONFIG_FLAGS}
+    qimsdk-meson-build ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2 ${DESTINATION_DIR} ${CONFIG_FLAGS}
 }
 
 # Meson build gstd
@@ -443,28 +443,28 @@ function qimsdk-meson-clean-wayland-protocols() {
 
 # Clean meson gstreamer1.0 build directory
 function qimsdk-meson-clean-gstreamer() {
-    rm -rf ${QIMSDK_BUILD_DIR}/gstreamer-1.24.9
+    rm -rf ${QIMSDK_BUILD_DIR}/gstreamer-1.24.2
 
     print-green "${FUNCNAME} completed successfully!"
 }
 
 # Clean meson gst-plugins-base build directory
 function qimsdk-meson-clean-gst-plugins-base() {
-    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-base-1.24.9
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-base-1.24.2
 
     print-green "${FUNCNAME} completed successfully!"
 }
 
 # Clean meson gst-plugins-good build directory
 function qimsdk-meson-clean-gst-plugins-good() {
-    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-good-1.24.9
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-good-1.24.2
 
     print-green "${FUNCNAME} completed successfully!"
 }
 
 # Clean meson gst-plugins-bad build directory
 function qimsdk-meson-clean-gst-plugins-bad() {
-    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-bad-1.24.9
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-bad-1.24.2
 
     print-green "${FUNCNAME} completed successfully!"
 }

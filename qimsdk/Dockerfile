@@ -1,6 +1,3 @@
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
-# SPDX-License-Identifier: BSD-3-Clause-Clear
-
 # QIMSDK Development Image
 FROM --platform=arm64 ubuntu:24.04 AS qimsdk_dev_image
 
@@ -45,6 +42,7 @@ RUN usermod -aG plugdev root
 
 # Add qimsdk install directory
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
+ENV QIMSDK_ADSP_DIR=${QIMSDK_INSTALL_DIR}/usr/lib/rfsa/adsp
 
 # Add qimsdk debug install directory
 ENV QIMSDK_INSTALL_DEBUG_DIR=${QIMSDK_BASE_DIR}/deploy_dbg
@@ -74,8 +72,9 @@ RUN git config --global http.postBuffer 157286400                               
     git checkout 63f5a65c7cd7b6241bede8d2e0082058566ea364
 
 # qnp-sdk: fetch and copy the needed headers
-ENV QIMSDK_QNP_VER=2.32.0.250228
+ENV QIMSDK_QNP_VER=2.35.0.250530
 ENV QIMSDK_QNP_SDK=v${QIMSDK_QNP_VER}.zip
+ENV QIMSDK_QNN_LIB_PATH=${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_QNP_VER}/lib/
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
         https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/${QIMSDK_QNP_VER}/${QIMSDK_QNP_SDK} && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
@@ -85,6 +84,113 @@ RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                   
     cp -r ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/SNPE/*                \
         ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QNN/*                   \
         /usr/include/                                                                           && \
+    mkdir -p ${QIMSDK_ADSP_DIR}                                                                 && \
+    cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v66/unsigned/* ${QIMSDK_ADSP_DIR}/                        && \
+    cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v68/unsigned/* ${QIMSDK_ADSP_DIR}/                        && \
+    cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v69/unsigned/* ${QIMSDK_ADSP_DIR}/                        && \
+    cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v73/unsigned/* ${QIMSDK_ADSP_DIR}/                        && \
+    cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v75/unsigned/* ${QIMSDK_ADSP_DIR}/                        && \
+    cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v79/unsigned/* ${QIMSDK_ADSP_DIR}/                        && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libhta_hexagon_runtime_qnn.so               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libhta_hexagon_runtime_snpe.so              \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libPlatformValidatorShared.so               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnChrometraceProfilingReader.so         \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnCpu.so                                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnDspNetRunExtensions.so                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnDsp.so                                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnDspV66CalculatorStub.so               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnDspV66Stub.so                         \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnGenAiTransformerCpuOpPkg.so           \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnGenAiTransformerModel.so              \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnGenAiTransformer.so                   \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnGpuNetRunExtensions.so                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnGpuProfilingReader.so                 \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnGpu.so                                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtaNetRunExtensions.so                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHta.so                                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpNetRunExtensions.so                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpOptraceProfilingReader.so          \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpPrepare.so                         \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpProfilingReader.so                 \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtp.so                                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV68CalculatorStub.so               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV68Stub.so                         \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV69CalculatorStub.so               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV69Stub.so                         \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV73CalculatorStub.so               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV73Stub.so                         \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV75CalculatorStub.so               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV75Stub.so                         \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV79CalculatorStub.so               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV79Stub.so                         \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnIr.so                                 \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnJsonProfilingReader.so                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnModelDlc.so                           \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnSaver.so                              \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnSystem.so                             \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnTFLiteDelegate.so                     \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeDspV66Stub.so                        \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHta.so                               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpPrepare.so                        \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV68CalculatorStub.so              \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV68Stub.so                        \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV73CalculatorStub.so              \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV73Stub.so                        \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV75CalculatorStub.so              \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV75Stub.so                        \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV79CalculatorStub.so              \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV79Stub.so                        \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSNPE.so                                  \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
     rm -rf ${QIMSDK_DOWNLOAD_DIR}/qairt
 
 # Add bash aliases file
@@ -119,22 +225,22 @@ RUN git init                                                                    
 
 # gstreamer: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        'https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.24.9.tar.xz'               && \
+        'https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.24.2.tar.xz'               && \
     wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-        'https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.24.9.tar.xz.asc'           && \
+        'https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.24.2.tar.xz.asc'           && \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
         D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
     gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9.tar.xz.asc                                \
-        ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9.tar.xz                                          && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2.tar.xz.asc                                \
+        ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2.tar.xz                                          && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf gstreamer-1.24.9.tar.xz                                                             && \
+    tar -xf gstreamer-1.24.2.tar.xz                                                             && \
     gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
-    rm -f gstreamer-1.24.9.tar.xz*
+    rm -f gstreamer-1.24.2.tar.xz*
 
-WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9
+WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.9            && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2            && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
@@ -142,22 +248,22 @@ RUN git init                                                                    
 
 # gst-plugins-base: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-    'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.9.tar.xz'     && \
+    'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.2.tar.xz'     && \
     wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-    'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.9.tar.xz.asc' && \
+    'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.24.2.tar.xz.asc' && \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
     D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                    && \
     gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9.tar.xz.asc                         \
-        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9.tar.xz                                   && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2.tar.xz.asc                         \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2.tar.xz                                   && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf gst-plugins-base-1.24.9.tar.xz                                                      && \
+    tar -xf gst-plugins-base-1.24.2.tar.xz                                                      && \
     gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
-    rm -f gst-plugins-base-1.24.9.tar.xz*
+    rm -f gst-plugins-base-1.24.2.tar.xz*
 
-WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9
+WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.9     && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2     && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
@@ -165,22 +271,22 @@ RUN git init                                                                    
 
 # gst-plugins-good: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.9.tar.xz' && \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.2.tar.xz' && \
     wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.9.tar.xz.asc' && \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.24.2.tar.xz.asc' && \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
         D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
     gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9.tar.xz.asc                         \
-        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9.tar.xz                                   && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2.tar.xz.asc                         \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2.tar.xz                                   && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf gst-plugins-good-1.24.9.tar.xz                                                      && \
+    tar -xf gst-plugins-good-1.24.2.tar.xz                                                      && \
     gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
-    rm -f gst-plugins-good-1.24.9.tar.xz*
+    rm -f gst-plugins-good-1.24.2.tar.xz*
 
-WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9
+WORKDIR ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.9     && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2     && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
@@ -188,22 +294,22 @@ RUN git init                                                                    
 
 # gst-plugins-bad: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.24.9.tar.xz'   && \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.24.2.tar.xz'   && \
     wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.24.9.tar.xz.asc' && \
+        'https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.24.2.tar.xz.asc' && \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
         D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
     gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9.tar.xz.asc                          \
-        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9.tar.xz                                    && \
+    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2.tar.xz.asc                          \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2.tar.xz                                    && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf gst-plugins-bad-1.24.9.tar.xz                                                       && \
+    tar -xf gst-plugins-bad-1.24.2.tar.xz                                                       && \
     gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
-    rm -f gst-plugins-bad-1.24.9.tar.xz*
+    rm -f gst-plugins-bad-1.24.2.tar.xz*
 
-WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9
+WORKDIR  ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2
 RUN git init                                                                                    && \
-    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.9      && \
+    git config --global --add safe.directory ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2      && \
     git config --global user.name "username"                                                    && \
     git config --global user.email "email"                                                      && \
     git add --all                                                                               && \
@@ -265,6 +371,10 @@ WORKDIR ${QIMSDK_BASE_DIR}
 
 # Call wrapper function to apply all patches
 RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-apply-patches
+
+# Setup pkg-config dir
+ENV QIMSDK_PKGCONFIG_DIR=/usr/lib/pkgconfig/
+COPY tmp/lib/pkgconfig/*.pc ${QIMSDK_PKGCONFIG_DIR}
 
 # Call wrapper build function to compile and install gst plugins
 RUN bash ${QIMSDK_SCRIPTS}/env_setup.sh qimsdk-incremental-build
@@ -342,7 +452,7 @@ RUN ulimit -n 16192
 # Copy installed binaries to device image
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/usr /usr
-COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/configs /etc/configs
+COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/etc/configs /etc/configs
 
 # Copy python examples
 COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-python-examples /usr/bin
@@ -377,6 +487,18 @@ ENV QIMSDK_RUNTIME_FLAGS_DIR=/opt/qti/runtime_flags/
 RUN mkdir -p ${QIMSDK_RUNTIME_FLAGS_DIR}
 
 COPY --chmod=644 tmp/*runtime_flags.json ${QIMSDK_RUNTIME_FLAGS_DIR}
+
+# Temporary: Resolve mismatching versioned libs versions
+RUN ln -s /usr/lib/libadreno_utils.so.1 /usr/lib/libadreno_utils.so.
+RUN ln -s /usr/lib/libadreno_utils.so.1 /usr/lib/libadreno_utils.so
+RUN ln -s /usr/lib/libcamera_metadata.so /usr/lib/libcamera_metadata.so.0
+RUN ln -s /usr/lib/libOpenCL.so.1 /usr/lib/libOpenCL.so
+RUN ln -s /usr/lib/libOpenCL_adreno.so.1 /usr/lib/libOpenCL_adreno.so
+RUN ln -s /usr/lib/libq3dtools_adreno.so.1 /usr/lib/libq3dtools_adreno.so
+RUN ln -s /usr/lib/libvulkan_adreno.so.1 /usr/lib/libvulkan_adreno.so
+RUN ln -s /usr/lib/libGLESv2_adreno.so.2 /usr/lib/libGLESv2_adreno.so
+RUN ln -s /usr/lib/libEGL.so.1 /usr/lib/libEGL.so
+RUN ln -s /usr/lib/libEGL_adreno.so.1 /usr/lib/libEGL_adreno.so
 
 # Change user to qimsdk
 USER qimsdk

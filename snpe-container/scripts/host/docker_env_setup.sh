@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 echo "Docker build environment setup"
@@ -49,26 +49,13 @@ function qml-docker-parse-json() {
         return -4
     }
 
-    local ADDITIONAL_TAG_CONTAINER=$(echo ${JSON_CONTENT} | jq '.Additional_tag_container' |
-        tr -d '"')
+    qml-get-container-and-image-name ${PATH_TO_CONFIG_JSON} QML_CONTAINER_NAME QML_IMAGE_NAME
 
-    if [ -z "${ADDITIONAL_TAG_CONTAINER}" -o "${ADDITIONAL_TAG_CONTAINER}"="null" ]; then
-        ADDITIONAL_TAG_CONTAINER=""
-    else
-        ADDITIONAL_TAG_CONTAINER="-${ADDITIONAL_TAG_CONTAINER}"
-    fi
-
-    OUT_QML_CONTAINER_NAME="qml${ADDITIONAL_TAG_CONTAINER}"
-
-    local ADDITIONAL_TAG_IMAGE=$(echo ${JSON_CONTENT} | jq '.Additional_tag_image' | tr -d '"')
-
-    if [ -z "${ADDITIONAL_TAG_IMAGE}" -o "${ADDITIONAL_TAG_IMAGE}"="null" ]; then
-        ADDITIONAL_TAG_IMAGE=""
-    else
-        ADDITIONAL_TAG_IMAGE="-${ADDITIONAL_TAG_IMAGE}"
-    fi
-
-    OUT_QML_IMAGE_NAME="qml${ADDITIONAL_TAG_IMAGE}"
+    local rc=$?
+    [ $rc -ne 0 ] && {
+        print-red "FAILED: qml-get-container-and-image-name !!!"
+        return -5
+    }
 
     return 0
 }
@@ -105,7 +92,7 @@ function qml-docker-build-image() {
         --build-arg QML_ARG_SDK_VERSION=${QML_SDK_VERSION}                                         \
         --build-arg QML_ARG_TARGET_PLATFORM=${QML_TARGET_PLATFORM}                                 \
         --build-arg QML_ARG_SDK_VER=${QML_SDK_VERS_STRING}                                         \
-        --progress=plain --target QML ${QML_DOCKER_DIR} -t ${QML_IMAGE_NAME} --load
+        --progress=plain --target qml ${QML_DOCKER_DIR} -t ${QML_IMAGE_NAME} --load
 
     rc=$?
     [ $rc -ne 0 ] && {
@@ -246,7 +233,7 @@ function qml-docker-device-run-container() {
             --device /dev/dma_heap/qcom,system                                                     \
             -v /usr/lib/libCB.so:/usr/lib/libCB.so                                                 \
             -v /usr/lib/libOpenCL.so:/usr/lib/libOpenCL.so                                         \
-            -v /usr/lib/libOpenCL_adreno.so:/usr/lib/libOpenCL_adreno.so                           \
+            -v /usr/lib/libOpenCL_adreno.so.1:/usr/lib/libOpenCL_adreno.so.1                       \
             -v /usr/lib/libdmabufheap.so.0:/usr/lib/libdmabufheap.so.0                             \
             -v /usr/lib/libgsl.so:/usr/lib/libgsl.so                                               \
             -v /usr/lib/libllvm-qcom.so:/usr/lib/libllvm-qcom.so                                   \
@@ -267,6 +254,56 @@ function qml-docker-device-run-container() {
     return 0
 }
 
+# Save docker image on the host
+#   $1 - (mandatory) path to target config json
+function qml-docker-host-save-image() {
+    local PATH_TO_CONFIG_JSON=$1
+    local QML_CONTAINER_NAME
+    local QML_IMAGE_NAME
+    local QML_URL
+
+    qml-get-container-and-image-name ${PATH_TO_CONFIG_JSON} QML_CONTAINER_NAME QML_IMAGE_NAME
+
+    local rc=$?
+    [ $rc -ne 0 ] && {
+        print-red "FAILED: qml-get-container-and-image-name !!!"
+        return $rc
+    }
+
+    qml-get-url ${PATH_TO_CONFIG_JSON} QML_URL
+    rc=$?
+    [ $rc -ne 0 ] && {
+        print-red "FAILED: qml-get-url !!!"
+        return $rc
+    }
+
+    [ ! -d "${QML_URL}" ]                               && {
+        mkdir -p ${QML_URL}
+
+        rc=$?
+        [ ${rc} -ne 0 ] && {
+            print-red "FAILED: mkdir -p ${QML_URL} !!!"
+            return ${rc}
+        }
+    }
+
+    local FILE_NAME="${QML_IMAGE_NAME}.tar"
+
+    docker save ${QML_IMAGE_NAME} -o ${QML_URL}/${FILE_NAME}
+
+    rc=$?
+    [ $rc -ne 0 ] && {
+        print-red "Device save image failed: docker save failed !!!"
+        rm ${QML_URL}/${FILE_NAME}
+
+        return $rc
+    }
+
+    print-green "Device save image successful !!!"
+
+    return 0
+}
+
 QML_DOCKER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
 
 source ${QML_DOCKER_DIR}/scripts/host/common.sh
@@ -277,3 +314,5 @@ print-blue "qml-docker-device-update-image                                    <p
 echo "    Update selected device image to the device"
 print-blue "qml-docker-device-run-container                                   <path-to-config-json>"
 echo "    Run device container"
+print-blue "qml-docker-host-save-image                                        <path-to-config-json>"
+echo "    Save docker image on host"

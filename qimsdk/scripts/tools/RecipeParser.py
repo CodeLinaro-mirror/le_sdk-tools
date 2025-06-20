@@ -1,4 +1,4 @@
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 import tempfile
@@ -240,12 +240,26 @@ class BBPatchParser(Parsable):
     def process(self):
         v = self.plugin_version
 
-        self.recipes["gstreamer"].bb_append.name = f"gstreamer1.0_{v}%.bbappend"
-        self.recipes["plugins_base"].bb_append.name = f"gstreamer1.0-plugins-base_{v}%.bbappend"
-        self.recipes["plugins_good"].bb_append.name = f"gstreamer1.0-plugins-good_{v}%.bbappend"
-        self.recipes["plugins_bad"].bb_append.name = f"gstreamer1.0-plugins-bad_{v}%.bbappend"
+        self.recipes["gstreamer"].bb_append.name = f"gstreamer1.0_{v}.bbappend"
+        self.recipes["plugins_base"].bb_append.name = f"gstreamer1.0-plugins-base_{v}.bbappend"
+        self.recipes["plugins_good"].bb_append.name = f"gstreamer1.0-plugins-good_{v}.bbappend"
+        self.recipes["plugins_bad"].bb_append.name = f"gstreamer1.0-plugins-bad_{v}.bbappend"
 
         for recipe in self.recipes.values():
+            path = recipe.bb_append.path
+
+            if "gstreamer1.0" in recipe.bb_append.name:
+                parts = recipe.bb_append.name.split("_")
+                prefix = parts[0]
+                suffix = parts[1].split(".")[-1]
+
+                full_path = os.path.join(path, recipe.bb_append.name)
+
+                if not os.path.exists(full_path):
+
+                    # Replace the middle part
+                    v_minor = "1.24%"
+                    recipe.bb_append.name = f"{prefix}_{v_minor}.{suffix}"
 
             recipe = self.__get_content_of_bb(
                 recipe
@@ -452,6 +466,7 @@ class BuildCodeGenerator(RecipeParser):
                         string.find("${PKG_CONFIG_SYSROOT_DIR}") != -1 or \
                         string.find("${bindir}") != -1 or \
                         string.find("${libdir}") != -1 or \
+                        string.find("${sysconfdir}") != -1 or \
                         string.find("${includedir}") != -1 or \
                         string.find("${PV}") != -1 or \
                         string.find("GST_VERSION_REQUIRED") != -1:
@@ -474,7 +489,7 @@ class BuildCodeGenerator(RecipeParser):
         with open(path_to_sh, "w") as build_plugins_sh:
             build_plugins_sh.write("""#!/bin/bash
 
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # THIS CODE IS AUTOMATICALLY GENERATED. DO NOT MODIFY IT !!!
@@ -554,7 +569,7 @@ class RuntimeFlagsGenerator(RecipeParser):
         super().__init__(path_to_layers, path_to_meta, platform)
 
         target_json = os.path.join(
-            os.getcwd(), f"targets/mappings_{self.platform}.json"
+            os.getcwd(), f"targets/{self.platform}.json"
         )
 
         list_of_socs = list(str())

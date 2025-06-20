@@ -1,4 +1,4 @@
-# Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 import os
@@ -148,7 +148,7 @@ class Docker():
         for platform in self.platforms:
 
             mappings_json = os.path.join(
-                self.targets_dir, f"mappings_{platform}.json")
+                self.targets_dir, f"{platform}.json")
 
             with open(mappings_json, "r") as json_fd:
                 json_content = json.load(json_fd)
