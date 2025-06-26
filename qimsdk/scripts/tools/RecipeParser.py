@@ -136,7 +136,6 @@ class BBPatchParser(Parsable):
         self.recipes["pulseaudio"].title = "pulseaudio"
 
         self.recipes["wayland"].bb_append.name = "wayland-protocols_%.bbappend"
-        self.recipes["gstreamer"].bb_append.name = "gstreamer1.0_*.bbappend"
         self.recipes["gstd"].bb_append.name = "gstd_*%.bbappend"
         self.recipes["pulseaudio"].bb_append.name = "pulseaudio_*.bbappend"
 
@@ -240,10 +239,12 @@ class BBPatchParser(Parsable):
     def process(self):
         v = self.plugin_version
 
-        self.recipes["gstreamer"].bb_append.name = f"gstreamer1.0_{v}.bbappend"
-        self.recipes["plugins_base"].bb_append.name = f"gstreamer1.0-plugins-base_{v}.bbappend"
-        self.recipes["plugins_good"].bb_append.name = f"gstreamer1.0-plugins-good_{v}.bbappend"
-        self.recipes["plugins_bad"].bb_append.name = f"gstreamer1.0-plugins-bad_{v}.bbappend"
+        major, minor, patch = self.plugin_version.split(".")
+
+        self.recipes["gstreamer"].bb_append.name = f"gstreamer1.0_{v}.inc"
+        self.recipes["plugins_base"].bb_append.name = f"gstreamer1.0-plugins-base_{v}.inc"
+        self.recipes["plugins_good"].bb_append.name = f"gstreamer1.0-plugins-good_{v}.inc"
+        self.recipes["plugins_bad"].bb_append.name = f"gstreamer1.0-plugins-bad_{v}.inc"
 
         for recipe in self.recipes.values():
             path = recipe.bb_append.path
@@ -258,20 +259,14 @@ class BBPatchParser(Parsable):
                 if not os.path.exists(full_path):
 
                     # Replace the middle part
-                    v_minor = "1.24%"
-                    recipe.bb_append.name = f"{prefix}_{v_minor}.{suffix}"
+                    middle = f"{major}.{minor}%"
+                    recipe.bb_append.name = f"{prefix}_{middle}.{suffix}"
 
-            recipe = self.__get_content_of_bb(
-                recipe
-            )
+            recipe = self.__get_content_of_bb(recipe)
 
-            recipe = self.__get_content_of_bbappend(
-                recipe
-            )
+            recipe = self.__get_content_of_bbappend(recipe)
 
-            recipe = self.__get_patches(
-                recipe
-            )
+            recipe = self.__get_patches(recipe)
 
     def export(self, path_to_tmp: pathlib.Path):
 
@@ -333,6 +328,8 @@ class RecipeParser(Parsable):
 
 
 class BuildCodeGenerator(RecipeParser):
+    files_to_be_parsed = list(str())
+    mode = str()
 
     # Init of RecipeParser
     # Reads the recipes and buffers them in dictionary (plugin : content)
@@ -340,15 +337,23 @@ class BuildCodeGenerator(RecipeParser):
                 platform: str) -> None:
         super().__init__(path_to_layers, path_to_meta, platform)
 
-        files_to_be_parsed = [
-            "recipes-gst/packagegroups/packagegroup-qcom-gst.bb",
-            "recipes-qim-product-sdk/packagegroups/packagegroup-qcom-gst.bbappend",
+        # Insert these files at the beginning of list
+        self.files_to_be_parsed.insert(
+            0, "recipes-qim-product-sdk/packagegroups/packagegroup-qcom-gst.bbappend"
+        )
+        self.files_to_be_parsed.insert(
+            0, "recipes-gst/packagegroups/packagegroup-qcom-gst.bb"
+        )
+        self.files_to_be_parsed.insert(
+            0, "recipes-gst/packagegroups/packagegroup-qcom-gst-basic.bb"
+        )
+        self.files_to_be_parsed.append("" \
             "recipes-gst/packagegroups/packagegroup-qcom-gst-sample-apps.bb"
-        ]
+        "")
 
         plugins = str()
 
-        for file_name in files_to_be_parsed:
+        for file_name in self.files_to_be_parsed:
             content = str()
 
             file_to_open = str()
@@ -368,8 +373,12 @@ class BuildCodeGenerator(RecipeParser):
 
             # No need to parse package group class
             content = content.replace("inherit packagegroup", "")
+
+            content = content.replace(":qcom ", "")
+
             # Remove qcom-custom-bsp since OVERRIDES can select only by one criteria: target
             content = content.replace(":qcom-custom-bsp", "")
+
             # Replace hardcoded package name with variable
             content = content.replace("RDEPENDS:packagegroup-qcom-gst", "RDEPENDS:${PN}")
 
@@ -385,7 +394,7 @@ class BuildCodeGenerator(RecipeParser):
             else:
                 bb_parsed.setVar("OVERRIDES", self.platform)
 
-            plugins += bb_parsed.getVar("RDEPENDS:${PN}")
+            plugins += str(bb_parsed.getVar("RDEPENDS:${PN}"))
 
         # Plugins that are not enabled yet should be append to the blacklist
         blacklisted = [
