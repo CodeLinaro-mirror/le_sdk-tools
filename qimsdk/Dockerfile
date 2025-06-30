@@ -499,6 +499,8 @@ RUN ln -s /usr/lib/libvulkan_adreno.so.1 /usr/lib/libvulkan_adreno.so
 RUN ln -s /usr/lib/libGLESv2_adreno.so.2 /usr/lib/libGLESv2_adreno.so
 RUN ln -s /usr/lib/libEGL.so.1 /usr/lib/libEGL.so
 RUN ln -s /usr/lib/libEGL_adreno.so.1 /usr/lib/libEGL_adreno.so
+RUN ln -s /usr/lib/libtensorflowlite_c.so /usr/lib/libtensorflowlite_c.so.2
+RUN ln -s /usr/lib/libtensorflowlite_c.so /usr/lib/libtensorflowlite_c.so.2.16.1
 
 # Change user to qimsdk
 USER qimsdk
