@@ -387,7 +387,8 @@ function qimsdk-docker-build-initialize() {
                                  `libglesv2 libllvm-glnext libllvm-qcom libllvm-qgl libopencl `
                                  `libopencl_adreno libq3dtools_adreno libq3dtools_esx `
                                  `libvulkan_adreno libadsprpc libcdsprpc libfastcvopt `
-                                 `libfastcvdsp_stub libc++ libc++abi"
+                                 `libfastcvdsp_stub libc++ libc++abi libproperty-vault `
+                                 `tensorflow-lite"
 
         for LIB_NAME in ${PLATFORM_LIBS[@]}; do
             local PREFIX=`echo ${LIB_NAME} | cut -c1-3`
