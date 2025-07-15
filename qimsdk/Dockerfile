@@ -351,7 +351,7 @@ RUN mkdir -p ${QIMSDK_SRC_DIR}/le-services
 COPY tmp/le-services ${QIMSDK_SRC_DIR}/le-services
 
 RUN mkdir -p ${QIMSDK_SRC_DIR}/solutions-microservices
-COPY tmp/solutions-microservices ${QIMSDK_SRC_DIR}/solutions-microservices
+COPY tmp/solutions-microservices/microservices/qimsdk ${QIMSDK_SRC_DIR}/solutions-microservices
 
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/tmp/scripts/
@@ -464,22 +464,22 @@ COPY --from=qimsdk_dev_image                                                    
 
 # Copy qimsdk microservices shell scripts
 COPY --from=qimsdk_dev_image --chmod=755                                                           \
-        ${QIMSDK_BASE_DIR}/src/solutions-microservices/ai/24-stream-ai-concurrency/qimsdk_24_stream_ai_concurrency.sh \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/pipelines/24-stream-ai-concurrency/qimsdk_24_stream_ai_concurrency.sh \
         /usr/bin/
 COPY --from=qimsdk_dev_image --chmod=755                                                           \
-        ${QIMSDK_BASE_DIR}/src/solutions-microservices/ai/access-control/qimsdk_access_control.sh  \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/pipelines/access-control/qimsdk_access_control.sh  \
         /usr/bin/
 COPY --from=qimsdk_dev_image --chmod=755                                                           \
-        ${QIMSDK_BASE_DIR}/src/solutions-microservices/ai/daisy-chain/qimsdk_daisy_chain.sh        \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/pipelines/daisy-chain/qimsdk_daisy_chain.sh        \
         /usr/bin/
 COPY --from=qimsdk_dev_image --chmod=755                                                           \
-        ${QIMSDK_BASE_DIR}/src/solutions-microservices/ai/person-detect/qimsdk_person_detect.sh    \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/pipelines/person-detect/qimsdk_person_detect.sh    \
         /usr/bin/
 COPY --from=qimsdk_dev_image --chmod=755                                                           \
-        ${QIMSDK_BASE_DIR}/src/solutions-microservices/ai/ppe/qimsdk_ppe.sh                        \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/pipelines/ppe/qimsdk_ppe.sh                        \
         /usr/bin/
 COPY --from=qimsdk_dev_image --chmod=755                                                           \
-        ${QIMSDK_BASE_DIR}/src/solutions-microservices/ai/rz/qimsdk_restricted_zone.sh             \
+        ${QIMSDK_BASE_DIR}/src/solutions-microservices/pipelines/rz/qimsdk_restricted_zone.sh             \
         /usr/bin/
 
 # Add json file with content of runtime flags
