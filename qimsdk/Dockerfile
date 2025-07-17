@@ -223,6 +223,10 @@ RUN git init                                                                    
     git add --all                                                                               && \
     git commit -m "Initial wayland protocols Commit"
 
+#Set locale
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
 # gstreamer: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
         'https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.24.2.tar.xz'               && \
