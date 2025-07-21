@@ -2,6 +2,8 @@
     "Additional_tag_container": "",
     "Additional_tag_image": "",
     "Docker_image_path": "",
+    "IM_SDK_Source_Branch": "imsdk.lnx.2.0.0.r2-rel",
+    "Solution_Microservices_Branch": "iot-solutions.lnx.1.0.r1-rel",
     "Supported_targets" : [
         "qcm6490_ubun",
         "qcs9100_ubun"

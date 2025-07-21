@@ -7,6 +7,8 @@ function qimsdk-docker-build-image() {
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
+    local QIMSDK_IMSDK_SRC_BRANCH
+    local QIMSDK_SOLUTIONS_BRANCH
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -18,8 +20,20 @@ function qimsdk-docker-build-image() {
         return ${rc}
     }
 
+    qimsdk-get-branch-names ${PATH_TO_CONFIG_JSON}                                                 \
+            QIMSDK_IMSDK_SRC_BRANCH                                                                \
+            QIMSDK_SOLUTIONS_BRANCH
+
+    local rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-branch-names !!!"
+        return ${rc}
+    }
+
     DOCKER_BUILDKIT=1 docker build                                                                 \
             --progress=plain --target qimsdk_ubun_image                                            \
+            --build-arg QIMSDK_ARG_IMSDK_SRC_BRANCH=${QIMSDK_IMSDK_SRC_BRANCH}                     \
+            --build-arg QIMSDK_ARG_SOLUTIONS_BRANCH=${QIMSDK_SOLUTIONS_BRANCH}                     \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}
 
     rc=$?
@@ -129,24 +143,25 @@ function qimsdk-docker-save-image() {
 
             return ${rc}
         }
-
-        qimsdk-sync-to-remote-and-clean ${QIMSDK_DOCKER_DIR}/scripts/generate_cdi_json.sh          \
-                ${DOCKER_IMAGE_PATH}
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-
-            return ${rc}
-        }
     done
+
+    cp ${QIMSDK_DOCKER_DIR}/scripts/generate_cdi_json.sh ${COMMON_PATH}
+    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/generate_cdi_json.sh                            \
+            ${DOCKER_IMAGE_PATH}
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+
+        return ${rc}
+    }
 
     print-green "Device save image successful !!!"
 
     return 0
 }
 
-QIMSDK_DOCKER_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+QIMSDK_DOCKER_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/.. && pwd )"
 source ${QIMSDK_DOCKER_DIR}/scripts/common.sh
 
 print-green "Docker build environment setup"

@@ -99,20 +99,20 @@ function qimsdk-get-branch-names() {
 
     local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
 
-    local QIMSDK_IMSDK_SRC_BRANCH=$(
+    local IMSDK_SRC_BRANCH=$(
         echo ${JSON_CONTENT} |  jq '.IM_SDK_Source_Branch' | tr -d '"'
     )
 
-    [ ! -z "${QIMSDK_IMSDK_SRC_BRANCH}" ] && {
-        OUT_QIMSDK_IMSDK_SRC_BRANCH="-${QIMSDK_IMSDK_SRC_BRANCH}"
+    [ ! -z "${IMSDK_SRC_BRANCH}" ] && {
+        OUT_QIMSDK_IMSDK_SRC_BRANCH="${IMSDK_SRC_BRANCH}"
     }
 
-    local QIMSDK_SOLUTIONS_BRANCH=$(
+    local SOLUTIONS_BRANCH=$(
         echo ${JSON_CONTENT} |  jq '.Solution_Microservices_Branch' | tr -d '"'
     )
 
-    [ ! -z "${QIMSDK_SOLUTIONS_BRANCH}" ] && {
-        OUT_QIMSDK_SOLUTIONS_BRANCH="-${QIMSDK_SOLUTIONS_BRANCH}"
+    [ ! -z "${SOLUTIONS_BRANCH}" ] && {
+        OUT_QIMSDK_SOLUTIONS_BRANCH="${SOLUTIONS_BRANCH}"
     }
 
     return 0
