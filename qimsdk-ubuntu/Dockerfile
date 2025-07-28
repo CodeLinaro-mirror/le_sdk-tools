@@ -16,15 +16,8 @@ RUN apt-get update                                                              
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
 
-# Create USER and add to required groups for accessing devices
-RUN addgroup qcom                                                                               && \
-    useradd -s /bin/bash -m -g qcom qimsdk                                                      && \
-    usermod -aG video qimsdk                                                                    && \
-    usermod -aG kmem qimsdk                                                                     && \
-    echo qimsdk:asd | chpasswd
-
-# Change user to qimsdk
-USER qimsdk
+# Change user to ubuntu
+USER ubuntu
 
 # Change workdir to user home
-WORKDIR /home/qimsdk
+WORKDIR /home/ubuntu
