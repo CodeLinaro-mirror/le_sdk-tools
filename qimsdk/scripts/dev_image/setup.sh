@@ -8,8 +8,10 @@
 function qimsdk-apply-patch() {
     local PATCH_FILE=${1}
 
-    git am ${PATCH_FILE} || {
-        echo "Failed to apply patch ${PATCH_FILE}!" && return -1
+    sed -i '1,/^[^+#]/ { /^[+]*#/d; }' ${PATCH_FILE}                                            && \
+            git am ${PATCH_FILE}                                                                || {
+        echo "Failed to apply patch ${PATCH_FILE}!"
+        return -1
     }
 }
 
@@ -26,7 +28,12 @@ function qimsdk-apply-patches() {
 
 # Apply patches to gstreamer-1-24-2
 function qimsdk-apply-patches-gstreamer-1-24-2() {
-    [ -d "${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2" ] && (
+    [ -d "${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2" ] || {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2 !"
+        return -1
+    }
+
+    (
         local PATH_TO_PATCHES="${QIMSDK_PATCHES_DIR}/gstreamer-1.24.2"
 
         local PLUGINS_BASE_PATCHES=$(
@@ -38,15 +45,17 @@ function qimsdk-apply-patches-gstreamer-1-24-2() {
         for PATCH in ${PLUGINS_BASE_PATCHES}; do
             qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
         done
-    ) || {
-        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gstreamer-1.24.2 !"
-        return -1
-    }
+    )
 }
 
 # Apply patches to wayland-protocols-1.33
 function qimsdk-apply-patches-wayland-protocols-1-33() {
-    [ -d "${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.33" ] && (
+    [ -d "${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.33" ]|| {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.33 !"
+        return -1
+    }
+
+    (
         local PATH_TO_PATCHES="${QIMSDK_PATCHES_DIR}/wayland-protocols-1.33"
         local WAYLAND_PATCHES=$(cat ${QIMSDK_RECIPES_JSON} | jq '.wayland[]' | tr -d '"')
 
@@ -55,15 +64,17 @@ function qimsdk-apply-patches-wayland-protocols-1-33() {
         for PATCH in ${WAYLAND_PATCHES}; do
             qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
         done
-    ) || {
-        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/wayland-protocols-1.33 !"
-        return -1
-    }
+    )
 }
 
 # Apply patches to gst-plugins-base-1.24.2
 function qimsdk-apply-patches-gst-plugins-base-1-24-2() {
-    [ -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2" ] && (
+    [ -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2" ] || {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2 !"
+        return -1
+    }
+
+    (
         local PATH_TO_PATCHES="${QIMSDK_PATCHES_DIR}/gst-plugins-base-1.24.2"
 
         local PLUGINS_BASE_PATCHES=$(
@@ -75,16 +86,18 @@ function qimsdk-apply-patches-gst-plugins-base-1-24-2() {
         for PATCH in ${PLUGINS_BASE_PATCHES}; do
             qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
         done
-    ) || {
-        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.24.2 !"
-        return -1
-    }
+    )
 }
 
 # Apply patches to gst-plugins-good-1.24.2
 function qimsdk-apply-patches-gst-plugins-good-1-24-2() {
 
-    [ -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2" ] && (
+    [ -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2" ] || {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2 !"
+        return -1
+    }
+
+    (
         local PATH_TO_PATCHES="${QIMSDK_PATCHES_DIR}/gst-plugins-good-1.24.2"
 
         local PLUGINS_GOOD_PATCHES=$(
@@ -96,15 +109,17 @@ function qimsdk-apply-patches-gst-plugins-good-1-24-2() {
         for PATCH in ${PLUGINS_GOOD_PATCHES}; do
             qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
         done
-    ) || {
-        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.24.2 !"
-        return -1
-    }
+    )
 }
 
 # Apply patches to gst-plugins-bad-1.24.2
 function qimsdk-apply-patches-gst-plugins-bad-1-24-2() {
-    [ -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2" ] && (
+    [ -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2" ] || {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2 !"
+        return -1
+    }
+
+    (
         local PATH_TO_PATCHES="${QIMSDK_PATCHES_DIR}/gst-plugins-bad-1.24.2"
 
         local PLUGINS_BAD_PATCHES=$(
@@ -116,15 +131,17 @@ function qimsdk-apply-patches-gst-plugins-bad-1-24-2() {
         for PATCH in ${PLUGINS_BAD_PATCHES}; do
             qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
         done
-    ) || {
-        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad-1.24.2 !"
-        return -1
-    }
+    )
 }
 
 # Apply patches to pulseaudio
 function qimsdk-apply-patches-pulseaudio() {
-    [ -d "${QIMSDK_DOWNLOAD_DIR}/pulseaudio-17.0" ] && (
+    [ -d "${QIMSDK_DOWNLOAD_DIR}/pulseaudio-17.0" ] || {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-17.0 !"
+        return -1
+    }
+
+    (
         local PATH_TO_PATCHES="${QIMSDK_PATCHES_DIR}/pulseaudio"
 
         local PULSEAUDIO_PATCHES=$(
@@ -136,15 +153,17 @@ function qimsdk-apply-patches-pulseaudio() {
         for PATCH in ${PULSEAUDIO_PATCHES}; do
             qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
         done
-    ) || {
-        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/pulseaudio-17.0 !"
-        return -1
-    }
+    )
 }
 
 # Apply patches to gstd
 function qimsdk-apply-patches-gstd() {
-    [ -d "${QIMSDK_DOWNLOAD_DIR}/gstd-1.x" ] && (
+    [ -d "${QIMSDK_DOWNLOAD_DIR}/gstd-1.x" ] || {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gstd-1.x !"
+        return -1
+    }
+
+    (
         local PATH_TO_PATCHES="${QIMSDK_PATCHES_DIR}/gstd"
 
         local GSTD_PATCHES=$(
@@ -156,10 +175,7 @@ function qimsdk-apply-patches-gstd() {
         for PATCH in ${GSTD_PATCHES}; do
             qimsdk-apply-patch ${PATH_TO_PATCHES}/${PATCH}
         done
-    ) || {
-        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gstd-1.x !"
-        return -1
-    }
+    )
 }
 
 # Copy the Tensorflow Lite's headers and dependent headers to the sysroot
