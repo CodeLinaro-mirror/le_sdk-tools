@@ -3,6 +3,7 @@
     "Additional_tag_image": "",
     "Docker_image_path": "",
     "Supported_targets" : [
-        "qcm6490_ubun"
+        "qcm6490_ubun",
+        "qcs9100_ubun"
     ]
 }

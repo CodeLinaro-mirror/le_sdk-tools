@@ -104,31 +104,7 @@ function qimsdk-docker-save-image() {
     )
 
     for SUFFIX_NAME in ${PLATFORMS[@]}; do
-        local DEVICE_JSON="${QIMSDK_DOCKER_DIR}/${SUFFIX_NAME}.json"
-
-        qimsdk-generate-docker-run-cmd ${DEVICE_JSON}                                              \
-                ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                                        \
-                ${QIMSDK_CONTAINER_NAME}                                                           \
-                ${QIMSDK_IMAGE_NAME}
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-red "Generate ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh file failed !!!"
-            rm -f ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh
-
-            return ${rc}
-        }
-
-        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                \
-                ${DOCKER_IMAGE_PATH}
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-            rm -f ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh
-
-            return ${rc}
-        }
+        local DEVICE_JSON="${QIMSDK_DOCKER_DIR}/targets/${SUFFIX_NAME}.json"
 
         qimsdk-generate-docker-run-cdi-cmd ${DEVICE_JSON}                                          \
                 ${COMMON_PATH}/docker_run_cdi_${SUFFIX_NAME}.sh                                    \
@@ -154,28 +130,12 @@ function qimsdk-docker-save-image() {
             return ${rc}
         }
 
-        mkdir -p ${COMMON_PATH}/${SUFFIX_NAME}
-
-        qimsdk-generate-docker-cdi-specs ${DEVICE_JSON}                                            \
-                ${COMMON_PATH}/${SUFFIX_NAME}/docker-run-cdi-hw-acc.json
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-red "Generate qimsdk docker cdi file failed !!!"
-            rm -f ${COMMON_PATH}/${SUFFIX_NAME}/docker-run-cdi-hw-acc.json
-
-            return ${rc}
-        }
-
-        mkdir -p ${DOCKER_IMAGE_PATH}/${SUFFIX_NAME}
-
-        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/${SUFFIX_NAME}/docker-run-cdi-hw-acc.json   \
-                ${DOCKER_IMAGE_PATH}/${SUFFIX_NAME}/
+        qimsdk-sync-to-remote-and-clean ${QIMSDK_DOCKER_DIR}/scripts/generate_cdi_json.sh          \
+                ${DOCKER_IMAGE_PATH}
 
         rc=$?
         [ ${rc} -ne 0 ] && {
             print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-            rm -f ${COMMON_PATH}/${SUFFIX_NAME}/docker-run-cdi-hw-acc.json
 
             return ${rc}
         }
@@ -187,7 +147,7 @@ function qimsdk-docker-save-image() {
 }
 
 QIMSDK_DOCKER_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source ${QIMSDK_DOCKER_DIR}/common.sh
+source ${QIMSDK_DOCKER_DIR}/scripts/common.sh
 
 print-green "Docker build environment setup"
 echo "=============================="
