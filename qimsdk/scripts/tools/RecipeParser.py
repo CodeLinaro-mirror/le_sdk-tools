@@ -529,13 +529,39 @@ function qimsdk-cmake-clean-${plugin}() {
 function qimsdk-incremental-build-qti() {
 """)
 
-            for plugin in self.plugins:
-                if plugin == self.plugins[0]:
-                    content = ""
-                else:
-                    content = "    "
-                content += "    qimsdk-cmake-build-" + plugin + " && \\\n"
+            base_plugins = [
+                    "qcom-gstreamer1.0-plugins-oss-base",
+                    "qcom-gstreamer1.0-plugins-oss-tools",
+                    "qcom-gst-sample-apps-utils"
+                    ]
+
+            # Remove from list with parallelized plugins as they won't be parallelized
+            for base_plugin in base_plugins:
+                if base_plugin in self.plugins:
+                    self.plugins.remove(base_plugin)
+
+            # Number of available cores, or number of parallelized plugins that needs to be built
+            # Whichever is less
+            needed_threads = os.cpu_count()
+            plugins_count = len(self.plugins)
+            if plugins_count < needed_threads:
+                needed_threads = plugins_count
+
+            for base_plugin in base_plugins:
+                content = "    qimsdk-cmake-build-" + base_plugin + " && \\\n"
                 build_plugins_sh.write(content)
+
+            # Add plugins in batches of n, where n is the number of available threads
+            content = ""
+            for i in range(0, plugins_count, needed_threads):
+                batch = self.plugins[ i:i + needed_threads ]
+                content += "    (\n"
+                content += "        trap 'kill 0' SIGINT;\n"
+                for task in batch:
+                    content += "        qimsdk-cmake-build-" + task + " || kill 0 & \\\n"
+                content += "        wait\n"
+                content += "    ) && \\\n"
+            build_plugins_sh.write(content)
 
             build_plugins_sh.write("""        echo "QTI build completed !!!"
 }
