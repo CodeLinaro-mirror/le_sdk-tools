@@ -506,6 +506,15 @@ RUN ln -s /usr/lib/libEGL_adreno.so.1 /usr/lib/libEGL_adreno.so
 RUN ln -s /usr/lib/libtensorflowlite_c.so /usr/lib/libtensorflowlite_c.so.2
 RUN ln -s /usr/lib/libtensorflowlite_c.so /usr/lib/libtensorflowlite_c.so.2.16.1
 
+# Eliminate redundant libraries in /usr/lib/aarch64-linux-gnu
+# that are already mapped or available through the platform's default library paths.
+RUN rm /usr/lib/aarch64-linux-gnu/libEGL.so.1*
+RUN rm /usr/lib/aarch64-linux-gnu/libGLESv2.so.2*
+RUN rm /usr/lib/aarch64-linux-gnu/libOpenCL.so.1
+RUN rm /usr/lib/aarch64-linux-gnu/libgbm.so*
+RUN rm /usr/lib/aarch64-linux-gnu/libwayland-client.so.0
+RUN rm /usr/lib/aarch64-linux-gnu/libwayland-egl.so.1
+
 # Change user to qimsdk
 USER qimsdk
 
