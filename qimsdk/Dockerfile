@@ -492,6 +492,11 @@ RUN mkdir -p ${QIMSDK_RUNTIME_FLAGS_DIR}
 
 COPY --chmod=644 tmp/*runtime_flags.json ${QIMSDK_RUNTIME_FLAGS_DIR}
 
+# Add compare python scripts to the qimsdk device image,
+# and append to .bashrc to check for detecting whether mounted libs.
+COPY scripts/tools/compare.py /opt/qti/compare.py
+RUN echo 'python3 /opt/qti/compare.py' >> /home/qimsdk/.bashrc
+
 # Temporary: Resolve mismatching versioned libs versions
 RUN ln -s /usr/lib/libadreno_utils.so.1 /usr/lib/libadreno_utils.so.
 RUN ln -s /usr/lib/libadreno_utils.so.1 /usr/lib/libadreno_utils.so
