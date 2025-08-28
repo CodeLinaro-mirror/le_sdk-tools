@@ -297,7 +297,7 @@ function qimsdk-docker-build-initialize() {
 
     rsync -aR ./usr/include/fastcv/fastcv.h                                                        \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/iot-core-algs/ib2c.h                                                   \
+    rsync -aR ./usr/include/gstreamer-1.0/gst/gfx/ib2c.h                                           \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
     rsync -aR ./usr/include/CL/cl_ext_qcom.h                                                       \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
