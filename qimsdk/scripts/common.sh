@@ -670,7 +670,7 @@ function qimsdk-get-map-for-dev-container() {
     }
 
     [ -d ${SOLUTION_MICROSERVICES_DIR} ] && {
-        DEV_MAP_ARR+="-v ${SOLUTION_MICROSERVICES_DIR}:/mnt/work/src/solutions-microservices "
+        DEV_MAP_ARR+="-v ${SOLUTION_MICROSERVICES_DIR}/microservices/qimsdk:/mnt/work/src/solutions-microservices "
     }
 
     OUT_DEV_MAP=${DEV_MAP_ARR}

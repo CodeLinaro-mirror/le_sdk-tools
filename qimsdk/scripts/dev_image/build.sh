@@ -430,7 +430,7 @@ function qimsdk-cmake-build-le-services () {
 
 # CMake Build solutions-microservices
 function qimsdk-cmake-build-solutions-microservices () {
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/solutions-microservices/ai                             && \
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/solutions-microservices && \
             print-green "${FUNCNAME} completed successfully!"
 }
 

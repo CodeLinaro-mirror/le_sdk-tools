@@ -387,7 +387,8 @@ function qimsdk-docker-build-initialize() {
                                  `libglesv2 libllvm-glnext libllvm-qcom libllvm-qgl libopencl `
                                  `libopencl_adreno libq3dtools_adreno libq3dtools_esx `
                                  `libvulkan_adreno libadsprpc libcdsprpc libfastcvopt `
-                                 `libfastcvdsp_stub libc++ libc++abi"
+                                 `libfastcvdsp_stub libc++ libc++abi libproperty-vault `
+                                 `tensorflow-lite qcom-video-ctrl"
 
         for LIB_NAME in ${PLATFORM_LIBS[@]}; do
             local PREFIX=`echo ${LIB_NAME} | cut -c1-3`
@@ -1009,9 +1010,12 @@ function qimsdk-dev-docker-run-container() {
     qimsdk-get-map-for-dev-container ${PATH_TO_CONFIG_JSON}                                        \
             DEVELOPMENT_MAP
 
+    local USB_DEVICE=""
+    [ -d /dev/bus/usb ] && USB_DEVICE="--device /dev/bus/usb"
+
     docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME}_dev                                   \
             --name ${QIMSDK_CONTAINER_NAME}_dev                                                    \
-            --device /dev/bus/usb ${DEVELOPMENT_MAP}                                               \
+            ${USB_DEVICE} ${DEVELOPMENT_MAP}                                                       \
             ${QIMSDK_IMAGE_NAME}_dev bash
 
     rc=$?
