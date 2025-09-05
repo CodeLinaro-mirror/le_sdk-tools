@@ -539,17 +539,19 @@ function qimsdk-dev-docker-build-image() {
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
-    local DOCKER_IMAGE_PATH
+    local HOST_DOCKER_IMAGE_PATH
     local QIMSDK_DEVICE_ID
     local QIMSDK_BASE_DIR
     local QIMSDK_TMP_FOLDER
+
+    local DOCKER_IMAGE_PATH="/mnt/work/dev_artifacts"
 
     qimsdk-docker-build-initialize ${PATH_TO_CONFIG_JSON}                                          \
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_BASE_DIR                                                                        \
             QIMSDK_TMP_FOLDER                                                                      \
-            DOCKER_IMAGE_PATH                                                                      \
+            HOST_DOCKER_IMAGE_PATH                                                                 \
             QIMSDK_DEVICE_ID
 
     local rc=$?

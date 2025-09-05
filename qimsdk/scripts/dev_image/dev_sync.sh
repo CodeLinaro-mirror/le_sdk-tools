@@ -6,6 +6,8 @@
 # Save artifacts to Docker_image_path provided in config json file.
 #   $1 - (mandatory) artifacts variant - release or debug
 function qimsdk-dev-save-artifacts-variant() {
+    mkdir -p ${QIMSDK_DOCKER_IMAGE_PATH}
+
     local VARIANT=${1}
     [ "${VARIANT}" == "release" ] || [ "${VARIANT}" == "debug" ] || {
         print-red "Failed to save ${VARIANT} packages !!!"
