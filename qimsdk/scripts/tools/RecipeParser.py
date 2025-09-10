@@ -15,9 +15,12 @@ from abc import ABC, abstractmethod
 class Parsable(ABC):
     def __init__(self, path_to_layers: pathlib.Path, path_to_meta: pathlib.Path,
                 platform: str) -> None:
+
+        self.path_to_tmp = str()
+
         # Append bitbake library path to the system path
         # to be able to import Non-standart modules
-        # aka bb modules from eSDK
+        # aka bb modules from SDK
         bitbake_library_path = os.path.join(
             path_to_layers, "poky/bitbake/lib/")
 
@@ -58,7 +61,7 @@ class Parsable(ABC):
         pass
 
     @abstractmethod
-    def export(self, path_to_tmp: pathlib.Path):
+    def export(self):
         pass
 
 
@@ -197,20 +200,12 @@ class BBPatchParser(Parsable):
         current_data_smart = bb.data.init()
         bb.parse.siggen = bb.siggen.init(current_data_smart)
 
-        path_to_esdk = pathlib.Path(self.path_to_layers).parent
-        os.chdir(path_to_esdk)
-
-        path_to_local_conf = os.path.join(path_to_esdk, "conf/local.conf")
-
-        current_data_smart = bb.parse.handle(path_to_local_conf,
-            current_data_smart, include=True)
-
         my_temp_file = self._parse_helper(recipe.content)
 
         current_data_smart.setVar("__bbclasstype", "recipe")
 
         bb_parsed = bb.parse.handle(
-            my_temp_file.name, current_data_smart, include=True)
+            my_temp_file.name, current_data_smart)['']
 
         bb_parsed.setVar("OVERRIDES", "SRC_URI:append:qcom-custom-bsp")
 
@@ -268,7 +263,7 @@ class BBPatchParser(Parsable):
 
             recipe = self.__get_patches(recipe)
 
-    def export(self, path_to_tmp: pathlib.Path):
+    def export(self):
 
         title_to_patches = dict()
 
@@ -276,7 +271,7 @@ class BBPatchParser(Parsable):
             title_to_patches[recipe.title] = recipe.patches
 
         path_to_json = os.path.join(
-            path_to_tmp, f"{self.platform}_recipes_patches.json"
+            self.path_to_tmp, f"{self.platform}_recipes_patches.json"
         )
 
         with open(path_to_json, "w") as recipes_patches:
@@ -318,14 +313,6 @@ class RecipeParser(Parsable):
             +                                                                                      \
             self.plugin_to_content[os.path.basename(file)]
 
-    @abstractmethod
-    def process(self):
-        pass
-
-    @abstractmethod
-    def export(self, path_to_tmp: pathlib.Path):
-        pass
-
 
 class BuildCodeGenerator(RecipeParser):
     files_to_be_parsed = list(str())
@@ -365,8 +352,13 @@ class BuildCodeGenerator(RecipeParser):
                 if not os.path.exists(path):
                     path = os.path.join(path_to_layers, "meta-qti-qim-product-sdk", file_name)
 
-            with open(path) as file:
-                content += file.read()
+            try:
+                with open(path) as file:
+                    content += file.read()
+            except FileNotFoundError:
+                print("The file was not found.")
+            except IOError:
+                print("An I/O error occurred.")
 
             current_data_smart = bb.data.init()
             bb.parse.siggen = bb.siggen.init(current_data_smart)
@@ -489,10 +481,10 @@ class BuildCodeGenerator(RecipeParser):
             self.plugin_cmake_flags[plugin] = cmake_flags
 
     # Export to shell method of BuildCodeGenerator
-    def export(self, path_to_tmp: pathlib.Path):
+    def export(self):
 
         path_to_sh = os.path.join(
-            path_to_tmp, f"{self.platform}_build_plugins.sh"
+            self.path_to_tmp, f"{self.platform}_build_plugins.sh"
         )
 
         with open(path_to_sh, "w") as build_plugins_sh:
@@ -603,8 +595,12 @@ class RuntimeFlagsGenerator(RecipeParser):
                 platform: str) -> None:
         super().__init__(path_to_layers, path_to_meta, platform)
 
+        self.plugin_to_flags = dict()
+
+    # Process method of RecipeFlagsParser
+    def process(self):
         target_json = os.path.join(
-            os.getcwd(), f"targets/{self.platform}.json"
+            self.path_to_tmp, f"targets/{self.platform}.json"
         )
 
         list_of_socs = list(str())
@@ -615,13 +611,8 @@ class RuntimeFlagsGenerator(RecipeParser):
 
         self.target_platform = self.Platform(self.platform, list_of_socs)
 
-        self.plugin_to_flags = dict()
-
         for file in self.path_to_recipes:
             super().read_recipe(file)
-
-    # Process method of RecipeFlagsParser
-    def process(self):
 
         for content in self.plugin_to_content.values():
 
@@ -691,12 +682,12 @@ class RuntimeFlagsGenerator(RecipeParser):
 
     # Export to json method of RecipeFlagsParser
     # Export it to json file ("plugin" : { "member" : "flags" })
-    def export(self, path_to_tmp: pathlib.Path):
+    def export(self):
 
         for soc in self.target_platform.list_of_socs:
 
             path_to_json = os.path.join(
-                path_to_tmp, f"{soc}_runtime_flags.json"
+                self.path_to_tmp, f"{soc}_runtime_flags.json"
             )
 
             with open(path_to_json, "w") as runtime_flags_json:
@@ -709,7 +700,7 @@ def parse_arguments() -> str:
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-l", "--layers", dest="path_to_layers", required=True,
-                        help="Path to layers directory of eSDK")
+                        help="Path to layers directory of SDK")
 
     parser.add_argument("-m", "--meta", dest="path_to_meta", required=True,
                         help="Path to meta layer of qimsdk")
@@ -746,9 +737,10 @@ def main():
     )
 
     parser.plugin_version = str(args.version)
+    parser.path_to_tmp = args.path_to_tmp
 
     parser.process()
-    parser.export(args.path_to_tmp)
+    parser.export()
 
     return 0
 

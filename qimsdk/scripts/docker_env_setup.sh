@@ -11,7 +11,7 @@
 #   $5 - (mandatory) variable to take Gstreamer meta of SP
 #   $6 - (mandatory) variable to take path to microservices
 #   $7 - (mandatory) variable to take path to le services source
-#   $8 - (mandatory) variable to take path to eSDK
+#   $8 - (mandatory) variable to take path to SDK
 #   $9 - (mandatory) variable to take supported targets
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
@@ -21,7 +21,7 @@ function qimsdk-docker-parse-json() {
     local -n OUT_QIMSDK_GST_META=${5}
     local -n OUT_QIMSDK_PATH_MICROSERVICES=${6}
     local -n OUT_QIMSDK_LE_SERVICES_SOURCES=${7}
-    local -n OUT_QIMSDK_PATH_TO_eSDK_DIR=${8}
+    local -n OUT_QIMSDK_PATH_TO_SDK_DIR=${8}
     local -n OUT_QIMSDK_SUPPORTED_TARGETS=${9}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
@@ -99,20 +99,20 @@ function qimsdk-docker-parse-json() {
         return -1
     }
 
-    OUT_QIMSDK_PATH_TO_eSDK_DIR=$(
-        echo ${JSON_CONTENT} | jq '.Path_to_eSDK_dir' | tr -d '"'
-    )
+        OUT_QIMSDK_PATH_TO_SDK_DIR=$(
+            echo ${JSON_CONTENT} | jq '.Path_to_SDK_dir' | tr -d '"'
+        )
 
-    qimsdk-expand-tilde OUT_QIMSDK_PATH_TO_eSDK_DIR
+        qimsdk-expand-tilde OUT_QIMSDK_PATH_TO_SDK_DIR
 
-    [ ! -d "${OUT_QIMSDK_PATH_TO_eSDK_DIR}" ] && {
-        OUT_QIMSDK_PATH_TO_eSDK_DIR="no-eSDK-provided"
+    [ ! -d "${OUT_QIMSDK_PATH_TO_SDK_DIR}" ] && {
+            OUT_QIMSDK_PATH_TO_SDK_DIR="no-SDK-provided"
 
-        print-yellow "The Path_to_eSDK_dir attribute is filled wrong in config json!"
-        print-red "Please provide path to unarchived eSDK directory in config json!!!"
+        print-yellow "The Path_to_SDK_dir attribute is filled wrong in config json!"
+        print-red "Please provide path to unarchived SDK directory in config json!!!"
 
-        return -1
-    }
+            return -1
+        }
 
     OUT_QIMSDK_SUPPORTED_TARGETS=( $(
         echo ${JSON_CONTENT} | jq '.Supported_targets[]' | tr -d '"'
@@ -134,6 +134,7 @@ function qimsdk-docker-parse-json() {
 #   $5 - (mandatory) temp folder
 #   $6 - (mandatory) docker image path
 #   $7 - (mandatory) device ID
+#   $8 - (mandatory) supported targets
 function qimsdk-docker-build-initialize() {
     local PATH_TO_CONFIG_JSON=${1}
 
@@ -143,13 +144,13 @@ function qimsdk-docker-build-initialize() {
     local -n QIMSDK_TMP_FOLDER_PTR=${5}
     local -n DOCKER_IMAGE_PATH_PTR=${6}
     local -n QIMSDK_DEVICE_ID_PTR=${7}
+    local -n QIMSDK_SUPPORTED_TARGETS_PTR=${8}
 
     local QIMSDK_GST_SOURCES
     local QIMSDK_GST_META
     local QIMSDK_PATH_MICROSERVICES
     local QIMSDK_LE_SERVICES_SOURCES
-    local QIMSDK_PATH_TO_eSDK_DIR
-    local QIMSDK_SUPPORTED_TARGETS
+    local QIMSDK_PATH_TO_SDK_DIR
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
             QIMSDK_CONTAINER_NAME_PTR                                                              \
@@ -158,8 +159,8 @@ function qimsdk-docker-build-initialize() {
             QIMSDK_GST_META                                                                        \
             QIMSDK_PATH_MICROSERVICES                                                              \
             QIMSDK_LE_SERVICES_SOURCES                                                             \
-            QIMSDK_PATH_TO_eSDK_DIR                                                                \
-            QIMSDK_SUPPORTED_TARGETS
+            QIMSDK_PATH_TO_SDK_DIR                                                                \
+            QIMSDK_SUPPORTED_TARGETS_PTR
 
     local rc=$?
     [ ${rc} -ne 0 ] && {
@@ -193,344 +194,25 @@ function qimsdk-docker-build-initialize() {
         return ${rc}
     }
 
-    QIMSDK_TMP_FOLDER_PTR="${QIMSDK_DOCKER_DIR}/tmp"
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}
-
     rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-qti-oss
+    rsync -aL ${QIMSDK_GST_META}/ ${QIMSDK_TMP_FOLDER_PTR}/meta-qti-gst
 
-    QIMSDK_PATH_TO_eSDK_DIR=${QIMSDK_PATH_TO_eSDK_DIR%/}
+    QIMSDK_PATH_TO_SDK_DIR=${QIMSDK_PATH_TO_SDK_DIR%/}
 
-    local PATH_TO_GSTREAMER_PATCHES="${QIMSDK_GST_META}/`
-        `recipes-gst/gstreamer/gstreamer1.0/1.24/"
+    qimsdk-setup-SDK ${QIMSDK_PATH_TO_SDK_DIR} ${QIMSDK_TMP_FOLDER_PTR}
 
-    [ ! -d ${PATH_TO_GSTREAMER_PATCHES} ] && {
-        print-red "gstreamer's patches NOT found !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-        return -1
+    rc=$?
+    [ ${rc} -ne 0 ]                                                                         && {
+        print-red "FAILED: qimsdk-setup-SDK !!!"
+        return ${rc}
     }
-
-    local PATH_TO_GST_PLUGINS_BASE_PATCHES="${QIMSDK_GST_META}/`
-        `recipes-gst/gstreamer/gstreamer1.0-plugins-base/1.24/"
-
-    [ ! -d ${PATH_TO_GST_PLUGINS_BASE_PATCHES} ] && {
-        print-red "gstreamer-plugins-base's patches NOT found !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-        return -1
-    }
-
-    local PATH_TO_GST_PLUGINS_GOOD_PATCHES="${QIMSDK_GST_META}/`
-        `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.24.2/"
-
-    [ ! -d ${PATH_TO_GST_PLUGINS_GOOD_PATCHES} ] && {
-        print-red "gstreamer-plugins-good's patches NOT found !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-        return -1
-    }
-
-    local PATH_TO_GST_PLUGINS_BAD_PATCHES="${QIMSDK_GST_META}/`
-        `recipes-gst/gstreamer/gstreamer1.0-plugins-bad/1.24.2/"
-
-    [ ! -d ${PATH_TO_GST_PLUGINS_BAD_PATCHES} ] && {
-        print-red "gstreamer-plugins-bad's patches NOT found !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-        return -1
-    }
-
-    local PATH_TO_WAYLAND_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qti-display/recipes-graphics/wayland/wayland-protocols/"
-
-    [ ! -d ${PATH_TO_WAYLAND_PATCHES} ]                                                         && \
-            PATH_TO_WAYLAND_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qcom-hwe/recipes-graphics/wayland/wayland-protocols/"
-
-    [ ! -d ${PATH_TO_WAYLAND_PATCHES} ] && {
-        print-red "wayland-protocol's patches NOT found !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-        return -1
-    }
-
-    local PATH_TO_GSTD_PATCHES="${QIMSDK_GST_META}/recipes-gst/gstreamer/gstd/"
-
-    [ ! -d ${PATH_TO_GSTD_PATCHES} ] && {
-        print-red "gstd's patches NOT found !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-        return -1
-    }
-
-    local PATH_TO_PULSEAUDIO_PATCHES="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-        `poky/meta/recipes-multimedia/pulseaudio/pulseaudio/"
-
-    [ ! -d ${PATH_TO_PULSEAUDIO_PATCHES} ] && {
-        print-red "pulseaudio's patches NOT found !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-        return -1
-    }
-
-    local QIMSDK_PATH_TO_PULSEAUDIO_META="${QIMSDK_PATH_TO_eSDK_DIR}/layers/`
-            `meta-qti-pulseaudio-plugins"
-    [ -d "${QIMSDK_PATH_TO_PULSEAUDIO_META}" ]                                                  || {
-        QIMSDK_PATH_TO_PULSEAUDIO_META="${QIMSDK_PATH_TO_eSDK_DIR}/layers/meta-qcom-hwe"
-        [ -d "${QIMSDK_PATH_TO_PULSEAUDIO_META}" ]                                              || {
-            echo "Cannot find path to pulseaudio meta !!!"
-            return -1
-        }
-    }
-
-    local TARGET_SYSROOT=$(find ${QIMSDK_PATH_TO_eSDK_DIR}/tmp/sysroots -name fastcv.h | head -n 1)
-    TARGET_SYSROOT=${TARGET_SYSROOT%"/usr/include/fastcv/fastcv.h"}
-
-    [ -d "${TARGET_SYSROOT}" ]                                                                  || {
-        print-red "Could not find target sysroot in ${QIMSDK_PATH_TO_eSDK_DIR}"
-        return -1
-    }
-
-    pushd ${TARGET_SYSROOT} 1>/dev/null || {
-        print-red "FAILED: pushd to Path_to_eSDK_dir"
-        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-        return -1
-    }
-
-    [ -f "./usr/include/display/media/mmm_color_fmt.h" ] && {
-        rsync -aR ./usr/include/display/media/mmm_color_fmt.h                                      \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/
-    }
-
-    rsync -aR ./usr/include/fastcv/fastcv.h                                                        \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/gstreamer-1.0/gst/gfx/ib2c.h                                           \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/CL/cl_ext_qcom.h                                                       \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/properties.h                                                           \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/properties_def.h                                                       \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/log.h                                                                  \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/system/camera_metadata.h                                               \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/system/camera_metadata_tags.h                                          \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/system/camera_vendor_tags.h                                            \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/hardware/graphics.h                                                    \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/iot-core-algs/videoctrl.h                                              \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/hardware/native_handle.h                                               \
-            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   || {
-        echo "Cannot get headers from eSDK !!!"
-        popd 1>/dev/null
-        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-        return -1
-    }
-
-    # Skip building dfs in case dependencies are not met
-    [ -f ./usr/include/dfs_factory.h ] && {
-        rsync -aR ./usr/include/dfs_factory.h                                                      \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/mv.h                                                               \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/mvSRW.h                                                            \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/mvVM.h                                                             \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/mvVSLAM.h                                                          \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rv.h                                                               \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvAE.h                                                             \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvCamera.h                                                         \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvDFS.h                                                            \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvGoalDetection.h                                                  \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvLog.h                                                            \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvNAVMAP.h                                                         \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvPLANNER.h                                                        \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvQueue.h                                                          \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvVIO.h                                                            \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvVM.h                                                             \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvVSLAM.h                                                          \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvVWSLAM.h                                                         \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvWOD.h                                                            \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rv_dfs_base.h                                                      \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rv_multi_dfs_base.h                                                \
-                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               || {
-            echo "Cannot get headers from eSDK !!!"
-            popd 1>/dev/null
-            rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-            return -1
-        }
-    }
-
-    local PKG_CONFIG_FILES_DIR="./usr/lib/pkgconfig/"
-
-    [ -d ${PKG_CONFIG_FILES_DIR} ] && {
-        mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig
-        declare -a PLATFORM_LIBS="msm_gbm libgbm libatomic libgsl libib2C libegl_adreno `
-                                 `libglesv2_adreno libpropertyvault libwayland-client `
-                                 `libwayland-egl libadreno_utils libcb libegl libdmabufheap `
-                                 `libeglsubdriverwayland libglesv1_cm libglesv1_cm_adreno `
-                                 `libglesv2 libllvm-glnext libllvm-qcom libllvm-qgl libopencl `
-                                 `libopencl_adreno libq3dtools_adreno libq3dtools_esx `
-                                 `libvulkan_adreno libadsprpc libcdsprpc libfastcvopt `
-                                 `libfastcvdsp_stub libc++ libc++abi libproperty-vault `
-                                 `tensorflow-lite qcom-video-ctrl"
-
-        for LIB_NAME in ${PLATFORM_LIBS[@]}; do
-            local PREFIX=`echo ${LIB_NAME} | cut -c1-3`
-
-            [ "${PREFIX}" == "lib" ] && {
-                local NO_PREFIX_LIB_NAME=${LIB_NAME#*lib}
-                [ -f "${PKG_CONFIG_FILES_DIR}/${NO_PREFIX_LIB_NAME}.pc" ] && {
-                    rsync -a "${PKG_CONFIG_FILES_DIR}/${NO_PREFIX_LIB_NAME}.pc" \
-                        ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig/ || {
-                        echo "Failed to copy pkg-config file ${LIB_NAME}.pc !!!"
-                        popd 1>/dev/null
-                        return -1
-                    }
-                }
-            }
-
-            [ -f "${PKG_CONFIG_FILES_DIR}/${LIB_NAME}.pc" ] && {
-                rsync -a "${PKG_CONFIG_FILES_DIR}/${LIB_NAME}.pc" \
-                    ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig/ || {
-                    echo "Failed to copy pkg-config file ${LIB_NAME}.pc !!!"
-                    popd 1>/dev/null
-                    return -1
-                }
-            }
-            continue
-        done
-
-    } || {
-        echo "Cannot get pkg-config files from eSDK !!!"
-        popd 1>/dev/null
-        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-        return -1
-    }
-
-    popd 1>/dev/null                                                                            && \
-
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/wayland-protocols-1.33/                           && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gstreamer-1.24.2/                                 && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-base-1.24.2/                          && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-good-1.24.2/                          && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-bad-1.24.2/                           && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/gstd/                                             && \
-    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/patches/pulseaudio/                                       && \
-
-    rsync -a ${PATH_TO_WAYLAND_PATCHES}/*.patch                                                    \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/wayland-protocols-1.33/                            && \
-
-    rsync -a ${PATH_TO_GSTREAMER_PATCHES}/*.patch                                                  \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gstreamer-1.24.2/                                  && \
-
-    rsync -a ${PATH_TO_GST_PLUGINS_BASE_PATCHES}/*.patch                                           \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-base-1.24.2/                           && \
-
-    rsync -a ${PATH_TO_GST_PLUGINS_GOOD_PATCHES}/*.patch                                           \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-good-1.24.2/                           && \
-
-    rsync -a ${PATH_TO_GST_PLUGINS_BAD_PATCHES}/*.patch                                            \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gst-plugins-bad-1.24.2/                            && \
-
-    rsync -a ${QIMSDK_PATH_TO_PULSEAUDIO_META}/recipes-multimedia/audio/pulseaudio/*.patch         \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/pulseaudio/                                        && \
-
-    rsync -a ${PATH_TO_PULSEAUDIO_PATCHES}/*.patch                                                 \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/pulseaudio/                                        && \
-
-    rsync -a ${PATH_TO_GSTD_PATCHES}/*.patch                                                       \
-            ${QIMSDK_TMP_FOLDER_PTR}/patches/gstd/                                              || {
-        print-red "Cannot get patches from eSDK !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-        return -1
-    }
-
-    local QIMSDK_SUPPORTED_TARGETS_COUNT=${#QIMSDK_SUPPORTED_TARGETS[@]}
-
-    for ((INDEX=0 ; INDEX<${QIMSDK_SUPPORTED_TARGETS_COUNT} ; INDEX++)); do
-
-        # Skipping ubuntu targets
-        [[ "${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}" == *_ubun ]]                                 && {
-            continue
-        }
-
-        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
-                -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
-                -m ${QIMSDK_GST_META}                                                              \
-                -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
-                -t ${QIMSDK_TMP_FOLDER_PTR}                                                        \
-                BuildCodeGenerator                                                              || {
-            print-red "Python Parser returns error, mode BuildCodeGenerator !!!"
-            rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-            return -1
-        }
-
-        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
-                -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
-                -m ${QIMSDK_GST_META}                                                              \
-                -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
-                -t ${QIMSDK_TMP_FOLDER_PTR}                                                        \
-                RuntimeFlagsGenerator                                                           || {
-            print-red "Python Parser Crashed, mode RuntimeFlagsGenerator !!!"
-            rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-            return -1
-        }
-
-        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
-                -l ${QIMSDK_PATH_TO_eSDK_DIR}/layers/                                              \
-                -m ${QIMSDK_GST_META}                                                              \
-                -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
-                -t ${QIMSDK_TMP_FOLDER_PTR}                                                        \
-                -v "1.24.2"                                                                        \
-                BBPatchParser                                                                   || {
-            print-red "Python Parser returns error, mode BBPatchParser !!!"
-            rm -rf ${QIMSDK_TMP_FOLDER_PTR}
-            return -1
-        }
-
-        # Skipping a comparison with index zero
-        [ ${INDEX} -eq 0 ]                                                                      && {
-            continue
-        }
-
-        diff ${QIMSDK_TMP_FOLDER_PTR}/${QIMSDK_SUPPORTED_TARGETS[0]}_recipes_patches.json          \
-            ${QIMSDK_TMP_FOLDER_PTR}/${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}_recipes_patches.json || {
-            print-yellow "Patches of supported targets differ !!!"
-        }
-
-        diff ${QIMSDK_TMP_FOLDER_PTR}/${QIMSDK_SUPPORTED_TARGETS[0]}_build_plugins.sh              \
-            ${QIMSDK_TMP_FOLDER_PTR}/${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}_build_plugins.sh     || {
-            print-yellow "Build flags of supported targets differ !!!"
-        }
-    done
-
-    mv ${QIMSDK_TMP_FOLDER_PTR}/${QIMSDK_SUPPORTED_TARGETS[0]}_build_plugins.sh                    \
-        ${QIMSDK_TMP_FOLDER_PTR}/build_plugins.sh
-
-    mv ${QIMSDK_TMP_FOLDER_PTR}/${QIMSDK_SUPPORTED_TARGETS[0]}_recipes_patches.json                \
-        ${QIMSDK_TMP_FOLDER_PTR}/recipes_patches.json
 
     rsync -aL ${QIMSDK_PATH_MICROSERVICES}/ ${QIMSDK_TMP_FOLDER_PTR}/solutions-microservices
-
     rsync -aL ${QIMSDK_LE_SERVICES_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/le-services
 
     QIMSDK_BASE_DIR_PTR="/mnt/work"
+
+    return 0
 }
 
 # Build dev docker image based on Dockerfile in ${QIMSDK_DOCKER_DIR} directory
@@ -542,7 +224,10 @@ function qimsdk-dev-docker-build-image() {
     local HOST_DOCKER_IMAGE_PATH
     local QIMSDK_DEVICE_ID
     local QIMSDK_BASE_DIR
-    local QIMSDK_TMP_FOLDER
+    local QIMSDK_SUPPORTED_TARGETS
+
+    local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
+    mkdir -p ${QIMSDK_TMP_FOLDER}
 
     local DOCKER_IMAGE_PATH="/mnt/work/dev_artifacts"
 
@@ -552,7 +237,8 @@ function qimsdk-dev-docker-build-image() {
             QIMSDK_BASE_DIR                                                                        \
             QIMSDK_TMP_FOLDER                                                                      \
             HOST_DOCKER_IMAGE_PATH                                                                 \
-            QIMSDK_DEVICE_ID
+            QIMSDK_DEVICE_ID                                                                       \
+            QIMSDK_SUPPORTED_TARGETS
 
     local rc=$?
     [ ${rc} -ne 0 ]                                                                             && {
@@ -569,6 +255,7 @@ function qimsdk-dev-docker-build-image() {
             --build-arg QIMSDK_ARG_HTTP_PROXY=${http_proxy}                                        \
             --build-arg QIMSDK_ARG_HTTPS_PROXY=${https_proxy}                                      \
             --build-arg QIMSDK_ARG_NO_PROXY=${no_proxy}                                            \
+            --build-arg QIMSDK_ARG_SUPPORTED_TARGETS=${QIMSDK_SUPPORTED_TARGETS}                   \
             --progress=plain --target QIMSDK_dev_image                                             \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}_dev
 
@@ -595,7 +282,9 @@ function qimsdk-docker-build-image() {
     local DOCKER_IMAGE_PATH
     local QIMSDK_DEVICE_ID
     local QIMSDK_BASE_DIR
-    local QIMSDK_TMP_FOLDER
+
+    local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
+    mkdir -p ${QIMSDK_TMP_FOLDER}
 
     qimsdk-docker-build-initialize ${PATH_TO_CONFIG_JSON}                                          \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -603,7 +292,8 @@ function qimsdk-docker-build-image() {
             QIMSDK_BASE_DIR                                                                        \
             QIMSDK_TMP_FOLDER                                                                      \
             DOCKER_IMAGE_PATH                                                                      \
-            QIMSDK_DEVICE_ID
+            QIMSDK_DEVICE_ID                                                                       \
+            QIMSDK_SUPPORTED_TARGETS
 
     local rc=$?
     [ ${rc} -ne 0 ]                                                                             && {
@@ -617,6 +307,7 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_HTTP_PROXY=${http_proxy}                                        \
             --build-arg QIMSDK_ARG_HTTPS_PROXY=${https_proxy}                                      \
             --build-arg QIMSDK_ARG_NO_PROXY=${no_proxy}                                            \
+            --build-arg QIMSDK_ARG_SUPPORTED_TARGETS=${QIMSDK_SUPPORTED_TARGETS}                   \
             --progress=plain --target QIMSDK_device_image                                          \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}
 
