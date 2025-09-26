@@ -17,7 +17,7 @@ RUN apt-get update                                                              
         libgstrtspserver-1.0-dev libgirepository1.0-dev opencl-headers libjson-glib-dev            \
         libsoup-3.0-dev libedit-dev libhiredis-dev libeigen3-dev libltdl-dev libsndfile1-dev       \
         libxtst-dev libmosquitto-dev libxml-parser-perl python3 python3-pip python3-setuptools     \
-        python3-gst-1.0 python3-wheel ninja-build python3-full pipx flex bison                  && \
+        python3-gst-1.0 python3-wheel ninja-build python3-full pipx flex bison librdkafka-dev   && \
         pipx ensurepath                                                                         && \
         pipx install meson                                                                      && \
         apt-get autoremove -y                                                                   && \
@@ -414,7 +414,7 @@ RUN apt-get update                                                              
         gstreamer1.0-plugins-base-apps libgstrtspserver-1.0-0 gstreamer1.0-nice libhiredis1.1.0    \
         python3 python3-gst-1.0 libjpeg62 libprotobuf32t64 libdaemon0 mosquitto                    \
         libopencv-imgproc406t64 libopencv-calib3d406t64 libopencv-imgcodecs406t64                  \
-        libopencv-highgui406t64                                                                 && \
+        libopencv-highgui406t64 librdkafka1                                                     && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
