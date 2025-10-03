@@ -13,7 +13,7 @@
     "Solution_Microservices_Dir": "<path-to-solutions-microservices>",
     "LE_Services_Source_Dir": "<path-to-le-services>",
 
-    "Path_to_eSDK_dir" : "<path-to-installed-eSDK-dir>",
+    "Path_to_SDK_dir" : "<path-to-installed-SDK-dir>",
 
     "MAP_sources_to_dev_container" : "FALSE"
 }
