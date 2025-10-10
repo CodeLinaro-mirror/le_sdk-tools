@@ -141,6 +141,7 @@ declare -A soc_to_target_map=(
     ["QCS6490"]="qcm6490"
     ["QCM6490"]="qcm6490"
     ["SC7280"]="qcm6490"
+    ["QCS5430"]="qcm6490"
     ["QCS9100"]="qcs9100"
     ["QCS9075"]="qcs9100"
     ["SA8775P"]="qcs9100"
