@@ -245,12 +245,25 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
             return -1
         }
 
-        # Modify Dockerfile to import prebuilt artifacts from debug build container
-        sed -E "s|--from=deploy|--from=${IMAGE_NAME}-deploy|g"                                     \
-                ${DOCKERFILE}.work_deploy_prebuilt > ${DOCKERFILE}.work_deploy_tflite           || {
+        # Modify Dockerfile to import prebuilt deb artifacts from debug build container
+        sed -E                                                                                     \
+                "s|^(COPY[[:space:]]+)--from=qimsdk-build([[:space:]]+/mnt/work/downloads/debs[[:space:]]+[$][{]QIMSDK_DEB_DIR[}])|\1--from=$IMAGE_NAME-debian\2|" \
+                ${DOCKERFILE}.work_deploy_prebuilt > ${DOCKERFILE}.work_deploy_deb           || {
             rm -f ${DOCKERFILE}.work
             rm -f ${DOCKERFILE}.work_deploy_install
             rm -f ${DOCKERFILE}.work_deploy_prebuilt
+            rm -f ${DOCKERFILE}.work_deploy_deb
+            print-red "Modify Dockerfile to import artifacts from debug build container failed!"
+            return -1
+        }
+
+        # Modify Dockerfile to import prebuilt artifacts from debug build container
+        sed -E "s|--from=deploy|--from=${IMAGE_NAME}-deploy|g"                                     \
+                ${DOCKERFILE}.work_deploy_deb > ${DOCKERFILE}.work_deploy_tflite           || {
+            rm -f ${DOCKERFILE}.work
+            rm -f ${DOCKERFILE}.work_deploy_install
+            rm -f ${DOCKERFILE}.work_deploy_prebuilt
+            rm -f ${DOCKERFILE}.work_deploy_deb
             rm -f ${DOCKERFILE}.work_deploy_tflite
             print-red "Modify Dockerfile to import artifacts from debug build container failed!"
             return -1
@@ -272,6 +285,7 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
         rm -f ${DOCKERFILE}.work
         rm -f ${DOCKERFILE}.work_deploy_install
         rm -f ${DOCKERFILE}.work_deploy_prebuilt
+        rm -f ${DOCKERFILE}.work_deploy_deb
         rm -f ${DOCKERFILE}.work_deploy_tflite
     )
 }

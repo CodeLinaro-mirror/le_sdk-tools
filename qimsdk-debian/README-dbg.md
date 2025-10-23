@@ -591,7 +591,7 @@ qimsdk-docker-device-run-container <path-to-config-json>
 
 ### Contributing to the GStreamer Project
 
-Inside the development container, New CMake and Meson projects can be added to extend qimsdk functionalities.
+Inside the development container, New CMake project can be added to extend qimsdk functionalities.
 
 ***Please NOTE: ssh config and git config are not propagated to development container environmens. This is because during development container use, root user is needed in order to manipulate and access /usr/lib and /usr/include. This is a very important requirement and prerequisite for development and compilation. Hence why host user cannot be used in development container instead of root user.***
 
@@ -634,52 +634,6 @@ function qimsdk-incremental-build() {
 ```bash
 # Clean CMake <Project-Directory-Name> build directory
 function qimsdk-cmake-clean-<Project-Directory-Name>() {
-    rm -rf ${QIMSDK_BUILD_DIR}/<Project-Directory-Name>
-
-    print-green "${FUNCNAME} completed succesfully!"
-}
-```
-
-#### A new Meson Project
-
-1. Add source code and build description meson.build file in Project Directory.
-  - Project Directory Name should be same as project name.
-  - It is recommended to add projects as subdirectiories of /mnt/work/src/gst-plugins-qti-oss
-  - Example: /mnt/work/src/gst-plugins-qti-oss/\<Project-Directory-Name\>
-
-2. In /mnt/work/tmp/scripts/build.sh, add a function which calls base qimsdk-meson-build function
-
-```bash
-# Meson Build <Project-Directory-Name>
-function qimsdk-meson-build-<Project-Directory-Name>() {
-    local CONFIG_FLAGS="--flag0 flag-value --flag1 flag-value"
-    local DESTINATION_DIR='/'
-
-    qimsdk-meson-build <Path/To/Project/Directory> ${DESTINATION_DIR} ${CONFIG_FLAGS}
-}
-```
-
-3. For new project to be compiled automatically during `qimsdk-incremental-build`, newly created function from last steps needs to be added to "qimsdk-incremental-build" in /mnt/work/tmp/scripts/build.sh
-
-```bash
-# Configure and build gst plugins
-function qimsdk-incremental-build() {
-...
-...
-...
-        qimsdk-meson-build-<Project-Directory-Name>
-...
-...
-...
-        print-green "QIMSDK GStreamer targets built successfully !!!"
-}
-```
-
-4. Add cleanup function to /mnt/work/tmp/scripts/build.sh
-
-```bash
-# Clean Meson <Project-Directory-Name> build directory
-function qimsdk-meson-clean-<Project-Directory-Name>() {
     rm -rf ${QIMSDK_BUILD_DIR}/<Project-Directory-Name>
 
     print-green "${FUNCNAME} completed succesfully!"
