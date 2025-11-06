@@ -76,13 +76,36 @@ RUN mkdir -p ${QIMSDK_PREBUILT_DIR}
 ENV QIMSDK_DOWNLOAD_DIR=${QIMSDK_BASE_DIR}/downloads
 RUN mkdir -p ${QIMSDK_DOWNLOAD_DIR}
 
-# gst-plugins-base: fetch
-RUN git clone https://salsa.debian.org/gstreamer-team/gst-plugins-base1.0.git                      \
-    ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0
+# Update and clean, fetch GStreamer base and good plugins
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && cd ${QIMSDK_DOWNLOAD_DIR}                  && \
+    apt source gst-plugins-base1.0 gst-plugins-good1.0 && apt-get autoremove -y                 && \
+    apt-get clean && rm -rf /var/lib/apt/lists* /var/tmp/*
 
-# gst-plugins-good: fetch
-RUN git clone https://salsa.debian.org/gstreamer-team/gst-plugins-good1.0.git                      \
-    ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0
+RUN git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-1.26.2                                       \
+        init                                                                                    && \
+    git config --global --add safe.directory                                                       \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-1.26.2                                       && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-1.26.2                                       \
+        config --global user.name "username"                                                    && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-1.26.2                                       \
+        config --global user.email "email"                                                      && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-1.26.2                                       \
+        add --all                                                                               && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-1.26.2                                       \
+        commit -m "Initial Plugins Base Commit"
+
+RUN git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-1.26.2                                       \
+        init                                                                                    && \
+    git config --global --add safe.directory                                                       \
+        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-1.26.2                                       && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-1.26.2                                       \
+        config --global user.name "username"                                                    && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-1.26.2                                       \
+        config --global user.email "email"                                                      && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-1.26.2                                       \
+        add --all                                                                               && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-1.26.2                                       \
+        commit -m "Initial Plugins Good Commit"
 
 # Setup Tensorflow Lite 2.20
 ENV QIMSDK_TF_SRC_TAR=/usr/src/tensorflow-lite-2.20.tar.gz
