@@ -941,7 +941,6 @@ Any changes in the following files need to be propagated to https://github.com/q
 ├── scripts
     ├── build.sh
     ├── env_setup.sh
-    ├── RecipeParser.py
     └── setup.sh
 ```
 
