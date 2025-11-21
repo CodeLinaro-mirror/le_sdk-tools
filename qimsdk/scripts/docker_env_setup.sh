@@ -302,7 +302,7 @@ function qimsdk-docker-build-image() {
         return ${rc}
     }
 
-    DOCKER_BUILDKIT=1 docker build                                                                 \
+    DOCKER_BUILDKIT=1 docker build --platform linux/arm64                                          \
             --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_BASE_DIR}                                     \
             --build-arg QIMSDK_ARG_HTTP_PROXY=${http_proxy}                                        \
             --build-arg QIMSDK_ARG_HTTPS_PROXY=${https_proxy}                                      \

@@ -16,11 +16,7 @@ function qimsdk-meson-configure() {
     local MESON_CONFIG_FLAGS=$@
 
     (
-        export CFLAGS="-mbranch-protection=standard -fstack-protector-strong -O2 `
-            `-D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security -pipe `
-            `-feliminate-unused-debug-types"
-        export CXXFLAGS="${CFLAGS}"
-
+        qimsdk-setup-crosscompilation
         mkdir -p ${QIMSDK_BUILD_DIR}
         cd ${QIMSDK_BUILD_DIR}
         set -o pipefail
@@ -58,11 +54,7 @@ function qimsdk-cmake-configure() {
     local CMAKE_CUSTOM_CONFIG_FLAGS=$@
 
     (
-        export CFLAGS="-mbranch-protection=standard -fstack-protector-strong -O2 `
-            `-D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security -pipe `
-            `-feliminate-unused-debug-types"
-        export CXXFLAGS="${CFLAGS}"
-
+        qimsdk-setup-crosscompilation
         local CMAKE_FLAGS="
             -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
             -DGST_PLUGINS_QTI_OSS_VERSION=1.24
@@ -99,6 +91,7 @@ function qimsdk-cmake-configure() {
 function qimsdk-meson-compile() {
     local TARGET=${1}
     (
+        qimsdk-setup-crosscompilation
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
@@ -127,6 +120,7 @@ function qimsdk-cmake-compile() {
     }
 
     (
+        qimsdk-setup-crosscompilation
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
@@ -156,6 +150,7 @@ function qimsdk-meson-install() {
 
     # Install to dev container root to be used by other dev container projects
     (
+        qimsdk-setup-crosscompilation
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
@@ -171,6 +166,7 @@ function qimsdk-meson-install() {
 
     # Propagate minimal needed files to device container deploy dir
     (
+        qimsdk-setup-crosscompilation
         set -o pipefail
 
         cat ${INSTALL_LOG} | grep -E '^Installing'                                                |\
@@ -195,6 +191,7 @@ function qimsdk-meson-install() {
 
     # Propagate symlinks to device container deploy dir
     (
+        qimsdk-setup-crosscompilation
         set -o pipefail
 
         cat ${INSTALL_LOG} | grep -E '^Installing symlink' > ${FILEPATH_LOG}
@@ -229,6 +226,7 @@ function qimsdk-cmake-install() {
     }
 
     (
+        qimsdk-setup-crosscompilation
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail

@@ -50,6 +50,16 @@ Ubuntu 18.04 or Ubuntu 20.04 or Ubuntu 22.04 is required for host file system
 
 Prerequisite packages must be installed on the host (one time)
 
+Prerequisite packages for arm architecture build systems:
+
+```bash
+sudo apt install -y jq tofrodos
+sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+sudo chmod +x /usr/bin/yq
+```
+
+Prerequisite packages for x86 architecture build systems:
+
 ```bash
 sudo apt install -y jq tofrodos qemu-user-static qemu-system-arm
 sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
@@ -245,21 +255,24 @@ Two QIMSDK docker images are built. One for development. One for device target.
 <div id="QIMSDK_Dev_Image">
 
 ### QIMSDK Dev Image
-1. Start from specified base image
-2. Install required open source packages to dev image
-3. Copy helper build and install scripts to dev image
-4. Copy private headers and patches needed
-5. Set up download dir for Open Source gst plugins
-6. Apply necessary changes to Open Source plugins
-7. Get gst source code from provided path in config json
-8. Call wrapper function to build and install plugins
+1. Start from specified base image on architecture native to build machine
+2. Install required dependency arm64 open source packages to dev image
+3. Install required open-source cross-compilation packages for native arch to dev image
+4. Install rest of required dependency arm64 packages to avoid aptitude conflicts
+5. Copy helper build and install scripts to dev image
+6. Copy private headers and patches needed
+7. Set up download dir for Open Source gst plugins
+8. Apply necessary changes to Open Source plugins
+9. Get gst source code from provided path in config json
+10. Call wrapper function to build and install plugins
 
 <div id="QIMSDK_Device_Image">
 
 ### QIMSDK Device Image
-1. Install runtime dependency Open Source packages to device image
-2. Copy built binaries from development Image
-3. Add qimsdk user
+1. Start from specified base image on arm64 architecture for device
+2. Install runtime dependency Open Source packages to device image
+3. Copy built binaries from development Image
+4. Add qimsdk user
 
 <div id="Host_Side_Helper_Scripts_And_Configuration">
 
@@ -283,8 +296,10 @@ Config json files *(config.json)* must contain the following data:
  7. ***MANDATORY*** - **IM_SDK_Meta_Dir** - PATH to meta IM SDK directory, which contains recipes for all gst plugins. ***Note: Path provided must point to meta-qti-gst directory!***
  8. ***MANDATORY*** - **Solution_Microservices_Dir** - PATH to solutions-microservices directory, which contains all qimsdk microservices shell scripts. ***Note: Path provided must point to solutions-microservices directory!***
  9. ***MANDATORY*** - **LE_Services_Source_Dir** - PATH to le-services directory, which contains source code of camera recorder client and camera metadata libs compiled inside dev container. ***Note: Path provided must point to le-services directory!***
- 10. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
+ 10. ***MANDATORY*** - **Path_to_SDK_dir** - Path to standard SDK directory ***Note: Should be unarchived***
  11. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir or Solution_Microservices_Dir is wanted to be mapped to the development container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
+
+***NOTE: If user wishes to compile qimsdk on ARM build machine, Installed(Unarchived) sdk dir needs to be sent to ARM build machine server storage. Path to dir where sdk was saved to ARM machine storage needs to be provided in 'Path_to_SDK_dir' field.***
 
 Target specific json files *(\<target-name\>.json)* must contain the following data:
  1. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
@@ -368,12 +383,16 @@ sudo apt install -y python3 locales diffstat gawk cpio gcc g++ libxml-simple-per
 
 #### SDK Instalation example:
 
+SDK installation does not work on ARM architecture build machines. This step must be done on a x86 machine.
+
 ```bash
 cd <path/to/SDK/shell/file>
 chmod a+r <sample-qcom-ARM-toolchain-ext.sh>
 umask 022
 ./sample-qcom-ARM-toolchain-ext.sh -y -d <some/destination/directory>
 ```
+
+If user wishes to compile qimsdk on ARM build machine, Installed(Unarchived) sdk dir needs to be sent to ARM build machine server storage. Path to dir where sdk was saved to ARM machine storage needs to be provided in 'Path_to_SDK_dir' field.
 
 #### JSON should be filled:
 ```bash

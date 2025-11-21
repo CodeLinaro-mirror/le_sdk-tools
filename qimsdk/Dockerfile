@@ -1,5 +1,5 @@
 # QIMSDK Development Image
-FROM --platform=arm64 ubuntu:24.04 AS qimsdk_dev_image
+FROM ubuntu:24.04 AS qimsdk_dev_image
 
 # Enable color prompt
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc
@@ -8,21 +8,62 @@ RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc
 ARG QIMSDK_ARG_BASE_DIR
 ENV QIMSDK_BASE_DIR=${QIMSDK_ARG_BASE_DIR}
 
-# Installing required apt packages
+# Adjust apt sources lists for x86 packages
+RUN sed -i 's|http://ports.ubuntu.com/ubuntu-ports/|http://archive.ubuntu.com/ubuntu/|'            \
+        /etc/apt/sources.list.d/ubuntu.sources                                                  && \
+    sed -i '/^Types: deb$/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources        && \
+    sed -i '0,/http:\/\/archive.ubuntu.com\/ubuntu\//s|http://archive.ubuntu.com/ubuntu/|http://security.ubuntu.com/ubuntu/|' \
+        /etc/apt/sources.list.d/ubuntu.sources
+
+# Duplicate for arm64
+RUN cp /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/arm64.sources
+
+# Adjust apt sources lists for arm packages
+RUN sed -i '/^Architectures:/d' /etc/apt/sources.list.d/arm64.sources                           && \
+    sed -i '/^Types: deb$/a Architectures: arm64' /etc/apt/sources.list.d/arm64.sources         && \
+    sed -i 's|http://archive.ubuntu.com/ubuntu/|http://ports.ubuntu.com/ubuntu-ports/|g'           \
+        /etc/apt/sources.list.d/arm64.sources                                                   && \
+    sed -i 's|http://security.ubuntu.com/ubuntu/|http://ports.ubuntu.com/ubuntu-ports/|g'          \
+         /etc/apt/sources.list.d/arm64.sources
+
+# Installing required dependencies for cross-compilation arm side of workflow
+RUN dpkg --add-architecture arm64                                                               && \
+        apt update                                                                              && \
+        DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y --no-install-recommends           \
+        libgstreamer1.0-dev:arm64 libgstreamer-plugins-base1.0-dev:arm64                           \
+        libgstreamer-plugins-bad1.0-dev:arm64 gettext:arm64 libdaemon-dev:arm64                    \
+        libjansson-dev:arm64 libreadline-dev:arm64 libcairo2-dev:arm64 protobuf-compiler:arm64     \
+        libgstrtspserver-1.0-dev:arm64 opencl-headers:arm64 libjson-glib-dev:arm64                 \
+        libsoup-3.0-dev:arm64 libedit-dev:arm64 libhiredis-dev:arm64 libeigen3-dev:arm64           \
+        libltdl-dev:arm64 libsndfile1-dev:arm64 libxtst-dev:arm64 libmosquitto-dev:arm64           \
+        librdkafka-dev:arm64                                                                    && \
+        apt autoremove -y                                                                       && \
+        apt clean                                                                               && \
+        rm -rf /var/lib/apt/lists* /var/tmp/*
+
+# Installing required apt packages for dev container native side of workflow
 RUN apt-get update                                                                              && \
-        DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
-        git tar unzip ssh rsync bash-completion jq cmake android-tools-adb                         \
-        libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev       \
-        gettext libdaemon-dev libjansson-dev libreadline-dev protobuf-compiler libcairo2-dev       \
-        libgstrtspserver-1.0-dev libgirepository1.0-dev opencl-headers libjson-glib-dev            \
-        libsoup-3.0-dev libedit-dev libhiredis-dev libeigen3-dev libltdl-dev libsndfile1-dev       \
-        libxtst-dev libmosquitto-dev libxml-parser-perl python3 python3-pip python3-setuptools     \
-        python3-gst-1.0 python3-wheel ninja-build python3-full pipx flex bison librdkafka-dev   && \
+        DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends       \
+        gcc-aarch64-linux-gnu g++-aarch64-linux-gnu cmake ninja-build wget gnupg xz-utils          \
+        git tar unzip ssh rsync bash-completion jq android-tools-adb python3 python3-wheel         \
+        python3-full python3-pip python3-setuptools python3-gst-1.0 flex bison libxml-parser-perl  \
+        pipx                                                                                    && \
         pipx ensurepath                                                                         && \
         pipx install meson                                                                      && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
         rm -rf /var/lib/apt/lists* /var/tmp/*
+
+# Install additional arm64 packages seperately, that otherwise conflict with rest of arm64 packages
+RUN apt-get update                                                                              && \
+        apt install -y --no-install-recommends libgirepository1.0-dev:arm64                     && \
+        apt install -y --no-install-recommends libprotobuf-dev:arm64                            && \
+        apt-get autoremove -y                                                                   && \
+        apt-get clean                                                                           && \
+        rm -rf /var/lib/apt/lists* /var/tmp/*
+
+# Set target sysroot for cross-compilation system
+ENV TARGET_SYSROOT="/"
 
 # Propagate proxy to dev container
 ARG QIMSDK_ARG_HTTP_PROXY
@@ -339,27 +380,29 @@ RUN git clone https://github.com/RidgeRun/gstd-1.x.git ${QIMSDK_GSTD_SRC_DIR}   
     cd ${QIMSDK_GSTD_SRC_DIR}                                                                   && \
     git checkout a011affa67f240cbc7aaff5b00fdfd6124bdaece
 
+# Add bash aliases file
+COPY .bash_aliases /root/.bash_aliases
+
+# Add development image scripts
+ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts/
+COPY scripts/dev_image ${QIMSDK_SCRIPTS}
+
 # abseil-cpp as dependency of TfLite: download the source, configure, compile, install and remove
-RUN git -C ${QIMSDK_DOWNLOAD_DIR} clone https://github.com/abseil/abseil-cpp.git                && \
-    cd ${QIMSDK_DOWNLOAD_DIR}/abseil-cpp && mkdir -p build && cd build                          && \
-    cmake .. && cmake --build . -j && cmake --install .                                         && \
-    cd ${QIMSDK_DOWNLOAD_DIR} && rm -rf abseil-cpp
+RUN bash -c 'source ${QIMSDK_SCRIPTS}/env_setup.sh                                              && \
+        qimsdk-setup-crosscompilation                                                           && \
+        git -C ${QIMSDK_DOWNLOAD_DIR} clone https://github.com/abseil/abseil-cpp.git            && \
+        cd ${QIMSDK_DOWNLOAD_DIR}/abseil-cpp && mkdir -p build && cd build                      && \
+        cmake .. && cmake --build . -j && cmake --install .                                     && \
+        cd ${QIMSDK_DOWNLOAD_DIR} && rm -rf abseil-cpp'
 
 # Add soft link to woarkaround glibconfig.h file install path
 RUN ln -s /usr/lib/aarch64-linux-gnu/glib-2.0/include/glibconfig.h /usr/include/
-
-# Add bash aliases file
-COPY .bash_aliases /root/.bash_aliases
 
 # Add whole content of tmp dir
 COPY tmp ${QIMSDK_TMP_DIR}
 
 # Add supported targets' json files
 COPY targets ${QIMSDK_TMP_DIR}/targets
-
-# Add development image scripts
-ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts/
-COPY scripts/dev_image ${QIMSDK_SCRIPTS}
 
 # Add Recipe Parser
 ENV QIMSDK_TOOLS=${QIMSDK_TMP_DIR}/tools/
@@ -400,7 +443,7 @@ ENV QIMSDK_CONTAINER_NAME=${QIMSDK_ARG_CONTAINER_NAME}
 # # # # # # # # # # # # # # #
 
 # QIMSDK Device Image
-FROM --platform=arm64 ubuntu:24.04 AS qimsdk_device_image
+FROM ubuntu:24.04 AS qimsdk_device_image
 
 # Set base directory
 ARG QIMSDK_ARG_BASE_DIR
