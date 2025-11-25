@@ -14,6 +14,7 @@
 #   $8  - (mandatory) variable to take path to qimsdk needed headers
 #   $9  - (mandatory) variable to take path to qimsdk needed pkgconfig files
 #   $10 - (mandatory) variable to take supported targets
+#   $11 - (mandatory) variable to take QAIRT SDK version
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
@@ -25,6 +26,7 @@ function qimsdk-docker-parse-json() {
     local -n OUT_QIMSDK_PATH_TO_HEADERS_DIR=${8}
     local -n OUT_QIMSDK_PATH_TO_PKGCONFIG_DIR=${9}
     local -n OUT_QIMSDK_SUPPORTED_TARGETS=${10}
+    local -n OUT_QIMSDK_QAIRT_SDK_VERSION=${11}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -141,6 +143,15 @@ function qimsdk-docker-parse-json() {
         return -1
     }
 
+    OUT_QIMSDK_QAIRT_SDK_VERSION=$(echo ${JSON_CONTENT} |  jq '.QAIRT_SDK_version' | tr -d '"')
+
+    [ -z "${OUT_QIMSDK_QAIRT_SDK_VERSION}" ] && {
+        print-yellow "The QAIRT_SDK_version attribute is not filled in config json!"
+        print-red "Please provide the Qualcomm AI Runtime SDK version in config json!!!"
+
+        return -1
+    }
+
     return 0
 }
 
@@ -153,6 +164,7 @@ function qimsdk-docker-parse-json() {
 #   $6 - (mandatory) docker image path
 #   $7 - (mandatory) device ID
 #   $8 - (mandatory) supported targets
+#   $9 - (mandatory) QAIRT SDK version
 function qimsdk-docker-build-initialize() {
     local PATH_TO_CONFIG_JSON=${1}
 
@@ -163,6 +175,7 @@ function qimsdk-docker-build-initialize() {
     local -n DOCKER_IMAGE_PATH_PTR=${6}
     local -n QIMSDK_DEVICE_ID_PTR=${7}
     local -n QIMSDK_SUPPORTED_TARGETS_PTR=${8}
+    local -n QIMSDK_QAIRT_SDK_VERSION_PTR=${9}
 
     local QIMSDK_GST_SOURCES
     local QIMSDK_GST_META
@@ -180,7 +193,8 @@ function qimsdk-docker-build-initialize() {
             QIMSDK_LE_SERVICES_SOURCES                                                             \
             QIMSDK_PATH_TO_HEADERS_DIR                                                             \
             QIMSDK_PATH_TO_PKGCONFIG_DIR                                                           \
-            QIMSDK_SUPPORTED_TARGETS_PTR
+            QIMSDK_SUPPORTED_TARGETS_PTR                                                           \
+            QIMSDK_QAIRT_SDK_VERSION_PTR
 
     local rc=$?
     [ ${rc} -ne 0 ] && {
@@ -254,6 +268,7 @@ function qimsdk-dev-docker-build-image() {
     local QIMSDK_DEVICE_ID
     local QIMSDK_BASE_DIR
     local QIMSDK_SUPPORTED_TARGETS
+    local QIMSDK_QAIRT_SDK_VERSION
 
     local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
     mkdir -p ${QIMSDK_TMP_FOLDER}
@@ -267,7 +282,8 @@ function qimsdk-dev-docker-build-image() {
             QIMSDK_TMP_FOLDER                                                                      \
             HOST_DOCKER_IMAGE_PATH                                                                 \
             QIMSDK_DEVICE_ID                                                                       \
-            QIMSDK_SUPPORTED_TARGETS
+            QIMSDK_SUPPORTED_TARGETS                                                               \
+            QIMSDK_QAIRT_SDK_VERSION
 
     local rc=$?
     [ ${rc} -ne 0 ]                                                                             && {
@@ -285,6 +301,7 @@ function qimsdk-dev-docker-build-image() {
             --build-arg QIMSDK_ARG_HTTPS_PROXY=${https_proxy}                                      \
             --build-arg QIMSDK_ARG_NO_PROXY=${no_proxy}                                            \
             --build-arg QIMSDK_ARG_SUPPORTED_TARGETS=${QIMSDK_SUPPORTED_TARGETS}                   \
+            --build-arg QIMSDK_ARG_QAIRT_SDK_VERSION=${QIMSDK_QAIRT_SDK_VERSION}                   \
             --progress=plain --target QIMSDK_dev_image                                             \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}_dev
 
@@ -311,6 +328,7 @@ function qimsdk-docker-build-image() {
     local DOCKER_IMAGE_PATH
     local QIMSDK_DEVICE_ID
     local QIMSDK_BASE_DIR
+    local QIMSDK_QAIRT_SDK_VERSION
 
     local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
     mkdir -p ${QIMSDK_TMP_FOLDER}
@@ -322,7 +340,9 @@ function qimsdk-docker-build-image() {
             QIMSDK_TMP_FOLDER                                                                      \
             DOCKER_IMAGE_PATH                                                                      \
             QIMSDK_DEVICE_ID                                                                       \
-            QIMSDK_SUPPORTED_TARGETS
+            QIMSDK_SUPPORTED_TARGETS                                                               \
+            QIMSDK_QAIRT_SDK_VERSION
+
 
     local rc=$?
     [ ${rc} -ne 0 ]                                                                             && {
@@ -337,6 +357,7 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_HTTPS_PROXY=${https_proxy}                                      \
             --build-arg QIMSDK_ARG_NO_PROXY=${no_proxy}                                            \
             --build-arg QIMSDK_ARG_SUPPORTED_TARGETS=${QIMSDK_SUPPORTED_TARGETS}                   \
+            --build-arg QIMSDK_ARG_QAIRT_SDK_VERSION=${QIMSDK_QAIRT_SDK_VERSION}                   \
             --progress=plain --target QIMSDK_device_image                                          \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}
 

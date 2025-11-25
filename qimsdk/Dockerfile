@@ -137,18 +137,19 @@ RUN git config --global http.postBuffer 157286400                               
     cd ${QIMSDK_TF_SRC_DIR}                                                                     && \
     git checkout 63f5a65c7cd7b6241bede8d2e0082058566ea364
 
-# qnp-sdk: fetch and copy the needed headers
-ENV QIMSDK_QNP_VER=2.35.0.250530
-ENV QIMSDK_QNP_SDK=v${QIMSDK_QNP_VER}.zip
-ENV QIMSDK_QNN_LIB_PATH=${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_QNP_VER}/lib/
+# qairt-sdk: fetch and copy the needed headers
+ARG QIMSDK_ARG_QAIRT_SDK_VERSION
+ENV QIMSDK_QAIRT_VER=${QIMSDK_ARG_QAIRT_SDK_VERSION}
+ENV QIMSDK_QAIRT_SDK=v${QIMSDK_QAIRT_VER}.zip
+ENV QIMSDK_QNN_LIB_PATH=${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_QAIRT_VER}/lib/
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/${QIMSDK_QNP_VER}/${QIMSDK_QNP_SDK} && \
+        https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/${QIMSDK_QAIRT_VER}/${QIMSDK_QAIRT_SDK} && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    unzip ${QIMSDK_QNP_SDK}                                                                     && \
-    rm -f ${QIMSDK_QNP_SDK}                                                                     && \
-    QIMSDK_ARG_QNP_SDK_VERSION=$(ls qairt)                                                      && \
-    cp -r ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/SNPE/*                \
-        ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QNN/*                   \
+    unzip ${QIMSDK_QAIRT_SDK}                                                                   && \
+    rm -f ${QIMSDK_QAIRT_SDK}                                                                   && \
+    QIMSDK_ARG_QAIRT_SDK_VERSION=$(ls qairt)                                                    && \
+    cp -r ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QAIRT_SDK_VERSION}/include/SNPE/*              \
+        ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QAIRT_SDK_VERSION}/include/QNN/*                 \
         /usr/include/                                                                           && \
     mkdir -p ${QIMSDK_ADSP_DIR}                                                                 && \
     cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v66/unsigned/* ${QIMSDK_ADSP_DIR}/                        && \
@@ -507,7 +508,7 @@ COPY --from=qimsdk_dev_image ${QIMSDK_INSTALL_DIR}/etc/configs /etc/configs
 COPY --from=qimsdk_dev_image ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-python-examples /usr/bin
 
 # Copy wizard script
-COPY --from=qimsdk_dev_image                                                                       \
+COPY --from=qimsdk_dev_image --chmod=755                                                           \
     ${QIMSDK_BASE_DIR}/src/gst-plugins-qti-oss/gst-plugin-tools/gst-scripts/demo_setup_wizard.sh   \
     /usr/bin
 
