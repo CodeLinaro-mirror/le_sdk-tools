@@ -1,0 +1,9 @@
+{
+    "Exports" : [
+        "XDG_RUNTIME_DIR=/run/user/1000",
+        "WAYLAND_DISPLAY=wayland-0",
+        "GST_DEBUG_NO_COLOR=1",
+        "GST_DEBUG=2",
+        "GST_PLUGIN_SCANNER=\"/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner\""
+    ]
+}

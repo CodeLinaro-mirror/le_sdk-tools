@@ -15,9 +15,12 @@ from abc import ABC, abstractmethod
 class Parsable(ABC):
     def __init__(self, path_to_layers: pathlib.Path, path_to_meta: pathlib.Path,
                 platform: str) -> None:
+
+        self.path_to_tmp = str()
+
         # Append bitbake library path to the system path
         # to be able to import Non-standart modules
-        # aka bb modules from eSDK
+        # aka bb modules from SDK
         bitbake_library_path = os.path.join(
             path_to_layers, "poky/bitbake/lib/")
 
@@ -58,7 +61,7 @@ class Parsable(ABC):
         pass
 
     @abstractmethod
-    def export(self, path_to_tmp: pathlib.Path):
+    def export(self):
         pass
 
 
@@ -136,7 +139,6 @@ class BBPatchParser(Parsable):
         self.recipes["pulseaudio"].title = "pulseaudio"
 
         self.recipes["wayland"].bb_append.name = "wayland-protocols_%.bbappend"
-        self.recipes["gstreamer"].bb_append.name = "gstreamer1.0_*.bbappend"
         self.recipes["gstd"].bb_append.name = "gstd_*%.bbappend"
         self.recipes["pulseaudio"].bb_append.name = "pulseaudio_*.bbappend"
 
@@ -198,20 +200,12 @@ class BBPatchParser(Parsable):
         current_data_smart = bb.data.init()
         bb.parse.siggen = bb.siggen.init(current_data_smart)
 
-        path_to_esdk = pathlib.Path(self.path_to_layers).parent
-        os.chdir(path_to_esdk)
-
-        path_to_local_conf = os.path.join(path_to_esdk, "conf/local.conf")
-
-        current_data_smart = bb.parse.handle(path_to_local_conf,
-            current_data_smart, include=True)
-
         my_temp_file = self._parse_helper(recipe.content)
 
         current_data_smart.setVar("__bbclasstype", "recipe")
 
         bb_parsed = bb.parse.handle(
-            my_temp_file.name, current_data_smart, include=True)
+            my_temp_file.name, current_data_smart)['']
 
         bb_parsed.setVar("OVERRIDES", "SRC_URI:append:qcom-custom-bsp")
 
@@ -240,10 +234,12 @@ class BBPatchParser(Parsable):
     def process(self):
         v = self.plugin_version
 
-        self.recipes["gstreamer"].bb_append.name = f"gstreamer1.0_{v}.bbappend"
-        self.recipes["plugins_base"].bb_append.name = f"gstreamer1.0-plugins-base_{v}.bbappend"
-        self.recipes["plugins_good"].bb_append.name = f"gstreamer1.0-plugins-good_{v}.bbappend"
-        self.recipes["plugins_bad"].bb_append.name = f"gstreamer1.0-plugins-bad_{v}.bbappend"
+        major, minor, patch = self.plugin_version.split(".")
+
+        self.recipes["gstreamer"].bb_append.name = f"gstreamer1.0_{v}.inc"
+        self.recipes["plugins_base"].bb_append.name = f"gstreamer1.0-plugins-base_{v}.inc"
+        self.recipes["plugins_good"].bb_append.name = f"gstreamer1.0-plugins-good_{v}.inc"
+        self.recipes["plugins_bad"].bb_append.name = f"gstreamer1.0-plugins-bad_{v}.inc"
 
         for recipe in self.recipes.values():
             path = recipe.bb_append.path
@@ -258,22 +254,16 @@ class BBPatchParser(Parsable):
                 if not os.path.exists(full_path):
 
                     # Replace the middle part
-                    v_minor = "1.24%"
-                    recipe.bb_append.name = f"{prefix}_{v_minor}.{suffix}"
+                    middle = f"{major}.{minor}%"
+                    recipe.bb_append.name = f"{prefix}_{middle}.{suffix}"
 
-            recipe = self.__get_content_of_bb(
-                recipe
-            )
+            recipe = self.__get_content_of_bb(recipe)
 
-            recipe = self.__get_content_of_bbappend(
-                recipe
-            )
+            recipe = self.__get_content_of_bbappend(recipe)
 
-            recipe = self.__get_patches(
-                recipe
-            )
+            recipe = self.__get_patches(recipe)
 
-    def export(self, path_to_tmp: pathlib.Path):
+    def export(self):
 
         title_to_patches = dict()
 
@@ -281,7 +271,7 @@ class BBPatchParser(Parsable):
             title_to_patches[recipe.title] = recipe.patches
 
         path_to_json = os.path.join(
-            path_to_tmp, f"{self.platform}_recipes_patches.json"
+            self.path_to_tmp, f"{self.platform}_recipes_patches.json"
         )
 
         with open(path_to_json, "w") as recipes_patches:
@@ -323,16 +313,10 @@ class RecipeParser(Parsable):
             +                                                                                      \
             self.plugin_to_content[os.path.basename(file)]
 
-    @abstractmethod
-    def process(self):
-        pass
-
-    @abstractmethod
-    def export(self, path_to_tmp: pathlib.Path):
-        pass
-
 
 class BuildCodeGenerator(RecipeParser):
+    files_to_be_parsed = list(str())
+    mode = str()
 
     # Init of RecipeParser
     # Reads the recipes and buffers them in dictionary (plugin : content)
@@ -340,15 +324,23 @@ class BuildCodeGenerator(RecipeParser):
                 platform: str) -> None:
         super().__init__(path_to_layers, path_to_meta, platform)
 
-        files_to_be_parsed = [
-            "recipes-gst/packagegroups/packagegroup-qcom-gst.bb",
-            "recipes-qim-product-sdk/packagegroups/packagegroup-qcom-gst.bbappend",
+        # Insert these files at the beginning of list
+        self.files_to_be_parsed.insert(
+            0, "recipes-qim-product-sdk/packagegroups/packagegroup-qcom-gst.bbappend"
+        )
+        self.files_to_be_parsed.insert(
+            0, "recipes-gst/packagegroups/packagegroup-qcom-gst.bb"
+        )
+        self.files_to_be_parsed.insert(
+            0, "recipes-gst/packagegroups/packagegroup-qcom-gst-basic.bb"
+        )
+        self.files_to_be_parsed.append("" \
             "recipes-gst/packagegroups/packagegroup-qcom-gst-sample-apps.bb"
-        ]
+        "")
 
         plugins = str()
 
-        for file_name in files_to_be_parsed:
+        for file_name in self.files_to_be_parsed:
             content = str()
 
             file_to_open = str()
@@ -360,16 +352,25 @@ class BuildCodeGenerator(RecipeParser):
                 if not os.path.exists(path):
                     path = os.path.join(path_to_layers, "meta-qti-qim-product-sdk", file_name)
 
-            with open(path) as file:
-                content += file.read()
+            try:
+                with open(path) as file:
+                    content += file.read()
+            except FileNotFoundError:
+                print("The file was not found.")
+            except IOError:
+                print("An I/O error occurred.")
 
             current_data_smart = bb.data.init()
             bb.parse.siggen = bb.siggen.init(current_data_smart)
 
             # No need to parse package group class
             content = content.replace("inherit packagegroup", "")
+
+            content = content.replace(":qcom ", "")
+
             # Remove qcom-custom-bsp since OVERRIDES can select only by one criteria: target
             content = content.replace(":qcom-custom-bsp", "")
+
             # Replace hardcoded package name with variable
             content = content.replace("RDEPENDS:packagegroup-qcom-gst", "RDEPENDS:${PN}")
 
@@ -385,7 +386,7 @@ class BuildCodeGenerator(RecipeParser):
             else:
                 bb_parsed.setVar("OVERRIDES", self.platform)
 
-            plugins += bb_parsed.getVar("RDEPENDS:${PN}")
+            plugins += str(bb_parsed.getVar("RDEPENDS:${PN}"))
 
         # Plugins that are not enabled yet should be append to the blacklist
         blacklisted = [
@@ -480,10 +481,10 @@ class BuildCodeGenerator(RecipeParser):
             self.plugin_cmake_flags[plugin] = cmake_flags
 
     # Export to shell method of BuildCodeGenerator
-    def export(self, path_to_tmp: pathlib.Path):
+    def export(self):
 
         path_to_sh = os.path.join(
-            path_to_tmp, f"{self.platform}_build_plugins.sh"
+            self.path_to_tmp, f"{self.platform}_build_plugins.sh"
         )
 
         with open(path_to_sh, "w") as build_plugins_sh:
@@ -520,13 +521,39 @@ function qimsdk-cmake-clean-${plugin}() {
 function qimsdk-incremental-build-qti() {
 """)
 
-            for plugin in self.plugins:
-                if plugin == self.plugins[0]:
-                    content = ""
-                else:
-                    content = "    "
-                content += "    qimsdk-cmake-build-" + plugin + " && \\\n"
+            base_plugins = [
+                    "qcom-gstreamer1.0-plugins-oss-base",
+                    "qcom-gstreamer1.0-plugins-oss-tools",
+                    "qcom-gst-sample-apps-utils"
+                    ]
+
+            # Remove from list with parallelized plugins as they won't be parallelized
+            for base_plugin in base_plugins:
+                if base_plugin in self.plugins:
+                    self.plugins.remove(base_plugin)
+
+            # Number of available cores, or number of parallelized plugins that needs to be built
+            # Whichever is less
+            needed_threads = os.cpu_count()
+            plugins_count = len(self.plugins)
+            if plugins_count < needed_threads:
+                needed_threads = plugins_count
+
+            for base_plugin in base_plugins:
+                content = "    qimsdk-cmake-build-" + base_plugin + " && \\\n"
                 build_plugins_sh.write(content)
+
+            # Add plugins in batches of n, where n is the number of available threads
+            content = ""
+            for i in range(0, plugins_count, needed_threads):
+                batch = self.plugins[ i:i + needed_threads ]
+                content += "    (\n"
+                content += "        trap 'kill 0' SIGINT;\n"
+                for task in batch:
+                    content += "        qimsdk-cmake-build-" + task + " || kill 0 & \\\n"
+                content += "        wait\n"
+                content += "    ) && \\\n"
+            build_plugins_sh.write(content)
 
             build_plugins_sh.write("""        echo "QTI build completed !!!"
 }
@@ -568,8 +595,12 @@ class RuntimeFlagsGenerator(RecipeParser):
                 platform: str) -> None:
         super().__init__(path_to_layers, path_to_meta, platform)
 
+        self.plugin_to_flags = dict()
+
+    # Process method of RecipeFlagsParser
+    def process(self):
         target_json = os.path.join(
-            os.getcwd(), f"targets/{self.platform}.json"
+            self.path_to_tmp, f"targets/{self.platform}.json"
         )
 
         list_of_socs = list(str())
@@ -580,13 +611,8 @@ class RuntimeFlagsGenerator(RecipeParser):
 
         self.target_platform = self.Platform(self.platform, list_of_socs)
 
-        self.plugin_to_flags = dict()
-
         for file in self.path_to_recipes:
             super().read_recipe(file)
-
-    # Process method of RecipeFlagsParser
-    def process(self):
 
         for content in self.plugin_to_content.values():
 
@@ -656,12 +682,12 @@ class RuntimeFlagsGenerator(RecipeParser):
 
     # Export to json method of RecipeFlagsParser
     # Export it to json file ("plugin" : { "member" : "flags" })
-    def export(self, path_to_tmp: pathlib.Path):
+    def export(self):
 
         for soc in self.target_platform.list_of_socs:
 
             path_to_json = os.path.join(
-                path_to_tmp, f"{soc}_runtime_flags.json"
+                self.path_to_tmp, f"{soc}_runtime_flags.json"
             )
 
             with open(path_to_json, "w") as runtime_flags_json:
@@ -674,7 +700,7 @@ def parse_arguments() -> str:
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-l", "--layers", dest="path_to_layers", required=True,
-                        help="Path to layers directory of eSDK")
+                        help="Path to layers directory of SDK")
 
     parser.add_argument("-m", "--meta", dest="path_to_meta", required=True,
                         help="Path to meta layer of qimsdk")
@@ -711,9 +737,10 @@ def main():
     )
 
     parser.plugin_version = str(args.version)
+    parser.path_to_tmp = args.path_to_tmp
 
     parser.process()
-    parser.export(args.path_to_tmp)
+    parser.export()
 
     return 0
 

@@ -18,7 +18,7 @@ function qimsdk-meson-configure() {
     (
         export CFLAGS="-mbranch-protection=standard -fstack-protector-strong -O2 `
             `-D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security -pipe `
-            `-feliminate-unused-debug-types -march=armv8.2-a+crypto"
+            `-feliminate-unused-debug-types"
         export CXXFLAGS="${CFLAGS}"
 
         mkdir -p ${QIMSDK_BUILD_DIR}
@@ -131,7 +131,7 @@ function qimsdk-cmake-compile() {
 
         set -o pipefail
 
-        cmake --build .                                                                           |&
+        cmake --build . -j                                                                        |&
                 tee "${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
     ) || {
         print-red "FAILED: qimsdk-cmake-compile-${TARGET}: cmake compile failed !!!"

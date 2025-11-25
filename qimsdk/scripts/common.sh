@@ -625,53 +625,61 @@ function qimsdk-get-map-for-dev-container() {
         cat ${PATH_TO_CONFIG_JSON}
     )
 
+    local DOCKER_IMAGE_PATH="/mnt/work/dev_artifacts"
+    local HOST_DOCKER_IMAGE_PATH=""
+
+    qimsdk-get-docker-image-path ${PATH_TO_CONFIG_JSON} HOST_DOCKER_IMAGE_PATH
+
     local MAP_SOURCES_TO_DEV_CONTAINER=$(
         echo ${JSON_CONTENT} |  jq '.MAP_sources_to_dev_container' | tr -d '"'
     )
 
-    [ ! "${MAP_SOURCES_TO_DEV_CONTAINER}" == "TRUE" ]                                           && \
-    [ ! "${MAP_SOURCES_TO_DEV_CONTAINER}" == "ENABLE" ]                                         && \
-    [ ! "${MAP_SOURCES_TO_DEV_CONTAINER}" == "ENABLED" ]                                        && {
-        return 0
-    }
-
-    local GST_SRC_DIR=$(
-        echo ${JSON_CONTENT} |  jq '.IM_SDK_Source_Dir' | tr -d '"'
-    )
-
-    qimsdk-expand-tilde GST_SRC_DIR
-
-    local LE_SERVICES_DIR=$(
-        echo ${JSON_CONTENT} |  jq '.LE_Services_Source_Dir' | tr -d '"'
-    )
-
-    qimsdk-expand-tilde LE_SERVICES_DIR
-
-    local SOLUTION_MICROSERVICES_DIR=$(
-        echo ${JSON_CONTENT} |  jq '.Solution_Microservices_Dir' | tr -d '"'
-    )
-
-    qimsdk-expand-tilde SOLUTION_MICROSERVICES_DIR
-
-    [[ -z ${GST_SRC_DIR} ]]                                                                     || \
-    [[ -z ${LE_SERVICES_DIR} ]]                                                                 || \
-    [[ -z ${SOLUTION_MICROSERVICES_DIR} ]]                                                      && {
-        return 0
-    }
-
     declare -a DEV_MAP_ARR=""
 
-    [ -d ${GST_SRC_DIR} ] && {
-        DEV_MAP_ARR+="-v ${GST_SRC_DIR}:/mnt/work/src/gst-plugins-qti-oss "
+    [ "${MAP_SOURCES_TO_DEV_CONTAINER}" == "TRUE" ]                                             || \
+    [ "${MAP_SOURCES_TO_DEV_CONTAINER}" == "ENABLE" ]                                           || \
+    [ "${MAP_SOURCES_TO_DEV_CONTAINER}" == "ENABLED" ]                                          || {
+
+        local GST_SRC_DIR=$(
+            echo ${JSON_CONTENT} |  jq '.IM_SDK_Source_Dir' | tr -d '"'
+        )
+
+        qimsdk-expand-tilde GST_SRC_DIR
+
+        local LE_SERVICES_DIR=$(
+            echo ${JSON_CONTENT} |  jq '.LE_Services_Source_Dir' | tr -d '"'
+        )
+
+        qimsdk-expand-tilde LE_SERVICES_DIR
+
+        local SOLUTION_MICROSERVICES_DIR=$(
+            echo ${JSON_CONTENT} |  jq '.Solution_Microservices_Dir' | tr -d '"'
+        )
+
+        qimsdk-expand-tilde SOLUTION_MICROSERVICES_DIR
+
+        [[ -z ${GST_SRC_DIR} ]]                                                                 || \
+        [[ -z ${LE_SERVICES_DIR} ]]                                                             || \
+        [[ -z ${SOLUTION_MICROSERVICES_DIR} ]]                                                  && {
+            return 0
+        }
+
+
+        [ -d ${GST_SRC_DIR} ] && {
+            DEV_MAP_ARR+="-v ${GST_SRC_DIR}:/mnt/work/src/gst-plugins-qti-oss "
+        }
+
+        [ -d ${LE_SERVICES_DIR} ] && {
+            DEV_MAP_ARR+="-v ${LE_SERVICES_DIR}:/mnt/work/src/le-services "
+        }
+
+        [ -d ${SOLUTION_MICROSERVICES_DIR} ] && {
+            DEV_MAP_ARR+="-v ${SOLUTION_MICROSERVICES_DIR}/microservices/qimsdk:/mnt/work/src/solutions-microservices "
+        }
+
     }
 
-    [ -d ${LE_SERVICES_DIR} ] && {
-        DEV_MAP_ARR+="-v ${LE_SERVICES_DIR}:/mnt/work/src/le-services "
-    }
-
-    [ -d ${SOLUTION_MICROSERVICES_DIR} ] && {
-        DEV_MAP_ARR+="-v ${SOLUTION_MICROSERVICES_DIR}/microservices/qimsdk:/mnt/work/src/solutions-microservices "
-    }
+    DEV_MAP_ARR+="-v ${HOST_DOCKER_IMAGE_PATH}:${DOCKER_IMAGE_PATH} "
 
     OUT_DEV_MAP=${DEV_MAP_ARR}
 
@@ -685,4 +693,163 @@ function qimsdk-expand-tilde() {
         # Swap "~" with ${HOME} variable
         INPUT_PATH="${INPUT_PATH/#\~/${HOME}}"
     }
+}
+
+# Setup SDK for qimsdk, get needed headers and pkgconfigs
+#   $1 - (mandatory) path to SDK
+#   $2 - (mandatory) temp folder
+function qimsdk-setup-SDK() {
+    local QIMSDK_PATH_TO_SDK_DIR=${1}
+    local QIMSDK_TMP_FOLDER_PTR=${2}
+
+    local TARGET_SYSROOT=$(find ${QIMSDK_PATH_TO_SDK_DIR}/sysroots -name fastcv.h | head -n 1)
+    TARGET_SYSROOT=${TARGET_SYSROOT%/usr*}
+
+    [ -d "${TARGET_SYSROOT}" ]                                                                  || {
+        print-red "Could not find target sysroot in ${QIMSDK_PATH_TO_SDK_DIR}"
+        return -1
+    }
+
+    pushd ${TARGET_SYSROOT} 1>/dev/null || {
+        print-red "FAILED: pushd to Path_to_SDK_dir"
+        return -1
+    }
+
+    [ -f "./usr/include/display/media/mmm_color_fmt.h" ]                                        && {
+        rsync -aR ./usr/include/display/media/mmm_color_fmt.h                                      \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/
+    }
+
+    # In the newer versions of SDK ib2c.h is a part of gst-plugin-base
+    [ -f "./usr/include/iot-core-algs/ib2c.h" ]                                                 && {
+        rsync -aR ./usr/include/iot-core-algs/ib2c.h                                               \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/
+    }
+
+    rsync -aR ./usr/include/fastcv/fastcv.h                                                        \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
+    rsync -aR ./usr/include/CL/cl_ext_qcom.h                                                       \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
+    rsync -aR ./usr/include/properties.h                                                           \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
+    rsync -aR ./usr/include/properties_def.h                                                       \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
+    rsync -aR ./usr/include/log.h                                                                  \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
+    rsync -aR ./usr/include/system/camera_metadata.h                                               \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
+    rsync -aR ./usr/include/system/camera_metadata_tags.h                                          \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
+    rsync -aR ./usr/include/system/camera_vendor_tags.h                                            \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
+    rsync -aR ./usr/include/hardware/graphics.h                                                    \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
+    rsync -aR ./usr/include/iot-core-algs/videoctrl.h                                              \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
+    rsync -aR ./usr/include/hardware/native_handle.h                                               \
+            ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   || {
+        echo "Cannot get headers from SDK !!!"
+        popd 1>/dev/null
+        return -1
+    }
+
+    # Skip building dfs in case dependencies are not met
+    [ -f ./usr/include/dfs_factory.h ] && {
+        rsync -aR ./usr/include/dfs_factory.h                                                      \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/mv.h                                                               \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/mvSRW.h                                                            \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/mvVM.h                                                             \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/mvVSLAM.h                                                          \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rv.h                                                               \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvAE.h                                                             \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvCamera.h                                                         \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvDFS.h                                                            \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvGoalDetection.h                                                  \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvLog.h                                                            \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvNAVMAP.h                                                         \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvPLANNER.h                                                        \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvQueue.h                                                          \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvVIO.h                                                            \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvVM.h                                                             \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvVSLAM.h                                                          \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvVWSLAM.h                                                         \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rvWOD.h                                                            \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rv_dfs_base.h                                                      \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
+        rsync -aR ./usr/include/rv_multi_dfs_base.h                                                \
+                ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               || {
+            echo "Cannot get headers from SDK !!!"
+            popd 1>/dev/null
+            return -1
+        }
+    }
+
+    local PKG_CONFIG_FILES_DIR="usr/lib/pkgconfig/"
+
+    [ ! -d ${PKG_CONFIG_FILES_DIR} ] && {
+        echo "Cannot get pkg-config files from SDK !!!"
+        popd 1>/dev/null
+
+        return -1
+    }
+
+    mkdir -p ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig
+    declare -a PLATFORM_LIBS="msm_gbm libgbm libatomic libgsl libib2C libegl_adreno `
+                                `libglesv2_adreno libpropertyvault libwayland-client `
+                                `libwayland-egl libadreno_utils libcb libegl libdmabufheap `
+                                `libeglsubdriverwayland libglesv1_cm libglesv1_cm_adreno `
+                                `libglesv2 libllvm-glnext libllvm-qcom libllvm-qgl libopencl `
+                                `libopencl_adreno libq3dtools_adreno libq3dtools_esx `
+                                `libvulkan_adreno libadsprpc libcdsprpc libfastcvopt `
+                                `libfastcvdsp_stub libc++ libc++abi libproperty-vault `
+                                `tensorflow-lite qcom-video-ctrl"
+
+    for LIB_NAME in ${PLATFORM_LIBS[@]}; do
+        local PREFIX=`echo ${LIB_NAME} | cut -c1-3`
+
+        [ "${PREFIX}" == "lib" ] && {
+            local NO_PREFIX_LIB_NAME=${LIB_NAME#*lib}
+            [ -f "${PKG_CONFIG_FILES_DIR}/${NO_PREFIX_LIB_NAME}.pc" ] && {
+                rsync -a "${PKG_CONFIG_FILES_DIR}/${NO_PREFIX_LIB_NAME}.pc" \
+                    ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig/ || {
+                    echo "Failed to copy pkg-config file ${LIB_NAME}.pc !!!"
+                    popd 1>/dev/null
+                    return -1
+                }
+            }
+        }
+
+        [ -f "${PKG_CONFIG_FILES_DIR}/${LIB_NAME}.pc" ] && {
+            rsync -a "${PKG_CONFIG_FILES_DIR}/${LIB_NAME}.pc" \
+                ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig/ || {
+                echo "Failed to copy pkg-config file ${LIB_NAME}.pc !!!"
+                popd 1>/dev/null
+                return -1
+            }
+        }
+        continue
+    done
+
+    popd 1>/dev/null
+
+    return 0
 }
