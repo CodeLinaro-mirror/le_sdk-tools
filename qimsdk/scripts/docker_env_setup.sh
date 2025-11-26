@@ -4,15 +4,16 @@
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # Parse json configuraiton
-#   $1 - (mandatory) path to target config json
-#   $2 - (mandatory) variable to take container name value
-#   $3 - (mandatory) variable to take image name value
-#   $4 - (mandatory) variable to take Gstreamer sources of SP
-#   $5 - (mandatory) variable to take Gstreamer meta of SP
-#   $6 - (mandatory) variable to take path to microservices
-#   $7 - (mandatory) variable to take path to le services source
-#   $8 - (mandatory) variable to take path to SDK
-#   $9 - (mandatory) variable to take supported targets
+#   $1  - (mandatory) path to target config json
+#   $2  - (mandatory) variable to take container name value
+#   $3  - (mandatory) variable to take image name value
+#   $4  - (mandatory) variable to take Gstreamer sources of SP
+#   $5  - (mandatory) variable to take Gstreamer meta of SP
+#   $6  - (mandatory) variable to take path to microservices
+#   $7  - (mandatory) variable to take path to le services source
+#   $8  - (mandatory) variable to take path to qimsdk needed headers
+#   $9  - (mandatory) variable to take path to qimsdk needed pkgconfig files
+#   $10 - (mandatory) variable to take supported targets
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
@@ -21,8 +22,9 @@ function qimsdk-docker-parse-json() {
     local -n OUT_QIMSDK_GST_META=${5}
     local -n OUT_QIMSDK_PATH_MICROSERVICES=${6}
     local -n OUT_QIMSDK_LE_SERVICES_SOURCES=${7}
-    local -n OUT_QIMSDK_PATH_TO_SDK_DIR=${8}
-    local -n OUT_QIMSDK_SUPPORTED_TARGETS=${9}
+    local -n OUT_QIMSDK_PATH_TO_HEADERS_DIR=${8}
+    local -n OUT_QIMSDK_PATH_TO_PKGCONFIG_DIR=${9}
+    local -n OUT_QIMSDK_SUPPORTED_TARGETS=${10}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -99,20 +101,36 @@ function qimsdk-docker-parse-json() {
         return -1
     }
 
-        OUT_QIMSDK_PATH_TO_SDK_DIR=$(
-            echo ${JSON_CONTENT} | jq '.Path_to_SDK_dir' | tr -d '"'
-        )
+    OUT_QIMSDK_PATH_TO_HEADERS_DIR=$(
+        echo ${JSON_CONTENT} | jq '.Path_to_headers_dir' | tr -d '"'
+    )
 
-        qimsdk-expand-tilde OUT_QIMSDK_PATH_TO_SDK_DIR
+    qimsdk-expand-tilde OUT_QIMSDK_PATH_TO_HEADERS_DIR
 
-    [ ! -d "${OUT_QIMSDK_PATH_TO_SDK_DIR}" ] && {
-            OUT_QIMSDK_PATH_TO_SDK_DIR="no-SDK-provided"
+    [ ! -d "${OUT_QIMSDK_PATH_TO_HEADERS_DIR}" ] && {
+        OUT_QIMSDK_PATH_TO_HEADERS_DIR="no-headers-provided"
 
-        print-yellow "The Path_to_SDK_dir attribute is filled wrong in config json!"
-        print-red "Please provide path to unarchived SDK directory in config json!!!"
+        print-yellow "The Path_to_headers_dir attribute is filled wrong in config json!"
+        print-red "Please provide path to needed qimsdk build headers directory in config json!!!"
 
-            return -1
-        }
+        return -1
+    }
+
+    OUT_QIMSDK_PATH_TO_PKGCONFIG_DIR=$(
+        echo ${JSON_CONTENT} | jq '.Path_to_pkgconfig_dir' | tr -d '"'
+    )
+
+    qimsdk-expand-tilde OUT_QIMSDK_PATH_TO_PKGCONFIG_DIR
+
+    [ ! -d "${OUT_QIMSDK_PATH_TO_PKGCONFIG_DIR}" ] && {
+        OUT_QIMSDK_PATH_TO_PKGCONFIG_DIR="no-pkgconfig-provided"
+
+        print-yellow "The Path_to_pkgconfig_dir attribute is filled wrong in config json!"
+        print-red "Please provide path to needed qimsdk build pkgconfig files directory in config`
+                        ` json!!!"
+
+        return -1
+    }
 
     OUT_QIMSDK_SUPPORTED_TARGETS=( $(
         echo ${JSON_CONTENT} | jq '.Supported_targets[]' | tr -d '"'
@@ -150,7 +168,8 @@ function qimsdk-docker-build-initialize() {
     local QIMSDK_GST_META
     local QIMSDK_PATH_MICROSERVICES
     local QIMSDK_LE_SERVICES_SOURCES
-    local QIMSDK_PATH_TO_SDK_DIR
+    local QIMSDK_PATH_TO_HEADERS_DIR
+    local QIMSDK_PATH_TO_PKGCONFIG_DIR
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
             QIMSDK_CONTAINER_NAME_PTR                                                              \
@@ -159,7 +178,8 @@ function qimsdk-docker-build-initialize() {
             QIMSDK_GST_META                                                                        \
             QIMSDK_PATH_MICROSERVICES                                                              \
             QIMSDK_LE_SERVICES_SOURCES                                                             \
-            QIMSDK_PATH_TO_SDK_DIR                                                                \
+            QIMSDK_PATH_TO_HEADERS_DIR                                                             \
+            QIMSDK_PATH_TO_PKGCONFIG_DIR                                                           \
             QIMSDK_SUPPORTED_TARGETS_PTR
 
     local rc=$?
@@ -197,13 +217,22 @@ function qimsdk-docker-build-initialize() {
     rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-qti-oss
     rsync -aL ${QIMSDK_GST_META}/ ${QIMSDK_TMP_FOLDER_PTR}/meta-qti-gst
 
-    QIMSDK_PATH_TO_SDK_DIR=${QIMSDK_PATH_TO_SDK_DIR%/}
+    QIMSDK_PATH_TO_HEADERS_DIR=${QIMSDK_PATH_TO_HEADERS_DIR%/}
+    QIMSDK_PATH_TO_PKGCONFIG_DIR=${QIMSDK_PATH_TO_PKGCONFIG_DIR%/}
 
-    qimsdk-setup-SDK ${QIMSDK_PATH_TO_SDK_DIR} ${QIMSDK_TMP_FOLDER_PTR}
+    qimsdk-setup-headers ${QIMSDK_PATH_TO_HEADERS_DIR} ${QIMSDK_TMP_FOLDER_PTR}
 
     rc=$?
     [ ${rc} -ne 0 ]                                                                         && {
-        print-red "FAILED: qimsdk-setup-SDK !!!"
+        print-red "FAILED: qimsdk-setup-headers !!!"
+        return ${rc}
+    }
+
+    qimsdk-setup-pkgconfig ${QIMSDK_PATH_TO_PKGCONFIG_DIR} ${QIMSDK_TMP_FOLDER_PTR}
+
+    rc=$?
+    [ ${rc} -ne 0 ]                                                                         && {
+        print-red "FAILED: qimsdk-setup-pkgconfig !!!"
         return ${rc}
     }
 

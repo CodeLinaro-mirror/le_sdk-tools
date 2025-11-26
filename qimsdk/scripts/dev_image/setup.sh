@@ -320,7 +320,7 @@ function qimsdk-copy-tf-lite-headers-to-sysroot() {
 # Propagate packages and sources to proper locations from temporary directory of qimsdk docker
 function qimsdk-propagate-packages-and-sources() {
     # Add private headers needed compiletime from headers dir
-    rsync -a ${QIMSDK_TMP_DIR}/headers/usr/* /usr/ || return -1
+    rsync -a ${QIMSDK_TMP_DIR}/headers/* /usr/include/ || return -1
 
     # Setup pkg-config dir
     rsync -a ${QIMSDK_TMP_DIR}/lib/pkgconfig/*.pc ${QIMSDK_PKGCONFIG_DIR}/ || return -1

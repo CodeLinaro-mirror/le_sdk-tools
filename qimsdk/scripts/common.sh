@@ -695,120 +695,120 @@ function qimsdk-expand-tilde() {
     }
 }
 
-# Setup SDK for qimsdk, get needed headers and pkgconfigs
-#   $1 - (mandatory) path to SDK
+# Setup headers for qimsdk, get needed headers for compilation
+#   $1 - (mandatory) path to usr/include headers dir
 #   $2 - (mandatory) temp folder
-function qimsdk-setup-SDK() {
-    local QIMSDK_PATH_TO_SDK_DIR=${1}
+function qimsdk-setup-headers() {
+    local QIMSDK_PATH_TO_HEADERS_DIR=${1}
     local QIMSDK_TMP_FOLDER_PTR=${2}
 
-    local TARGET_SYSROOT=$(find ${QIMSDK_PATH_TO_SDK_DIR}/sysroots -name fastcv.h | head -n 1)
-    TARGET_SYSROOT=${TARGET_SYSROOT%/usr*}
-
-    [ -d "${TARGET_SYSROOT}" ]                                                                  || {
-        print-red "Could not find target sysroot in ${QIMSDK_PATH_TO_SDK_DIR}"
+    pushd ${QIMSDK_PATH_TO_HEADERS_DIR} 1>/dev/null || {
+        print-red "FAILED: pushd to path to headers dir"
         return -1
     }
 
-    pushd ${TARGET_SYSROOT} 1>/dev/null || {
-        print-red "FAILED: pushd to Path_to_SDK_dir"
-        return -1
-    }
-
-    [ -f "./usr/include/display/media/mmm_color_fmt.h" ]                                        && {
-        rsync -aR ./usr/include/display/media/mmm_color_fmt.h                                      \
+    [ -f "./display/media/mmm_color_fmt.h" ]                                                    && {
+        rsync -aR ./display/media/mmm_color_fmt.h                                                  \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/
     }
 
     # In the newer versions of SDK ib2c.h is a part of gst-plugin-base
-    [ -f "./usr/include/iot-core-algs/ib2c.h" ]                                                 && {
-        rsync -aR ./usr/include/iot-core-algs/ib2c.h                                               \
+    [ -f "./iot-core-algs/ib2c.h" ]                                                             && {
+        rsync -aR ./iot-core-algs/ib2c.h                                                           \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/
     }
 
-    rsync -aR ./usr/include/fastcv/fastcv.h                                                        \
+    rsync -aR ./fastcv/fastcv.h                                                                    \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/CL/cl_ext_qcom.h                                                       \
+    rsync -aR ./CL/cl_ext_qcom.h                                                                   \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/properties.h                                                           \
+    rsync -aR ./properties.h                                                                       \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/properties_def.h                                                       \
+    rsync -aR ./properties_def.h                                                                   \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/log.h                                                                  \
+    rsync -aR ./log.h                                                                              \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/system/camera_metadata.h                                               \
+    rsync -aR ./system/camera_metadata.h                                                           \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/system/camera_metadata_tags.h                                          \
+    rsync -aR ./system/camera_metadata_tags.h                                                      \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/system/camera_vendor_tags.h                                            \
+    rsync -aR ./system/camera_vendor_tags.h                                                        \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/hardware/graphics.h                                                    \
+    rsync -aR ./hardware/graphics.h                                                                \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/iot-core-algs/videoctrl.h                                              \
+    rsync -aR ./iot-core-algs/videoctrl.h                                                          \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   && \
-    rsync -aR ./usr/include/hardware/native_handle.h                                               \
+    rsync -aR ./hardware/native_handle.h                                                           \
             ${QIMSDK_TMP_FOLDER_PTR}/headers/                                                   || {
-        echo "Cannot get headers from SDK !!!"
+        echo "Cannot get headers!!!"
         popd 1>/dev/null
         return -1
     }
 
     # Skip building dfs in case dependencies are not met
-    [ -f ./usr/include/dfs_factory.h ] && {
-        rsync -aR ./usr/include/dfs_factory.h                                                      \
+    [ -f ./dfs_factory.h ] && {
+        rsync -aR ./dfs_factory.h                                                                  \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/mv.h                                                               \
+        rsync -aR ./mv.h                                                                           \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/mvSRW.h                                                            \
+        rsync -aR ./mvSRW.h                                                                        \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/mvVM.h                                                             \
+        rsync -aR ./mvVM.h                                                                         \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/mvVSLAM.h                                                          \
+        rsync -aR ./mvVSLAM.h                                                                      \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rv.h                                                               \
+        rsync -aR ./rv.h                                                                           \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvAE.h                                                             \
+        rsync -aR ./rvAE.h                                                                         \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvCamera.h                                                         \
+        rsync -aR ./rvCamera.h                                                                     \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvDFS.h                                                            \
+        rsync -aR ./rvDFS.h                                                                        \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvGoalDetection.h                                                  \
+        rsync -aR ./rvGoalDetection.h                                                              \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvLog.h                                                            \
+        rsync -aR ./rvLog.h                                                                        \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvNAVMAP.h                                                         \
+        rsync -aR ./rvNAVMAP.h                                                                     \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvPLANNER.h                                                        \
+        rsync -aR ./rvPLANNER.h                                                                    \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvQueue.h                                                          \
+        rsync -aR ./rvQueue.h                                                                      \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvVIO.h                                                            \
+        rsync -aR ./rvVIO.h                                                                        \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvVM.h                                                             \
+        rsync -aR ./rvVM.h                                                                         \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvVSLAM.h                                                          \
+        rsync -aR ./rvVSLAM.h                                                                      \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvVWSLAM.h                                                         \
+        rsync -aR ./rvVWSLAM.h                                                                     \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rvWOD.h                                                            \
+        rsync -aR ./rvWOD.h                                                                        \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rv_dfs_base.h                                                      \
+        rsync -aR ./rv_dfs_base.h                                                                  \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               && \
-        rsync -aR ./usr/include/rv_multi_dfs_base.h                                                \
+        rsync -aR ./rv_multi_dfs_base.h                                                            \
                 ${QIMSDK_TMP_FOLDER_PTR}/headers/                                               || {
-            echo "Cannot get headers from SDK !!!"
+            echo "Cannot get dfs headers!!!"
             popd 1>/dev/null
             return -1
         }
     }
 
-    local PKG_CONFIG_FILES_DIR="usr/lib/pkgconfig/"
+    popd 1>/dev/null
 
-    [ ! -d ${PKG_CONFIG_FILES_DIR} ] && {
-        echo "Cannot get pkg-config files from SDK !!!"
-        popd 1>/dev/null
+    return 0
+}
 
+# Setup pkgconfig for qimsdk, get needed pkgconfig files for compilation
+#   $1 - (mandatory) path to usr/lib/pkgconfig packageconfig dir
+#   $2 - (mandatory) temp folder
+function qimsdk-setup-pkgconfig() {
+    local QIMSDK_PATH_TO_PKGCONFIG_DIR=${1}
+    local QIMSDK_TMP_FOLDER_PTR=${2}
+
+    pushd ${QIMSDK_PATH_TO_PKGCONFIG_DIR} 1>/dev/null || {
+        print-red "FAILED: pushd to path to headers dir"
         return -1
     }
 
@@ -828,8 +828,8 @@ function qimsdk-setup-SDK() {
 
         [ "${PREFIX}" == "lib" ] && {
             local NO_PREFIX_LIB_NAME=${LIB_NAME#*lib}
-            [ -f "${PKG_CONFIG_FILES_DIR}/${NO_PREFIX_LIB_NAME}.pc" ] && {
-                rsync -a "${PKG_CONFIG_FILES_DIR}/${NO_PREFIX_LIB_NAME}.pc" \
+            [ -f "${QIMSDK_PATH_TO_PKGCONFIG_DIR}/${NO_PREFIX_LIB_NAME}.pc" ] && {
+                rsync -a "${QIMSDK_PATH_TO_PKGCONFIG_DIR}/${NO_PREFIX_LIB_NAME}.pc" \
                     ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig/ || {
                     echo "Failed to copy pkg-config file ${LIB_NAME}.pc !!!"
                     popd 1>/dev/null
@@ -838,8 +838,8 @@ function qimsdk-setup-SDK() {
             }
         }
 
-        [ -f "${PKG_CONFIG_FILES_DIR}/${LIB_NAME}.pc" ] && {
-            rsync -a "${PKG_CONFIG_FILES_DIR}/${LIB_NAME}.pc" \
+        [ -f "${QIMSDK_PATH_TO_PKGCONFIG_DIR}/${LIB_NAME}.pc" ] && {
+            rsync -a "${QIMSDK_PATH_TO_PKGCONFIG_DIR}/${LIB_NAME}.pc" \
                 ${QIMSDK_TMP_FOLDER_PTR}/lib/pkgconfig/ || {
                 echo "Failed to copy pkg-config file ${LIB_NAME}.pc !!!"
                 popd 1>/dev/null

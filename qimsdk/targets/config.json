@@ -13,7 +13,8 @@
     "Solution_Microservices_Dir": "<path-to-solutions-microservices>",
     "LE_Services_Source_Dir": "<path-to-le-services>",
 
-    "Path_to_SDK_dir" : "<path-to-installed-SDK-dir>",
+    "Path_to_headers_dir" : "<path-to-/usr/include/-dir-containing-needed-headers>",
+    "Path_to_pkgconfig_dir" : "<path-to-usr/lib/pkgconfig/-dir-containing-needed-pkg-config-files>",
 
     "MAP_sources_to_dev_container" : "FALSE"
 }
