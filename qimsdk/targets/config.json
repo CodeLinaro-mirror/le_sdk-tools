@@ -3,6 +3,7 @@
     "Additional_tag_image": "",
     "Docker_image_path": "<path-to-save-docker-images-and-artifacts>",
     "Target_device_ID" : "<adb-device-id>",
+    "QAIRT_SDK_version" : "<version, e.g. 2.39.0.250925>",
     "Supported_targets": [
         "qcm6490",
         "qcs9100",
