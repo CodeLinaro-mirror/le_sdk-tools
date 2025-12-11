@@ -58,6 +58,7 @@ RUN mkdir -p ${QIMSDK_TMP_DIR}
 
 # Add qimsdk install directory
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
+ENV QIMSDK_ADSP_DIR=${QIMSDK_INSTALL_DIR}/usr/lib/rfsa/adsp
 
 # Add qimsdk prebuilt directory
 ENV QIMSDK_PREBUILT_DIR=${QIMSDK_BASE_DIR}/prebuilt
@@ -127,6 +128,97 @@ ENV QIMSDK_PATH_TO_GST_META=${QIMSDK_SRC_DIR}/meta-qti-gst
 # meta-qti-gst: fetch
 RUN git clone --progress https://git.codelinaro.org/clo/le/meta-qti-gst.git                        \
         --single-branch --branch imsdk.lnx.2.0.0 ${QIMSDK_SRC_DIR}/meta-qti-gst
+
+# qnp-sdk: fetch and copy the needed headers
+ENV QIMSDK_QNP_VER=2.43.0.260128
+ENV QIMSDK_QNP_SDK=v${QIMSDK_QNP_VER}.zip
+ENV QIMSDK_QNN_LIB_PATH=${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_QNP_VER}/lib/
+RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
+        https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/${QIMSDK_QNP_VER}/${QIMSDK_QNP_SDK} && \
+    cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
+    unzip ${QIMSDK_QNP_SDK}                                                                     && \
+    rm -f ${QIMSDK_QNP_SDK}                                                                     && \
+    QIMSDK_ARG_QNP_SDK_VERSION=$(ls qairt)                                                      && \
+    cp -r ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/SNPE/*                \
+        ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QNN/*                   \
+        /usr/include/                                                                           && \
+    mkdir -p ${QIMSDK_ADSP_DIR}                                                                 && \
+    cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v68/unsigned/* ${QIMSDK_ADSP_DIR}/                        && \
+    cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v73/unsigned/* ${QIMSDK_ADSP_DIR}/                        && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libhta_hexagon_runtime_qnn.so               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libhta_hexagon_runtime_snpe.so              \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libPlatformValidatorShared.so               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnChrometraceProfilingReader.so         \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnCpu.so                                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnDspNetRunExtensions.so                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnDsp.so                                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnGenAiTransformerCpuOpPkg.so           \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnGenAiTransformerModel.so              \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnGenAiTransformer.so                   \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnGpuNetRunExtensions.so                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnGpuProfilingReader.so                 \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnGpu.so                                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtaNetRunExtensions.so                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHta.so                                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpNetRunExtensions.so                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpOptraceProfilingReader.so          \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpPrepare.so                         \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpProfilingReader.so                 \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtp.so                                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV68CalculatorStub.so               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV68Stub.so                         \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV73CalculatorStub.so               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnHtpV73Stub.so                         \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnIr.so                                 \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnJsonProfilingReader.so                \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnModelDlc.so                           \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnSaver.so                              \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnSystem.so                             \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnTFLiteDelegate.so                     \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHta.so                               \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpPrepare.so                        \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV68CalculatorStub.so              \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV68Stub.so                        \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV73CalculatorStub.so              \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV73Stub.so                        \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/                                                          && \
+    cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSNPE.so                                  \
+        ${QIMSDK_INSTALL_DIR}/usr/lib/
 
 # gst-plugins-qti-oss: fetch
 RUN git clone --progress                                                                           \

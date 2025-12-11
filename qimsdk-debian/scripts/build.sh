@@ -252,6 +252,8 @@ function qimsdk-incremental-build-qti() {
             -DENABLE_GST_PLUGIN_MLVPOSE=ON                                                         \
             -DENABLE_GST_PLUGIN_MLVSEGMENTATION=ON                                                 \
             -DENABLE_GST_PLUGIN_MLTFLITE=ON                                                        \
+            -DENABLE_GST_PLUGIN_MLSNPE=ON                                                          \
+            -DENABLE_GST_PLUGIN_MLQNN=ON                                                           \
             -DENABLE_GST_PLUGIN_MLMETAPARSER=ON                                                    \
             -DENABLE_GST_PLUGIN_METATRANSFORM=ON                                                   \
             -DENABLE_GST_PLUGIN_OBJTRACKER=ON                                                      \
