@@ -314,273 +314,6 @@ class RecipeParser(Parsable):
             self.plugin_to_content[os.path.basename(file)]
 
 
-class BuildCodeGenerator(RecipeParser):
-    files_to_be_parsed = list(str())
-    mode = str()
-
-    # Init of RecipeParser
-    # Reads the recipes and buffers them in dictionary (plugin : content)
-    def __init__(self, path_to_layers: pathlib.Path, path_to_meta: pathlib.Path,
-                platform: str) -> None:
-        super().__init__(path_to_layers, path_to_meta, platform)
-
-        # Insert these files at the beginning of list
-        self.files_to_be_parsed.insert(
-            0, "recipes-qim-product-sdk/packagegroups/packagegroup-qcom-gst.bbappend"
-        )
-        self.files_to_be_parsed.insert(
-            0, "recipes-gst/packagegroups/packagegroup-qcom-gst.bb"
-        )
-        self.files_to_be_parsed.insert(
-            0, "recipes-gst/packagegroups/packagegroup-qcom-gst-basic.bb"
-        )
-        self.files_to_be_parsed.append("" \
-            "recipes-gst/packagegroups/packagegroup-qcom-gst-sample-apps.bb"
-        "")
-
-        plugins = str()
-
-        for file_name in self.files_to_be_parsed:
-            content = str()
-
-            file_to_open = str()
-
-            if file_name.endswith(".bb"):
-                path = os.path.join(path_to_meta, file_name)
-            elif file_name.endswith(".bbappend"):
-                path = os.path.join(path_to_layers, "meta-qcom-qim-product-sdk", file_name)
-                if not os.path.exists(path):
-                    path = os.path.join(path_to_layers, "meta-qti-qim-product-sdk", file_name)
-
-            try:
-                with open(path) as file:
-                    content += file.read()
-            except FileNotFoundError:
-                print("The file was not found.")
-            except IOError:
-                print("An I/O error occurred.")
-
-            current_data_smart = bb.data.init()
-            bb.parse.siggen = bb.siggen.init(current_data_smart)
-
-            # No need to parse package group class
-            content = content.replace("inherit packagegroup", "")
-
-            content = content.replace(":qcom ", "")
-
-            # Remove qcom-custom-bsp since OVERRIDES can select only by one criteria: target
-            content = content.replace(":qcom-custom-bsp", "")
-
-            # Replace hardcoded package name with variable
-            content = content.replace("RDEPENDS:packagegroup-qcom-gst", "RDEPENDS:${PN}")
-
-            temp_file = self._parse_helper(content)
-
-            bb_parsed = bb.parse.handle(
-                temp_file.name, current_data_smart)['']
-
-            bb.data.expandKeys(bb_parsed)
-
-            if (file_name != "qcom-gstreamer1.0-plugins-oss-qmmfsrc.bb"):
-                bb_parsed.setVar("OVERRIDES", "")
-            else:
-                bb_parsed.setVar("OVERRIDES", self.platform)
-
-            plugins += str(bb_parsed.getVar("RDEPENDS:${PN}"))
-
-        # Plugins that are not enabled yet should be append to the blacklist
-        blacklisted = [
-        ]
-
-        self.plugins = [
-            x for x in plugins.split()
-                if "qcom-gstreamer1.0" in x or "qcom-gst-" in x
-        ]
-
-        self.plugins = [ x for x in self.plugins if x not in blacklisted ]
-
-        for file in self.path_to_recipes:
-
-            if (os.path.basename(file).replace(".bb","") not in self.plugins):
-                continue
-
-            super().read_recipe(file)
-
-        self.plugin_cmake_flags = dict()
-        self.plugin_src_uri = dict()
-
-    # Process method of BuildCodeGenerator
-    def process(self):
-
-        for recipe,content in self.plugin_to_content.items():
-
-            plugin = recipe.replace('.bb', '')
-
-            if ("inherit cmake" not in content):
-                index = self.plugins.index(plugin)
-                self.plugins.pop(index)
-                continue
-
-            current_data_smart = bb.data.init()
-            bb.parse.siggen = bb.siggen.init(current_data_smart)
-
-            my_temp_file = self._parse_helper(content)
-
-            current_data_smart.setVar("__bbclasstype", "recipe")
-
-            bb_parsed = bb.parse.handle(
-                my_temp_file.name, current_data_smart)['']
-
-            bb_parsed.setVar("OVERRIDES", self.platform)
-
-            files_path = bb_parsed.getVar("FILESPATH").replace("${WORKSPACE}/", "").replace("/:", "").replace(":", "")
-            s = bb_parsed.getVar("S").replace("${WORKDIR}/", "")
-            if files_path.strip() == "":
-                self.plugin_src_uri[plugin] = s
-            else:
-                self.plugin_src_uri[plugin] = os.path.join(files_path, s)
-
-            extra_oecmake_string = bb_parsed.getVar("EXTRA_OECMAKE")
-
-            if extra_oecmake_string is None:
-                self.plugin_cmake_flags[plugin] = ""
-                continue
-
-            extra_oecmake_string = extra_oecmake_string.replace(
-                '${PN}', recipe.replace('.bb', ''))
-
-            extra_oecmake_string = extra_oecmake_string.replace(
-                '${PACKAGECONFIG_CONFARGS}', '')
-
-            splited_string = list(str())
-            splited_string = extra_oecmake_string.split(' -D')
-
-            filtred_extra_oecmake = list(str())
-
-            string = str()
-
-            for string in splited_string:
-                # Skip sysroot variables and GST_VERSION_REQUIRED
-                if string.find("${STAGING_INCDIR}") != -1 or \
-                        string.find("${STAGING_KERNEL_BUILDDIR}") != -1 or \
-                        string.find("${STAGING_LIBDIR}") != -1 or \
-                        string.find("${PKG_CONFIG_SYSROOT_DIR}") != -1 or \
-                        string.find("${bindir}") != -1 or \
-                        string.find("${libdir}") != -1 or \
-                        string.find("${sysconfdir}") != -1 or \
-                        string.find("${includedir}") != -1 or \
-                        string.find("${PV}") != -1 or \
-                        string.find("GST_VERSION_REQUIRED") != -1:
-                    continue
-
-                filtred_extra_oecmake.append(string)
-
-            cmake_flags = ' -D'.join(filtred_extra_oecmake)
-            cmake_flags += ' '
-
-            self.plugin_cmake_flags[plugin] = cmake_flags
-
-    # Export to shell method of BuildCodeGenerator
-    def export(self):
-
-        path_to_sh = os.path.join(
-            self.path_to_tmp, f"{self.platform}_build_plugins.sh"
-        )
-
-        with open(path_to_sh, "w") as build_plugins_sh:
-            build_plugins_sh.write("""#!/bin/bash
-
-# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
-# SPDX-License-Identifier: BSD-3-Clause-Clear
-
-# THIS CODE IS AUTOMATICALLY GENERATED. DO NOT MODIFY IT !!!
-""")
-
-            for plugin in self.plugins:
-                src_uri = str(self.plugin_src_uri[plugin])
-                content="""
-# CMake Build ${plugin}
-function qimsdk-cmake-build-${plugin} () {
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/${dir} ${CONFIG_FLAGS} && \\
-            print-green "${FUNCNAME} completed successfully!"
-}
-
-# Clean CMake ${plugin} build directory
-function qimsdk-cmake-clean-${plugin}() {
-    rm -rf ${QIMSDK_BUILD_DIR}/${dir}
-
-    print-green "${FUNCNAME} completed successfully!"
-}
-"""
-                content = content.replace("${plugin}", plugin.replace("_", "-"))
-                content = content.replace("${dir}", src_uri.replace(" ", ""))
-                content = content.replace("${CONFIG_FLAGS}", self.plugin_cmake_flags[plugin])
-                build_plugins_sh.write(content)
-
-            build_plugins_sh.write("""
-function qimsdk-incremental-build-qti() {
-""")
-
-            base_plugins = [
-                    "qcom-gstreamer1.0-plugins-oss-base",
-                    "qcom-gstreamer1.0-plugins-oss-tools",
-                    "qcom-gst-sample-apps-utils"
-                    ]
-
-            # Remove from list with parallelized plugins as they won't be parallelized
-            for base_plugin in base_plugins:
-                if base_plugin in self.plugins:
-                    self.plugins.remove(base_plugin)
-
-            # Number of available cores, or number of parallelized plugins that needs to be built
-            # Whichever is less
-            needed_threads = os.cpu_count()
-            plugins_count = len(self.plugins)
-            if plugins_count < needed_threads:
-                needed_threads = plugins_count
-
-            for base_plugin in base_plugins:
-                content = "    qimsdk-cmake-build-" + base_plugin + " && \\\n"
-                build_plugins_sh.write(content)
-
-            # Add plugins in batches of n, where n is the number of available threads
-            content = ""
-            for i in range(0, plugins_count, needed_threads):
-                batch = self.plugins[ i:i + needed_threads ]
-                content += "    (\n"
-                content += "        trap 'kill 0' SIGINT;\n"
-                for task in batch:
-                    content += "        qimsdk-cmake-build-" + task + " || kill 0 & \\\n"
-                content += "        wait\n"
-                content += "    ) && \\\n"
-            build_plugins_sh.write(content)
-
-            build_plugins_sh.write("""        echo "QTI build completed !!!"
-}
-""")
-
-            build_plugins_sh.write("""
-function qimsdk-help-build() {
-""")
-
-            for plugin in self.plugins:
-                content = "    print-green \"qimsdk-cmake-build-" + plugin + "\"\n"
-                content += "        echo \"Build " + plugin + "\"\n"
-                content += "    print-red \"qimsdk-cmake-clean-" + plugin + "\"\n"
-                content += "        echo \"Clean " + plugin + "\"\n"
-                build_plugins_sh.write(content)
-
-            build_plugins_sh.write("""}
-""")
-
-            build_plugins_sh.write("""
-print-green \"qimsdk-incremental-build-qti\"
-echo \"    Incremental build of QTI gst plugins\"
-print-yellow \"qimsdk-help-build\"
-echo \"    Print build and clean function of each gst plugins\"
-""")
-
-
 class RuntimeFlagsGenerator(RecipeParser):
 
 
@@ -637,7 +370,7 @@ class RuntimeFlagsGenerator(RecipeParser):
                 '${PACKAGECONFIG_CONFARGS}', '')
 
             splited_string = list(str())
-            splited_string = extra_oecmake_string.split(' -D')
+            splited_string = extra_oecmake_string.split(' ')
 
             string = str()
 
@@ -715,8 +448,8 @@ def parse_arguments() -> str:
                         help="gst-plugins good, bad and base version")
 
     parser.add_argument("action",
-                        choices=['BuildCodeGenerator', 'BBPatchParser', 'RuntimeFlagsGenerator'],
-                        help="<BuildCodeGenerator/BBPatchParser/RuntimeFlagsGenerator>")
+                        choices=['BBPatchParser', 'RuntimeFlagsGenerator'],
+                        help="<BBPatchParser/RuntimeFlagsGenerator>")
 
     return parser.parse_args()
 
@@ -726,7 +459,6 @@ def main():
 
     parser_map = {
         "BBPatchParser"         : BBPatchParser,
-        "BuildCodeGenerator"    : BuildCodeGenerator,
         "RuntimeFlagsGenerator" : RuntimeFlagsGenerator
     }
 
