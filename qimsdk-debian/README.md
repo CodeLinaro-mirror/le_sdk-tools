@@ -66,16 +66,13 @@ The functions inside these scripts are generally for building and maintaining th
 
 Handles the compilation and installation of open-source and QTI GStreamer plugins.
 
-- qimsdk-meson-configure - Configures a Meson project with security-hardened compiler flags and logs output
-- qimsdk-meson-compile - Compiles a configured Meson target with verbose logging
-- qimsdk-meson-install - Installs compiled artifacts to both debug and deployment directories
 - qimsdk-cmake-configure - Configures a CMake project with security-hardened flags and custom build options
 - qimsdk-cmake-compile - Compiles a configured CMake target with logging
 - qimsdk-cmake-install - Installs CMake build artifacts to debug and deployment directories
-- qimsdk-meson-build - Wrapper function that calls configure, compile and install for Meson projects
+- qimsdk-debian-rules-build - Wrapper function that calls configure, compile and install for projects, which need to be built using debian/rules
 - qimsdk-cmake-build - Wrapper function that calls configure, compile and install for CMake projects
-- qimsdk-meson-build-\<name-of-project\> - Builds specific open-source component with custom configuration
-- qimsdk-meson-clean-\<name-of-project\> - Cleans build directory for specific open-source component
+- qimsdk-debian-rules-build-\<name-of-project\> - Builds specific open-source component with custom configuration
+- qimsdk-debian-rules-clean-\<name-of-project\> - Cleans build directory for specific open-source component
 - qimsdk-incremental-build-qti - Base QTI GStreamer plugins that the others depend on are built. After which, a hardcoded list of QTI GStreamer plugins is built in paralel. If one wishes to add a new GStreamer plugin to build using CMake, simply add the plugin directory name under gst-plugins-qti-oss/ source dir to the list.
 - qimsdk-incremental-build - Main entry point that builds all GStreamer components in sequence with success reporting. Also calls qimsdk-incremental-build-qti, to build QTI GStreamer plugins.
 - qimsdk-cmake-build-qcom-gstreamer1.0-plugins-oss \<dir-name-of-qti-gst-plugin-src\> - CMake build of a specified QTI gst plugin. Plugin directory name under gst-plugins-qti-oss/ must be provided as first argument.

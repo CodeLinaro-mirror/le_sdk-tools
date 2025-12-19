@@ -40,7 +40,7 @@ FROM build AS qimsdk-build
 RUN apt-get update                                                                              && \
         DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
         git tar unzip ssh rsync bash-completion jq cmake android-tools-adb wget pipx xz-utils curl \
-        gobject-introspection flex bison locales-all meson ninja-build gpg                         \
+        gobject-introspection flex bison locales-all meson ninja-build gpg git-buildpackage        \
         libeigen3-dev libcairo-dev libjson-glib-dev libmosquitto-dev opencl-headers libhiredis-dev \
         libgstrtspserver-1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-gl libglib2.0-0      \
         gstreamer1.0-plugins-good libgl1 libegl1 libwayland-egl1 pulseaudio ocl-icd-libopencl1     \
@@ -76,61 +76,13 @@ RUN mkdir -p ${QIMSDK_PREBUILT_DIR}
 ENV QIMSDK_DOWNLOAD_DIR=${QIMSDK_BASE_DIR}/downloads
 RUN mkdir -p ${QIMSDK_DOWNLOAD_DIR}
 
-# gst-plugins-base: fetch and prepare git repo
-RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-    'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.26.1.tar.xz'     && \
-    wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-    'https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.26.1.tar.xz.asc' && \
-    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
-    D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                    && \
-    gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.26.1.tar.xz.asc                         \
-        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.26.1.tar.xz                                   && \
-    cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf gst-plugins-base-1.26.1.tar.xz                                                      && \
-    gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
-    rm -f gst-plugins-base-1.26.1.tar.xz*
+# gst-plugins-base: fetch
+RUN git clone https://salsa.debian.org/gstreamer-team/gst-plugins-base1.0.git                      \
+    ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0
 
-RUN git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.26.1                                          \
-        init                                                                                    && \
-    git config --global --add safe.directory                                                       \
-        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.26.1                                          && \
-    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.26.1                                          \
-        config --global user.name "username"                                                    && \
-    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.26.1                                          \
-        config --global user.email "email"                                                      && \
-    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.26.1                                          \
-        add --all                                                                               && \
-    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base-1.26.1                                          \
-        commit -m "Initial Plugins Base Commit"
-
-# gst-plugins-good: fetch and prepare git repo
-RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.26.1.tar.xz' && \
-    wget -t 2 -T 30  -P ${QIMSDK_DOWNLOAD_DIR}                                                     \
-        'https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.26.1.tar.xz.asc' && \
-    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys                                        \
-        D637032E45B8C6585B9456565D2EEE6F6F349D7C                                                && \
-    gpg --fingerprint D637032E45B8C6585B9456565D2EEE6F6F349D7C                                  && \
-    gpg --verify ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.26.1.tar.xz.asc                         \
-        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.26.1.tar.xz                                   && \
-    cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    tar -xf gst-plugins-good-1.26.1.tar.xz                                                      && \
-    gpg --batch --delete-key D637032E45B8C6585B9456565D2EEE6F6F349D7C                           && \
-    rm -f gst-plugins-good-1.26.1.tar.xz*
-
-RUN git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.26.1                                          \
-        init                                                                                    && \
-    git config --global --add safe.directory                                                       \
-        ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.26.1                                          && \
-    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.26.1                                          \
-        config --global user.name "username"                                                    && \
-    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.26.1                                          \
-        config --global user.email "email"                                                      && \
-    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.26.1                                          \
-        add --all                                                                               && \
-    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good-1.26.1                                          \
-        commit -m "Initial Plugins Good Commit"
+# gst-plugins-good: fetch
+RUN git clone https://salsa.debian.org/gstreamer-team/gst-plugins-good1.0.git                      \
+    ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0
 
 # Setup Tensorflow Lite 2.20
 ENV QIMSDK_TF_SRC_TAR=/usr/src/tensorflow-lite-2.20.tar.gz
@@ -173,6 +125,17 @@ RUN bash /root/.bashrc qimsdk-apply-patches
 # Call wrapper build function to compile and install gst plugins
 RUN bash /root/.bashrc qimsdk-incremental-build
 
+# Create directory to save deb packages
+RUN mkdir -p ${QIMSDK_DOWNLOAD_DIR}/debs/
+
+# Copy selected packages to install
+RUN cp ${QIMSDK_DOWNLOAD_DIR}/*base-1.0_* ${QIMSDK_DOWNLOAD_DIR}/*alsa_*                           \
+       ${QIMSDK_DOWNLOAD_DIR}/*gl_* ${QIMSDK_DOWNLOAD_DIR}/*gtk3_* ${QIMSDK_DOWNLOAD_DIR}/*base_*  \
+       ${QIMSDK_DOWNLOAD_DIR}/*base-apps_* ${QIMSDK_DOWNLOAD_DIR}/*good_*                          \
+       ${QIMSDK_DOWNLOAD_DIR}/*pulseaudio_* ${QIMSDK_DOWNLOAD_DIR}/*x_*                            \
+       ${QIMSDK_DOWNLOAD_DIR}/*gl1.0-0_* ${QIMSDK_DOWNLOAD_DIR}/*base1.0-0_1*                      \
+       ${QIMSDK_DOWNLOAD_DIR}/debs/
+
 # --------------------------------------------------------------------------------------------------
 
 # QIMSDK Device Image
@@ -182,6 +145,7 @@ FROM debian:trixie-slim AS qimsdk-deploy
 ENV QIMSDK_BASE_DIR=/mnt/work
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 ENV QIMSDK_PREBUILT_DIR=${QIMSDK_BASE_DIR}/prebuilt
+ENV QIMSDK_DEB_DIR=${QIMSDK_BASE_DIR}/downloads/debs
 
 # Installing dependencies, needed in order for gst plugins to load succesfully runtime:
 #  gstreamer base plugins:        gstreamer1.0-tools,
@@ -243,7 +207,8 @@ EOF
 # Install libegl-mesa0 which contains the mesa vendor library for EGL.
 RUN DEBIAN_FRONTEND=noninteractive apt-get update                                               && \
     apt -y install --no-install-recommends mesa-common-dev libegl-dev libgles-dev                  \
-        libgl1-mesa-dri libegl-mesa0 libgles2 mesa-opencl-icd clpeak                            && \
+        libgl1-mesa-dri libegl-mesa0 libgles2 mesa-opencl-icd clpeak                               \
+        gir1.2-gst-plugins-base-1.0                                                             && \
         apt -y upgrade                                                                          && \
         apt-get autoremove -y                                                                   && \
         apt-get clean                                                                           && \
@@ -264,6 +229,12 @@ COPY --from=qimsdk-build ${QIMSDK_INSTALL_DIR}/usr /usr
 
 # Copy prebuilt binaries to device image
 COPY --from=qimsdk-build ${QIMSDK_PREBUILT_DIR}/usr /usr
+
+# Copy deb packages to device image
+COPY --from=qimsdk-build /mnt/work/downloads/debs ${QIMSDK_DEB_DIR}
+
+# Install deb packages to deploy image and remove the directory after install
+RUN dpkg -i ${QIMSDK_DEB_DIR}/* && rm -rf ${QIMSDK_DEB_DIR}
 
 # Copy prebuilt libraries from AIML to device image
 
