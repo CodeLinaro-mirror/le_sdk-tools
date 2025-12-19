@@ -139,8 +139,6 @@ ENV QIMSDK_TF_SRC_DIR=/usr/src/tensorflow-2.20
 RUN tar -xvzf ${QIMSDK_TF_SRC_TAR} -C /usr/src/
 
 # Initialize environment variables
-ENV QIMSDK_RECIPES_PATCHES_DIR=${QIMSDK_TMP_DIR}/recipes_patches
-RUN mkdir -p ${QIMSDK_RECIPES_PATCHES_DIR}
 ENV QIMSDK_SRC_DIR=${QIMSDK_BASE_DIR}/src
 ENV QIMSDK_PATH_TO_GST_META=${QIMSDK_SRC_DIR}/meta-qti-gst
 
@@ -159,9 +157,6 @@ COPY scripts ${QIMSDK_SCRIPTS}
 
 # Source container helper scripts from bashrc
 RUN echo "source ${QIMSDK_SCRIPTS}/env_setup.sh" >> /root/.bashrc
-
-# Invoke Recipe Parser script
-RUN bash /root/.bashrc qimsdk-invoke-recipe-parser
 
 # Change workdir back to base dir from downloads dir
 WORKDIR ${QIMSDK_BASE_DIR}

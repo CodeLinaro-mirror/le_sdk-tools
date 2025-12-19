@@ -340,6 +340,91 @@ function qimsdk-meson-clean-gst-plugins-good() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
+# CMake Build qcom-gstreamer1.0-plugins-oss plugin
+#    ${1} - PLUGIN_DIR_NAME - Name of top-level plugin directory under gst-plugins-qti-oss
+function qimsdk-cmake-build-qcom-gstreamer1.0-plugins-oss () {
+    local PLUGIN_DIR_NAME="${1}"
+
+    [ -z "${PLUGIN_DIR_NAME}" ]                                                                 && {
+        print-red "QTI Plugin directory name must be provided as first argument!"
+        return -1
+    }
+
+    # Extract plugin basename by removing gst-plugin- prefix
+    local PLUGIN_NAME=$(echo ${PLUGIN_DIR_NAME} | sed 's/gst-plugin-//')
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/${PLUGIN_DIR_NAME}                    \
+        -DGST_PLUGINS_QTI_OSS_SUMMARY='Qualcomm open-source multimedia GStreamer plugin'           \
+        -DGST_PLUGINS_QTI_OSS_LICENSE=BSD                                                          \
+        -DGST_PLUGINS_QTI_OSS_PACKAGE=qcom-gstreamer1.0-plugins-oss-${PLUGIN_NAME}                 \
+        -DGST_PLUGINS_QTI_OSS_ORIGIN='Unknown package origin'                                   && \
+            print-green "${FUNCNAME} ${PLUGIN_DIR_NAME} completed successfully!"
+}
+
+# CMake Clean qcom-gstreamer1.0-plugins-oss plugin
+#    ${1} - PLUGIN_DIR_NAME - Name of top-level plugin directory under gst-plugins-qti-oss
+function qimsdk-cmake-clean-qcom-gstreamer1.0-plugins-oss () {
+    local PLUGIN_DIR_NAME="${1}"
+
+    [ -z "${PLUGIN_DIR_NAME}" ]                                                                 && {
+        print-red "QTI Plugin directory name must be provided as first argument!"
+        return -1
+    }
+
+    rm -rf ${QIMSDK_BUILD_DIR}/${PLUGIN_DIR_NAME}                                               && \
+            print-green "${FUNCNAME} ${PLUGIN_DIR_NAME} completed successfully!"
+}
+
+# Wrapper function to build all QTI gstreamer plugins incrementally
+function qimsdk-incremental-build-qti() {
+    local QIMSDK_BASE_QTI_PLUGINS_LIST="gst-plugin-base"
+    local QIMSDK_QTI_PLUGINS_LIST="`
+            `gst-plugin-batch `
+            `gst-plugin-metamux `
+            `gst-plugin-metatransform `
+            `gst-plugin-mlaconverter `
+            `gst-plugin-mlaclassification `
+            `gst-plugin-mldemux `
+            `gst-plugin-mlmetaparser `
+            `gst-plugin-mlvconverter `
+            `gst-plugin-mlvclassification `
+            `gst-plugin-mlvsuperresolution `
+            `gst-plugin-mlvdetection `
+            `gst-plugin-mlvpose `
+            `gst-plugin-mlvsegmentation `
+            `gst-plugin-msgbroker `
+            `gst-plugin-objtracker `
+            `gst-plugin-overlay `
+            `gst-plugin-redissink `
+            `gst-plugin-restricted-zone `
+            `gst-plugin-rtspbin `
+            `gst-plugin-socket `
+            `gst-plugin-vcomposer `
+            `gst-plugin-videotemplate `
+            `gst-plugin-voverlay `
+            `gst-plugin-vsplit `
+            `gst-plugin-vtransform `
+            `gst-plugin-mlmetaextractor `
+            `gst-plugin-mlpostprocess `
+            `gst-plugin-mltflite"
+
+    # Build Base QTI Gstreamer plugins first as the rest depend on them
+    for BASE_PLUGIN in ${QIMSDK_BASE_QTI_PLUGINS_LIST[@]}; do
+        qimsdk-cmake-build-qcom-gstreamer1.0-plugins-oss ${BASE_PLUGIN}
+    done
+
+    # Build remaining QTI Gstreamer plugins in paralel
+    (
+        trap 'kill 0' SIGINT;
+        for QTI_PLUGIN in ${QIMSDK_QTI_PLUGINS_LIST[@]}; do
+            qimsdk-cmake-build-qcom-gstreamer1.0-plugins-oss ${QTI_PLUGIN} || kill 0 &
+        done
+        wait
+    )
+
+    echo "QTI build completed !!!"
+}
+
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
     qimsdk-meson-build-gst-plugins-base                                                         && \
@@ -350,3 +435,11 @@ function qimsdk-incremental-build() {
 
 print-green "qimsdk-incremental-build"
 echo "    Incremental build of gst plugins"
+print-green "qimsdk-incremental-build-qti"
+echo "    Incremental build of all QTI gst plugins"
+print-yellow "qimsdk-cmake-build-qcom-gstreamer1.0-plugins-oss \${QTI_PLUGIN_DIR_NAME}"
+echo "    CMake build of a QTI gst plugin. Plugin directory name under gst-plugins-qti-oss `
+            `must be provided as first argument"
+print-red "qimsdk-cmake-clean-qcom-gstreamer1.0-plugins-oss \${QTI_PLUGIN_DIR_NAME}"
+echo "    Clean QTI gst plugin build dir. Plugin directory name under gst-plugins-qti-oss `
+            `must be provided as first argument"
