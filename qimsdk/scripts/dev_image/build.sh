@@ -488,6 +488,60 @@ function qimsdk-cmake-clean-solutions-microservices() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
+# Configure and build gst plugins
+function qimsdk-incremental-build-qti() {
+
+    # Get the runtime flags generated from RecipeParser.py
+    local RECIPE_PARSED_FLAGS_ARRAY=(
+        $(cat ${QIMSDK_TMP_DIR}/runtime_flags.json                                               | \
+                jq .[] | jq -r 'to_entries[] | "\(.key)=\(.value)"')
+    )
+
+    local RECIPE_PARSED_FLAGS="${RECIPE_PARSED_FLAGS_ARRAY[@]}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss                                       \
+            -DENABLE_GST_PLUGIN_QMMFSRC=ON                                                         \
+            -DENABLE_GST_PLUGIN_VCOMPOSER=ON                                                       \
+            -DENABLE_GST_PLUGIN_BATCH=ON                                                           \
+            -DENABLE_GST_PLUGIN_METAMUX=ON                                                         \
+            -DENABLE_GST_PLUGIN_SOCKET=ON                                                          \
+            -DENABLE_GST_PLUGIN_VSPLIT=ON                                                          \
+            -DENABLE_GST_PLUGIN_VTRANSFORM=ON                                                      \
+            -DENABLE_GST_PLUGIN_VOVERLAY=ON                                                        \
+            -DENABLE_GST_PLUGIN_RESTRICTED_ZONE=ON                                                 \
+            -DENABLE_GST_PLUGIN_RTSPBIN=ON                                                         \
+            -DENABLE_GST_PLUGIN_REDISSINK=ON                                                       \
+            -DENABLE_GST_PLUGIN_SMARTVENCBIN=ON                                                    \
+            -DENABLE_GST_PLUGIN_VIDEOTEMPLATE=ON                                                   \
+            -DENABLE_GST_PLUGIN_MLACONVERTER=ON                                                    \
+            -DENABLE_GST_PLUGIN_MLACLASSIFICATION=ON                                               \
+            -DENABLE_GST_PLUGIN_MLDEMUX=ON                                                         \
+            -DENABLE_GST_PLUGIN_MLVCONVERTER=ON                                                    \
+            -DENABLE_GST_PLUGIN_MLVCLASSIFICATION=ON                                               \
+            -DENABLE_GST_PLUGIN_MLVSUPERRESOLUTION=ON                                              \
+            -DENABLE_GST_PLUGIN_MLVDETECTION=ON                                                    \
+            -DENABLE_GST_PLUGIN_MLVPOSE=ON                                                         \
+            -DENABLE_GST_PLUGIN_MLVSEGMENTATION=ON                                                 \
+            -DENABLE_GST_PLUGIN_MLTOOLS=ON                                                         \
+            -DENABLE_GST_PLUGIN_MLTFLITE=ON                                                        \
+            -DENABLE_GST_PLUGIN_MLSNPE=ON                                                          \
+            -DENABLE_GST_PLUGIN_MLQNN=ON                                                           \
+            -DENABLE_GST_PLUGIN_MLMETAPARSER=ON                                                    \
+            -DENABLE_GST_PLUGIN_METATRANSFORM=ON                                                   \
+            -DENABLE_GST_PLUGIN_OBJTRACKER=ON                                                      \
+            -DENABLE_GST_PLUGIN_MLMETAEXTRACTOR=ON                                                 \
+            -DENABLE_GST_PLUGIN_MLPOSTPROCESS=ON                                                   \
+            -DENABLE_GST_SAMPLE_APPS=ON                                                            \
+            -DENABLE_GST_TEST_FRAMEWORK=ON                                                         \
+            -DENABLE_GST_PYTHON_EXAMPLES=ON                                                        \
+            -DENABLE_GST_PLUGIN_MSGBROKER=ON                                                       \
+            -DENABLE_GST_PLUGIN_DFS=ON                                                             \
+            -DENABLE_GST_PLUGIN_CAMIMGREPROC=ON                                                    \
+            -DENABLE_GST_PLUGIN_CAMREPROC=ON                                                       \
+            ${RECIPE_PARSED_FLAGS}                                                              && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
 #        plugin        |   depends on   | dependency
 #----------------------+----------------+--------------------
 # gst-plugins-bad      | -------------> | wayland-protocols

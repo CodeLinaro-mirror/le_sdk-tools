@@ -336,8 +336,8 @@ function qimsdk-propagate-packages-and-sources() {
     mkdir -p ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss
 
     # Add Source Code
-    rsync -a ${QIMSDK_TMP_DIR}/gst-plugins-qti-oss/* ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/     && \
-    rsync -a ${QIMSDK_TMP_DIR}/build_plugins.sh ${QIMSDK_SCRIPTS}/ || return -1
+    rsync -a ${QIMSDK_TMP_DIR}/gst-plugins-qti-oss/* ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/     || \
+            return -1
 
     # Add json file with content of cmake flags
     mkdir -p ${QIMSDK_RECIPES_PATCHES_DIR}
@@ -415,25 +415,15 @@ function qimsdk-propagate-path-to-patches() {
 # Invoke Recipe Parser script
 function qimsdk-invoke-recipe-parser() {
     local PYTHON_ARG_FOR_LAYERS="${QIMSDK_TMP_DIR}"
-    local PYTHON_ARG_FOR_CODE_GENERATOR="BuildCodeGenerator"
 
     local QIMSDK_SUPPORTED_TARGETS_COUNT=${#QIMSDK_SUPPORTED_TARGETS[@]}
+    local SOC_LIST=""
 
     for ((INDEX=0 ; INDEX<${QIMSDK_SUPPORTED_TARGETS_COUNT} ; INDEX++)); do
 
         # Skipping ubuntu targets
         [[ "${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}" == *_ubun ]]                                 && {
             continue
-        }
-
-        python3 ${QIMSDK_TOOLS}/RecipeParser.py                                                    \
-                -l ${PYTHON_ARG_FOR_LAYERS}                                                        \
-                -m ${QIMSDK_PATH_TO_GST_META}                                                      \
-                -p ${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}                                           \
-                -t ${QIMSDK_TMP_DIR}                                                               \
-                ${PYTHON_ARG_FOR_CODE_GENERATOR}                                                || {
-            print-red "Python Parser returns error, mode ${PYTHON_ARG_FOR_CODE_GENERATOR} !!!"
-            return -1
         }
 
         python3 ${QIMSDK_TOOLS}/RecipeParser.py                                                    \
@@ -462,17 +452,22 @@ function qimsdk-invoke-recipe-parser() {
             print-yellow "Patches of supported targets differ !!!"
         }
 
-        diff ${QIMSDK_TMP_DIR}/${QIMSDK_SUPPORTED_TARGETS[0]}_build_plugins.sh                     \
-            ${QIMSDK_TMP_DIR}/${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}_build_plugins.sh            || {
+        SOC_LIST=(
+            $(cat ${QIMSDK_TMP_DIR}/targets/${QIMSDK_SUPPORTED_TARGETS[${INDEX}]}.json           | \
+                    jq '.Soc[]' | tr -d '"')
+        )
+
+        diff ${QIMSDK_TMP_DIR}/${SOC_LIST[0]}_runtime_flags.json                                   \
+            ${QIMSDK_TMP_DIR}/${SOC_LIST[${INDEX}]}_runtime_flags.json                          || {
             print-yellow "Build flags of supported targets differ !!!"
         }
     done
 
-    mv ${QIMSDK_TMP_DIR}/${QIMSDK_SUPPORTED_TARGETS[0]}_build_plugins.sh                           \
-        ${QIMSDK_TMP_DIR}/build_plugins.sh
-
     mv ${QIMSDK_TMP_DIR}/${QIMSDK_SUPPORTED_TARGETS[0]}_recipes_patches.json                       \
         ${QIMSDK_TMP_DIR}/recipes_patches.json
+
+    mv ${QIMSDK_TMP_DIR}/${SOC_LIST[0]}_runtime_flags.json                                         \
+        ${QIMSDK_TMP_DIR}/runtime_flags.json
 
     return 0
 }
