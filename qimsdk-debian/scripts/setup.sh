@@ -24,23 +24,23 @@ function qimsdk-apply-patches() {
             qimsdk-apply-patches-gst-plugins-good
 }
 
-# Apply patches to gst-plugins-base1.0
+# Apply patches to gst-plugins-base1.0-1.26.2
 function qimsdk-apply-patches-gst-plugins-base() {
-    [ ! -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0" ] && {
-        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0 !"
+    [ ! -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-1.26.2" ] && {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-1.26.2 !"
         return -1
     }
 
     (
         local PATH_TO_PATCHES="${QIMSDK_PATH_TO_GST_META}/`
-                `recipes-gst/gstreamer/gstreamer1.0-plugins-base/1.26.7/"
+                `recipes-gst/gstreamer/gstreamer1.0-plugins-base/1.26.2/"
 
         [ ! -d ${PATH_TO_PATCHES} ]                                                             && {
             print-red "gstreamer-plugins-base's patches NOT found in  ${PATH_TO_PATCHES} !!!"
             return -1
         }
 
-        cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0
+        cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-1.26.2
 
         for PATCH in ${PATH_TO_PATCHES}*.patch; do
             qimsdk-apply-patch ${PATCH} || return -1
@@ -48,24 +48,24 @@ function qimsdk-apply-patches-gst-plugins-base() {
     )
 }
 
-# Apply patches to gst-plugins-good1.0
+# Apply patches to gst-plugins-good1.0-1.26.2
 function qimsdk-apply-patches-gst-plugins-good() {
 
-    [ ! -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0" ] && {
-        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0 !"
+    [ ! -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-1.26.2" ] && {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-1.26.2 !"
         return -1
     }
 
     (
         local PATH_TO_PATCHES="${QIMSDK_PATH_TO_GST_META}/`
-                `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.26.7/"
+                `recipes-gst/gstreamer/gstreamer1.0-plugins-good/1.26.2/"
 
         [ ! -d ${PATH_TO_PATCHES} ]                                                             && {
             print-red "gstreamer-plugins-good's patches NOT found in ${PATH_TO_PATCHES}!!!"
             return -1
         }
 
-        cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0
+        cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-1.26.2
 
         for PATCH in ${PATH_TO_PATCHES}*.patch; do
             qimsdk-apply-patch ${PATCH} || return -1
