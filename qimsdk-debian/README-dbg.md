@@ -10,8 +10,6 @@
   * [Add internal docker registry mirror. (optional)](#Add_internal_docker_registry_mirror)
   * [Proxy. (optional)](#Proxy)
 * [Docker Images](#Docker_Images)
-  * [AIML Build Image](#AIML_Build_Image)
-  * [AIML Deploy Image](#AIML_Deploy_Image)
   * [QIMSDK Debug Image](#QIMSDK_Debug_Image)
   * [QIMSDK Build Image](#QIMSDK_Build_Image)
   * [QIMSDK Deploy Image](#QIMSDK_Deploy_Image)
@@ -39,7 +37,6 @@
   * [Load QIMSDK Deploy Image](#Load_QIMSDK_Deploy_Image)
   * [Run QIMSDK Deploy Container](#Run_QIMSDK_Deploy_Container)
   * [Execute QIMSDK Deploy Container](#Execute_QIMSDK_Deploy_Container)
-* [Contributing to qimsdk-debian open-source repository](#Contributing_to_open-source)
 
 <div id="Prerequisites">
 
@@ -234,33 +231,13 @@ service docker start
 ## Docker Images
 
 Two QIMSDK docker images are built. One for development. One for device target.
-- They are based on two aiml images, provided by platform team. One for development, One for device target, accordingly.
+- They are based on debian trixie images
 - A Third QIMSDK debug image is only used when working in an environment which requires continuous development.
-
-NOTE: aiml images' Dockerfile source is in https://github.com/qualcomm-linux/aiml-container-test/tree/main repository.
-- In Debug configuration user provides a directory in local file system, where aiml-container-test repository is synced.
-- In Release configuration qimsdk debian image that is deployed on the device is based on a ready-built docker image ghcr.io/koenkooi/aiml-container-test, uploaded to qualcomm docker repository.
-
-<div id="AIML_Build_Image">
-
-### AIML Build Image
-1. Start from debian trixie slim base image
-2. Install required open source packages
-3. Apply necessary changes to projects to be built
-4. Build and install qimsdk dependencies: libtensorflow_lite
-
-<div id="AIML_Deploy_Image">
-
-### AIML Deploy Image
-1. Start from debian trixie slim base image
-2. Install required open source packages
-3. Install packages with qimsdk dependency libs: mesa, gles, freedreno libs etc.
-4. Copy dependency libs from qimsdk dependencies built in aiml build image: libtensorflow_lite
 
 <div id="QIMSDK_Debug_Image">
 
 ### QIMSDK Debug Image
-1. Start from AIML Build Image
+1. Start from Debian trixie Image
 2. Alter git configuration in QIMSDK Build Image to use gst meta layers locally provided by user in config json instead of codelinaro
 3. Alter git configuration in QIMSDK Build Image to use gst source code locally provided by user in config json instead of codelinaro
 4. Copy helper scripts to build image
@@ -269,7 +246,7 @@ NOTE: aiml images' Dockerfile source is in https://github.com/qualcomm-linux/aim
 <div id="QIMSDK_Build_Image">
 
 ### QIMSDK Build Image
-1. Start from AIML Build Image
+1. Start from Debian trixie Image
 2. Install required open source packages to build image
 3. Install required open source packages for deploy image to build image
 4. Copy build and install scripts to build image
@@ -280,7 +257,7 @@ NOTE: aiml images' Dockerfile source is in https://github.com/qualcomm-linux/aim
 <div id="QIMSDK_Deploy_Image">
 
 ### QIMSDK Deploy Image
-1. Start from AIML Deploy Image
+1. Start from Debian trixie Image
 2. Install runtime dependency Open Source packages to deploy image
 3. Copy built binaries from QIMSDK Build Image
 4. Add qimsdk user
@@ -309,8 +286,7 @@ Config json files *(config.json)* must contain the following data:
  4. ***MANDATORY*** -  **Target_device_ID** - adb device ID of the target device qimsdk is to be installed on. Any faux value can still be provided and compilation will carry on.
  5. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory! Code checked out on local branch imsdk.lnx.2.0.0 will be built. Ensure desired code is checked out on imsdk.lnx.2.0.0 branch before proceeding with debug variant QIMSDK build!***
  6. ***MANDATORY*** - **IM_SDK_Meta_Dir** - PATH to meta IM SDK directory, which contains recipes for all gst plugins. ***Note: Path provided must point to meta-qti-gst directory! Code checked out on local branch imsdk.lnx.2.0.0 will be built. Ensure desired code is checked out on imsdk.lnx.2.0.0 branch before proceeding with debug variant QIMSDK build!***
- 7. ***MANDATORY*** - **Path_to_aiml_container** - PATH to folder, containing base AIML Dockerfile. ***Note: Path provided must point to code from latest origin/main branch of https://github.com/qualcomm-linux/aiml-container-test repo. User must have this repository cloned locally in build machine storage. Path must point to that directory.***
- 8. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir is wanted to be mapped to the build container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
+ 7. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir is wanted to be mapped to the build container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
 
 Target specific json files *(\<target-name\>.json)* must contain the following data:
  1. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
@@ -801,13 +777,6 @@ In that case, the intermediate QIMSDK Debug Image is not built, and QIMSDK Deplo
 
 ### Docker Build
 
-  AIML Build and Deploy images need to be built as they are dependencies of QIMSDK Images. User needs to go to directory where aiml Dockerfile project is synced.
-
-  Instructions how to build the two needed aiml docker images can be found here:
-  https://github.com/qualcomm-linux/aiml-container-test/blob/main/README.md
-
-  After building AIML images, return to sdk-tools/qimsdk-debian directory.
-
   <div name="docker_build">Dockerfile arguments have default values, but they can be customized using **--build-arg** flag in docker build command.</div>
   <ul>
 
@@ -880,28 +849,3 @@ docker exec -ti <desired-container-name> bash
 docker rmi $(docker images | grep "^<none>" | awk '{print $3}' )
 docker builder prune -a -f
 ```
-
-<div id="Contributing_to_open-source">
-
-## Contributing to qimsdk-debian open-source repository
-
-When making changes to qimsdk-debian, open-source repository hosted in github needs to be kept up to date.
-
-Any changes in the following files need to be propagated to https://github.com/qualcomm-linux/aiml-container-test repo:
-
-```
-├── Dockerfile
-├── README.md
-├── scripts
-    ├── build.sh
-    ├── env_setup.sh
-    └── setup.sh
-```
-
-### Steps to update open-source github.com repository
-
-Changed contents in Dockerfile need to overwrite last part of aiml-container-test/Dockerfile, which holds the source code for the qimsdk-build and qimsdk-deploy images. That code is identical to local Dockerflie code.
-
-Changed contents in README.md file need to overwrite the part of aiml-container-test/README.md after '## About The QIMSDK-Debian Docker Image' heading , which is identical to local README.md content.
-
-Changed contents of scripts directory are copied over directly to aiml-container-test/scripts directory.

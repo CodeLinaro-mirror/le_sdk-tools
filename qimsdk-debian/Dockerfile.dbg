@@ -1,8 +1,5 @@
-# Input argm for base image name
-ARG QIMSDK_ARG_IMAGE_NAME
-
 # QIMSDK debug development Image
-FROM ${QIMSDK_ARG_IMAGE_NAME}-aiml AS qimsdk_dbg_image
+FROM debian:trixie-slim AS qimsdk_dbg_image
 
 # Add root to plugdev group
 RUN usermod -aG plugdev root

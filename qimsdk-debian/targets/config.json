@@ -7,7 +7,5 @@
     "IM_SDK_Source_Dir" : "<path-to-gst-plugins-qti-oss-dir>",
     "IM_SDK_Meta_Dir" : "<path-to-meta-qti-gst>",
 
-    "Path_to_aiml_container" : "<path-to-folder-containing-base-dockerfile>",
-
     "MAP_sources_to_dev_container" : "FALSE"
 }

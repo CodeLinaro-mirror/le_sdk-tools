@@ -19,14 +19,14 @@
 ### QIMSDK Docker Images
 
 Two QIMSDK docker images are built. One for target GStreamer multimedia framework binary compilation. One for device target GStreamer runtime use.
-- Build image (qimsdk-build) is based on an aiml image, provided by platform team.
+- Build image (qimsdk-build) is based on an debian trixie image, provided by platform team.
 - Deploy image (qimsdk-deploy) is based on a bare debian:trixie OS docker image.
 
 <div id="qimsdk_build">
 
 #### qimsdk-build
 
-    1. Start from AIML Build Image
+    1. Start from Debian Trixie
     2. Install required open source packages to build image
     3. Install required open source packages for deploy image to build image
     4. Add deploy and prebuilt directories to install binaries to be propagated to deploy image
@@ -51,8 +51,7 @@ Two QIMSDK docker images are built. One for target GStreamer multimedia framewor
     3. Alter apt sources list and istall dependency custom mesa libs to make our build work
     4. Add qimsdk user
     5. Copy built binaries from QIMSDK Build Image
-    6. Copy prebuilt libraries from AIML to device image
-    7. Add environment variables
+    6. Add environment variables
 
 <div id="Scripts">
 
