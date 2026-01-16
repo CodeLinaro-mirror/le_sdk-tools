@@ -351,14 +351,14 @@ function qimsdk-docker-build-image() {
         return ${rc}
     }
 
-    DOCKER_BUILDKIT=1 docker build --platform linux/arm64                                          \
+    DOCKER_BUILDKIT=1 docker build                                                                 \
             --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_BASE_DIR}                                     \
             --build-arg QIMSDK_ARG_HTTP_PROXY=${http_proxy}                                        \
             --build-arg QIMSDK_ARG_HTTPS_PROXY=${https_proxy}                                      \
             --build-arg QIMSDK_ARG_NO_PROXY=${no_proxy}                                            \
             --build-arg QIMSDK_ARG_SUPPORTED_TARGETS=${QIMSDK_SUPPORTED_TARGETS}                   \
             --build-arg QIMSDK_ARG_QAIRT_SDK_VERSION=${QIMSDK_QAIRT_SDK_VERSION}                   \
-            --progress=plain --target QIMSDK_device_image                                          \
+            --progress=plain --target qimsdk_device_image_arm64                                    \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}
 
     rc=$?

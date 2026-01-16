@@ -444,7 +444,7 @@ ENV QIMSDK_CONTAINER_NAME=${QIMSDK_ARG_CONTAINER_NAME}
 # # # # # # # # # # # # # # #
 
 # QIMSDK Device Image
-FROM ubuntu:24.04 AS qimsdk_device_image
+FROM --platform=linux/arm64 ubuntu:24.04 AS qimsdk_device_image_arm64
 
 # Set base directory
 ARG QIMSDK_ARG_BASE_DIR
