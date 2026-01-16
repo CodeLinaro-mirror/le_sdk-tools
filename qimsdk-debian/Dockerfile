@@ -286,6 +286,30 @@ RUN apt-get update                                                              
     apt-get clean                                                                               && \
     rm -rf /var/lib/apt/lists* /var/tmp/*
 
+# Add QTI PPA and install QTI dependencies
+#  gpg curl:                        install PPA
+#  firmware-qcom-hlosfw:            qcom firmware
+#  linux-firmware:                  linux firmware
+#  qcom-fastrpc1:                   fast rpc
+#  qcom-libdmabufheap:              dma buf
+RUN apt-get update                                                                              && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gpg curl             \
+            ca-certificates                                                                     && \
+    update-ca-certificates                                                                      && \
+    install -d -m 0700 /var/lib/apt/gnupg                                                       && \
+    install -d -m 0755 /etc/apt/keyrings                                                        && \
+    curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x33EF0ACBC6FE252590ABBAF21C70EB0C444248D7" | \
+            env GNUPGHOME=/var/lib/apt/gnupg gpg --dearmor                                         \
+            -o /etc/apt/keyrings/qcom-noble-ppa.gpg                                             && \
+    echo "deb [signed-by=/etc/apt/keyrings/qcom-noble-ppa.gpg] https://ppa.launchpadcontent.net/ubuntu-qcom-iot/qcom-noble-ppa/ubuntu noble main" \
+            > /etc/apt/sources.list.d/qcom-noble-ppa.list                                       && \
+    apt update                                                                                  && \
+    DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends                          \
+            qcom-fastrpc1 qcom-libdmabufheap                                                    && \
+    apt-get autoremove -y                                                                       && \
+    apt-get clean                                                                               && \
+    rm -rf /var/lib/apt/lists* /var/tmp/*
+
 # Create USER and add to video group for accessing v4ls devices
 RUN addgroup qcom                                                                               && \
     useradd -s /bin/bash -m -g qcom qimsdk                                                      && \
