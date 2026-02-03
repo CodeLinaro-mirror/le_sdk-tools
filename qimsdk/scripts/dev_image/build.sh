@@ -61,10 +61,10 @@ function qimsdk-cmake-configure() {
             -DGST_VERSION_REQUIRED=1.24
             -DSYSROOT_INCDIR=/usr/include
             -DSYSROOT_LIBDIR=/usr/lib
-            -DGST_PLUGINS_QTI_OSS_INSTALL_INCDIR=/usr/include
-            -DGST_PLUGINS_QTI_OSS_INSTALL_BINDIR=/usr/bin
-            -DGST_PLUGINS_QTI_OSS_INSTALL_LIBDIR=/usr/lib/aarch64-linux-gnu
-            -DGST_PLUGINS_QTI_OSS_INSTALL_CONFIG=/etc/configs/
+            -DCMAKE_INSTALL_INCLUDEDIR=/usr/include
+            -DCMAKE_INSTALL_BINDIR=/usr/bin
+            -DCMAKE_INSTALL_LIBDIR=/usr/lib/aarch64-linux-gnu
+            -DCMAKE_INSTALL_SYSCONFDIR=/etc
             -DCMAKE_BUILD_TYPE=Debug
             ${CMAKE_CUSTOM_CONFIG_FLAGS}
         "
@@ -532,6 +532,7 @@ function qimsdk-incremental-build-qti() {
             -DENABLE_GST_PLUGIN_MLMETAEXTRACTOR=ON                                                 \
             -DENABLE_GST_PLUGIN_MLPOSTPROCESS=ON                                                   \
             -DENABLE_GST_SAMPLE_APPS=ON                                                            \
+            -DENABLE_GST_PLUGIN_TOOLS=ON                                                           \
             -DENABLE_GST_TEST_FRAMEWORK=ON                                                         \
             -DENABLE_GST_PYTHON_EXAMPLES=ON                                                        \
             -DENABLE_GST_PLUGIN_MSGBROKER=ON                                                       \
