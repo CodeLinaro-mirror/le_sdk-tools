@@ -632,31 +632,36 @@ function qimsdk-get-map-for-dbg-container() {
         cat ${PATH_TO_CONFIG_JSON}
     )
 
+    local DOCKER_IMAGE_PATH="/mnt/work/dev_artifacts"
+    local HOST_DOCKER_IMAGE_PATH=""
+
+    qimsdk-get-docker-image-path ${PATH_TO_CONFIG_JSON} HOST_DOCKER_IMAGE_PATH
+
     local MAP_SOURCES_TO_DEV_CONTAINER=$(
         echo ${JSON_CONTENT} |  jq '.MAP_sources_to_dev_container' | tr -d '"'
     )
 
-    [ ! "${MAP_SOURCES_TO_DEV_CONTAINER}" == "TRUE" ]                                           && \
-    [ ! "${MAP_SOURCES_TO_DEV_CONTAINER}" == "ENABLE" ]                                         && \
-    [ ! "${MAP_SOURCES_TO_DEV_CONTAINER}" == "ENABLED" ]                                        && {
-        return 0
-    }
-
-    local GST_SRC_DIR=$(
-        echo ${JSON_CONTENT} |  jq '.IM_SDK_Source_Dir' | tr -d '"'
-    )
-
-    qimsdk-expand-tilde GST_SRC_DIR
-
-    [[ -z ${GST_SRC_DIR} ]]                                                                     && {
-        return 0
-    }
-
     declare -a DEV_MAP_ARR=""
 
-    [ -d ${GST_SRC_DIR} ] && {
-        DEV_MAP_ARR+="-v ${GST_SRC_DIR}:/mnt/work/src/gst-plugins-qti-oss "
+    [[ "${MAP_SOURCES_TO_DEV_CONTAINER}" =~ ^(TRUE|ENABLE|ENABLED)$ ]]                          && {
+
+        local GST_SRC_DIR=$(
+            echo ${JSON_CONTENT} |  jq '.IM_SDK_Source_Dir' | tr -d '"'
+        )
+
+        qimsdk-expand-tilde GST_SRC_DIR
+
+        [[ -z ${GST_SRC_DIR} ]]                                                                 && {
+            return 0
+        }
+
+        [ -d ${GST_SRC_DIR} ] && {
+            DEV_MAP_ARR+="-v ${GST_SRC_DIR}:/mnt/work/src/gst-plugins-qti-oss "
+        }
+
     }
+
+    DEV_MAP_ARR+="-v ${HOST_DOCKER_IMAGE_PATH}:${DOCKER_IMAGE_PATH} "
 
     OUT_DEV_MAP=${DEV_MAP_ARR}
 

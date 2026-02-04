@@ -726,20 +726,12 @@ function qimsdk-dbg-docker-run-container() {
     qimsdk-get-map-for-dbg-container ${PATH_TO_CONFIG_JSON}                                        \
             DEVELOPMENT_MAP
 
-    local ARTIFACTS_DIR
-
-    qimsdk-get-docker-image-path ${PATH_TO_CONFIG_JSON} ARTIFACTS_DIR                           || {
-        print-red "FAILED: qimsdk-get-docker-image-path !!!"
-        return -1
-    }
-
     local USB_DEVICE=""
     [ -d /dev/bus/usbd ] && USB_DEVICE="--device /dev/bus/usb"
 
     docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME}_dbg                                   \
             --name ${QIMSDK_CONTAINER_NAME}_dbg                                                    \
             ${USB_DEVICE} ${DEVELOPMENT_MAP}                                                       \
-            -v ${ARTIFACTS_DIR}:${ARTIFACTS_DIR}                                                   \
             ${QIMSDK_IMAGE_NAME}-debian bash                                                    || {
         print-red "Run dbg container failed !!!"
         return -1
