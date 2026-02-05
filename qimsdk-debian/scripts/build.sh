@@ -114,7 +114,7 @@ function qimsdk-cmake-compile() {
 
         set -o pipefail
 
-        cmake --build .                                                                           |&
+        cmake --build . -j                                                                        |&
                 tee "${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
     ) || {
         print-red "FAILED: qimsdk-cmake-compile-${TARGET}: cmake compile failed !!!"
