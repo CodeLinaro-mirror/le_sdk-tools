@@ -75,8 +75,6 @@ Handles the compilation and installation of open-source and QTI GStreamer plugin
 - qimsdk-debian-rules-clean-\<name-of-project\> - Cleans build directory for specific open-source component
 - qimsdk-incremental-build-qti - Base QTI GStreamer plugins that the others depend on are built. After which, a hardcoded list of QTI GStreamer plugins is built in paralel. If one wishes to add a new GStreamer plugin to build using CMake, simply add the plugin directory name under gst-plugins-qti-oss/ source dir to the list.
 - qimsdk-incremental-build - Main entry point that builds all GStreamer components in sequence with success reporting. Also calls qimsdk-incremental-build-qti, to build QTI GStreamer plugins.
-- qimsdk-cmake-build-qcom-gstreamer1.0-plugins-oss \<dir-name-of-qti-gst-plugin-src\> - CMake build of a specified QTI gst plugin. Plugin directory name under gst-plugins-qti-oss/ must be provided as first argument.
-- qimsdk-cmake-clean-qcom-gstreamer1.0-plugins-oss \<dir-name-of-qti-gst-plugin-src\> - Clean a specified QTI gst plugin build dir. Plugin directory name under gst-plugins-qti-oss/ must be provided as first argument.
 
 <div id="env_setup.sh">
 

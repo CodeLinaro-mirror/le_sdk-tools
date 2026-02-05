@@ -3,6 +3,46 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
+# Normalize simple trailing slashes (portable; avoids requiring readlink/realpath)
+# e.g., "/a/b///" -> "/a/b"
+function qimsdk-strip-trailing-slashes() {
+    echo "${1%/}";
+}
+
+# get first subdir after SOURCE_PATH
+# Uses env vars: QIMSDK_SRC_DIR, QIMSDK_DOWNLOAD_DIR
+function qimsdk-get-project() {
+  local SOURCE_PATH="${1}"
+  local BASES=("${QIMSDK_SRC_DIR}" "${QIMSDK_DOWNLOAD_DIR}")
+  local DIR BASE REST FIRST
+
+  DIR="$(qimsdk-strip-trailing-slashes "${SOURCE_PATH}")"
+
+  for BASE in "${BASES[@]}"; do
+    # Skip empty/unset bases
+    [[ -n "${BASE}" ]] || continue
+    BASE="$(qimsdk-strip-trailing-slashes "${BASE}")"
+
+    # Match only if path starts with base path boundary (so /foo/bar doesn't match /fo)
+    # Two cases: exact match, or base + "/" + rest
+    if [[ "${DIR}" == "${BASE}" ]]; then
+      # SOURCE_PATH equals base, so there's no subdir after it
+      printf '%s\n' ""
+      return 0
+    elif [[ "${DIR}" == "${BASE}/"* ]]; then
+      # Trim the base + slash
+      REST="${DIR#"${BASE}/"}"
+      # Extract first component after base
+      FIRST="${REST%%/*}"
+      printf '%s\n' "${FIRST}"
+      return 0
+    fi
+  done
+
+  # No base matched: return basename of SOURCE_PATH
+  printf '%s\n' "${DIR##*/}"
+}
+
 # Configure qimsdk CMake Target
 #    ${1} - SOURCE_PATH - Path to top-level CMake Project Directory
 #    ${2} - TARGET - CMake Target
@@ -149,7 +189,7 @@ function qimsdk-debian-rules-build() {
 #    ${2} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
 function qimsdk-cmake-build() {
     local SOURCE_PATH=${1}
-    local T=`basename ${SOURCE_PATH}`
+    local T=$(qimsdk-get-project ${SOURCE_PATH})
 
     shift
 
@@ -198,35 +238,6 @@ function qimsdk-debian-rules-clean-gst-plugins-good() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
-# CMake Build qcom-gstreamer1.0-plugins-oss plugin
-#    ${1} - PLUGIN_DIR_NAME - Name of top-level plugin directory under gst-plugins-qti-oss
-function qimsdk-cmake-build-qcom-gstreamer1.0-plugins-oss () {
-    local PLUGIN_DIR_NAME="${1}"
-
-    [ -z "${PLUGIN_DIR_NAME}" ]                                                                 && {
-        print-red "QTI Plugin directory name must be provided as first argument!"
-        return -1
-    }
-
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/${PLUGIN_DIR_NAME}                 && \
-        print-green "${FUNCNAME} ${PLUGIN_DIR_NAME} completed successfully!"
-
-}
-
-# CMake Clean qcom-gstreamer1.0-plugins-oss plugin
-#    ${1} - PLUGIN_DIR_NAME - Name of top-level plugin directory under gst-plugins-qti-oss
-function qimsdk-cmake-clean-qcom-gstreamer1.0-plugins-oss () {
-    local PLUGIN_DIR_NAME="${1}"
-
-    [ -z "${PLUGIN_DIR_NAME}" ]                                                                 && {
-        print-red "QTI Plugin directory name must be provided as first argument!"
-        return -1
-    }
-
-    rm -rf ${QIMSDK_BUILD_DIR}/${PLUGIN_DIR_NAME}                                               && \
-            print-green "${FUNCNAME} ${PLUGIN_DIR_NAME} completed successfully!"
-}
-
 # Wrapper function to build all QTI gstreamer plugins incrementally
 function qimsdk-incremental-build-qti() {
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss                                       \
@@ -263,6 +274,13 @@ function qimsdk-incremental-build-qti() {
             print-green "${FUNCNAME} completed successfully!"
 }
 
+# Clean gst-plugins-qti-oss
+function qimsdk-cmake-clean-qti() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-qti-oss
+
+    print-green "${FUNCNAME} completed successfully!"
+}
+
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
     qimsdk-debian-rules-build-gst-plugins-base                                                  && \
@@ -275,9 +293,3 @@ print-green "qimsdk-incremental-build"
 echo "    Incremental build of gst plugins"
 print-green "qimsdk-incremental-build-qti"
 echo "    Incremental build of all QTI gst plugins"
-print-yellow "qimsdk-cmake-build-qcom-gstreamer1.0-plugins-oss \${QTI_PLUGIN_DIR_NAME}"
-echo "    CMake build of a QTI gst plugin. Plugin directory name under gst-plugins-qti-oss `
-            `must be provided as first argument"
-print-red "qimsdk-cmake-clean-qcom-gstreamer1.0-plugins-oss \${QTI_PLUGIN_DIR_NAME}"
-echo "    Clean QTI gst plugin build dir. Plugin directory name under gst-plugins-qti-oss `
-            `must be provided as first argument"
