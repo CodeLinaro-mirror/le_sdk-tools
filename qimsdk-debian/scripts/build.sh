@@ -31,9 +31,10 @@ function qimsdk-cmake-configure() {
         local CMAKE_FLAGS="-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON`
             ` -DSYSROOT_INCDIR=/usr/include`
             ` -DSYSROOT_LIBDIR=/usr/lib`
-            ` -DCMAKE_INSTALL_INCLUDEDIR=/usr/include`
-            ` -DCMAKE_INSTALL_BINDIR=/usr/bin`
-            ` -DCMAKE_INSTALL_LIBDIR=/usr/lib/aarch64-linux-gnu`
+            ` -DCMAKE_INSTALL_PREFIX=/usr`
+            ` -DCMAKE_INSTALL_INCLUDEDIR=include`
+            ` -DCMAKE_INSTALL_BINDIR=bin`
+            ` -DCMAKE_INSTALL_LIBDIR=lib/aarch64-linux-gnu`
             ` -DCMAKE_INSTALL_SYSCONFDIR=/etc`
             ` -DCMAKE_BUILD_TYPE=Debug`
             ` "${CMAKE_CUSTOM_CONFIG_FLAGS}""
