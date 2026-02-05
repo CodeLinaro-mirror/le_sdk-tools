@@ -3,6 +3,46 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
+# Normalize simple trailing slashes (portable; avoids requiring readlink/realpath)
+# e.g., "/a/b///" -> "/a/b"
+function qimsdk-strip-trailing-slashes() {
+    echo "${1%/}";
+}
+
+# get first subdir after SOURCE_PATH
+# Uses env vars: QIMSDK_SRC_DIR, QIMSDK_DOWNLOAD_DIR
+function qimsdk-get-project() {
+  local SOURCE_PATH="${1}"
+  local BASES=("${QIMSDK_SRC_DIR}" "${QIMSDK_DOWNLOAD_DIR}")
+  local DIR BASE REST FIRST
+
+  DIR="$(qimsdk-strip-trailing-slashes "${SOURCE_PATH}")"
+
+  for BASE in "${BASES[@]}"; do
+    # Skip empty/unset bases
+    [[ -n "${BASE}" ]] || continue
+    BASE="$(qimsdk-strip-trailing-slashes "${BASE}")"
+
+    # Match only if path starts with base path boundary (so /foo/bar doesn't match /fo)
+    # Two cases: exact match, or base + "/" + rest
+    if [[ "${DIR}" == "${BASE}" ]]; then
+      # SOURCE_PATH equals base, so there's no subdir after it
+      printf '%s\n' ""
+      return 0
+    elif [[ "${DIR}" == "${BASE}/"* ]]; then
+      # Trim the base + slash
+      REST="${DIR#"${BASE}/"}"
+      # Extract first component after base
+      FIRST="${REST%%/*}"
+      printf '%s\n' "${FIRST}"
+      return 0
+    fi
+  done
+
+  # No base matched: return basename of SOURCE_PATH
+  printf '%s\n' "${DIR##*/}"
+}
+
 # Configure qimsdk meson Target
 #    ${1} - SOURCE_PATH - Path to top-level Meson Project Directory
 #    ${2} - TARGET - meson Target
@@ -256,7 +296,7 @@ function qimsdk-cmake-install() {
 #    ${3} - MESON_CONFIG_FLAGS - meson configure flags
 function qimsdk-meson-build() {
     local SOURCE_PATH=${1}
-    local T=`basename ${SOURCE_PATH}`
+    local T=$(qimsdk-get-project ${SOURCE_PATH})
     local DESTINATION_DIR=${2}
 
     shift;shift;
@@ -273,7 +313,7 @@ function qimsdk-meson-build() {
 #    ${2} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
 function qimsdk-cmake-build() {
     local SOURCE_PATH=${1}
-    local T=`basename ${SOURCE_PATH}`
+    local T=$(qimsdk-get-project ${SOURCE_PATH})
 
     shift
 
@@ -540,6 +580,13 @@ function qimsdk-incremental-build-qti() {
             -DENABLE_GST_PLUGIN_CAMREPROC=ON                                                       \
             ${RECIPE_PARSED_FLAGS}                                                              && \
             print-green "${FUNCNAME} completed successfully!"
+}
+
+# Clean gst-plugins-qti-oss
+function qimsdk-cmake-clean-qti() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-qti-oss
+
+    print-green "${FUNCNAME} completed successfully!"
 }
 
 #        plugin        |   depends on   | dependency
