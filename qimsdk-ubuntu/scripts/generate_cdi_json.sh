@@ -43,6 +43,7 @@ QIMSDK_DIRECTORIES=(
     "/usr/lib/aarch64-linux-gnu/pulseaudio"
 )
 
+shopt -s nullglob
 # Gstreamer and python sample apps
 QIMSDK_SAMPLE_APPS=()
 
@@ -58,6 +59,8 @@ QIMSDK_OVERLAY_KERNELS=()
 for file in /usr/lib/aarch64-linux-gnu/overlay*; do
     QIMSDK_OVERLAY_KERNELS+=("${file}")
 done
+
+shopt -u nullglob
 
 # Names of gst plugins and their dependencies
 QIMSDK_SHARED_LIBS_BASENAMES=(
