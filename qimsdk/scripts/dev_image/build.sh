@@ -422,7 +422,7 @@ qimsdk-meson-build-gstd() {
 
 # CMake Build le-services
 function qimsdk-cmake-build-le-services () {
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/le-services -DTARGET_BOARD_PLATFORM=qimsdk && \
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/le-services -DBUILD_CATEGORY=CLIENT                    && \
             print-green "${FUNCNAME} completed successfully!"
 }
 
