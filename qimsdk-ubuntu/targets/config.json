@@ -6,6 +6,7 @@
     "Solution_Microservices_Branch": "iot-solutions.lnx.1.0.r1-rel",
     "Supported_targets" : [
         "qcm6490_ubun",
-        "qcs9100_ubun"
+        "qcs9100_ubun",
+        "qcs8300_ubun"
     ]
 }
