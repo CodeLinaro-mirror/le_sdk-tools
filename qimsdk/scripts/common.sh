@@ -636,9 +636,7 @@ function qimsdk-get-map-for-dev-container() {
 
     declare -a DEV_MAP_ARR=""
 
-    [ "${MAP_SOURCES_TO_DEV_CONTAINER}" == "TRUE" ]                                             || \
-    [ "${MAP_SOURCES_TO_DEV_CONTAINER}" == "ENABLE" ]                                           || \
-    [ "${MAP_SOURCES_TO_DEV_CONTAINER}" == "ENABLED" ]                                          || {
+    [[ "${MAP_SOURCES_TO_DEV_CONTAINER}" =~ ^(TRUE|ENABLE|ENABLED)$ ]]                          && {
 
         local GST_SRC_DIR=$(
             echo ${JSON_CONTENT} |  jq '.IM_SDK_Source_Dir' | tr -d '"'
