@@ -240,38 +240,37 @@ function qimsdk-debian-rules-clean-gst-plugins-good() {
 
 # Wrapper function to build all QTI gstreamer plugins incrementally
 function qimsdk-incremental-build-qti() {
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss                                       \
-            -DENABLE_GST_PLUGIN_VCOMPOSER=ON                                                       \
-            -DENABLE_GST_PLUGIN_BATCH=ON                                                           \
-            -DENABLE_GST_PLUGIN_METAMUX=ON                                                         \
-            -DENABLE_GST_PLUGIN_SOCKET=ON                                                          \
-            -DENABLE_GST_PLUGIN_VSPLIT=ON                                                          \
-            -DENABLE_GST_PLUGIN_VTRANSFORM=ON                                                      \
-            -DENABLE_GST_PLUGIN_VOVERLAY=ON                                                        \
-            -DENABLE_GST_PLUGIN_OVERLAY=ON                                                         \
-            -DENABLE_GST_PLUGIN_RESTRICTED_ZONE=ON                                                 \
-            -DENABLE_GST_PLUGIN_RTSPBIN=ON                                                         \
-            -DENABLE_GST_PLUGIN_REDISSINK=ON                                                       \
-            -DENABLE_GST_PLUGIN_VIDEOTEMPLATE=ON                                                   \
-            -DENABLE_GST_PLUGIN_MLACONVERTER=ON                                                    \
-            -DENABLE_GST_PLUGIN_MLACLASSIFICATION=ON                                               \
-            -DENABLE_GST_PLUGIN_MLDEMUX=ON                                                         \
-            -DENABLE_GST_PLUGIN_MLVCONVERTER=ON                                                    \
-            -DENABLE_GST_PLUGIN_MLVCLASSIFICATION=ON                                               \
-            -DENABLE_GST_PLUGIN_MLVSUPERRESOLUTION=ON                                              \
-            -DENABLE_GST_PLUGIN_MLVDETECTION=ON                                                    \
-            -DENABLE_GST_PLUGIN_MLVPOSE=ON                                                         \
-            -DENABLE_GST_PLUGIN_MLVSEGMENTATION=ON                                                 \
-            -DENABLE_GST_PLUGIN_MLTFLITE=ON                                                        \
-            -DENABLE_GST_PLUGIN_MLSNPE=ON                                                          \
-            -DENABLE_GST_PLUGIN_MLQNN=ON                                                           \
-            -DENABLE_GST_PLUGIN_MLMETAPARSER=ON                                                    \
-            -DENABLE_GST_PLUGIN_METATRANSFORM=ON                                                   \
-            -DENABLE_GST_PLUGIN_OBJTRACKER=ON                                                      \
-            -DENABLE_GST_PLUGIN_MLMETAEXTRACTOR=ON                                                 \
-            -DENABLE_GST_PLUGIN_MLPOSTPROCESS=ON                                                   \
-            -DENABLE_GST_PLUGIN_MSGBROKER=ON                                                    && \
-            print-green "${FUNCNAME} completed successfully!"
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss `
+            `-DENABLE_GST_PLUGIN_VCOMPOSER=ON `
+            `-DENABLE_GST_PLUGIN_BATCH=ON `
+            `-DENABLE_GST_PLUGIN_METAMUX=ON `
+            `-DENABLE_GST_PLUGIN_SOCKET=ON `
+            `-DENABLE_GST_PLUGIN_VSPLIT=ON `
+            `-DENABLE_GST_PLUGIN_VTRANSFORM=ON `
+            `-DENABLE_GST_PLUGIN_VOVERLAY=ON `
+            `-DENABLE_GST_PLUGIN_RESTRICTED_ZONE=ON `
+            `-DENABLE_GST_PLUGIN_RTSPBIN=ON `
+            `-DENABLE_GST_PLUGIN_REDISSINK=ON `
+            `-DENABLE_GST_PLUGIN_VIDEOTEMPLATE=ON `
+            `-DENABLE_GST_PLUGIN_MLACONVERTER=ON `
+            `-DENABLE_GST_PLUGIN_MLACLASSIFICATION=ON `
+            `-DENABLE_GST_PLUGIN_MLDEMUX=ON `
+            `-DENABLE_GST_PLUGIN_MLVCONVERTER=ON `
+            `-DENABLE_GST_PLUGIN_MLVCLASSIFICATION=ON `
+            `-DENABLE_GST_PLUGIN_MLVSUPERRESOLUTION=ON `
+            `-DENABLE_GST_PLUGIN_MLVDETECTION=ON `
+            `-DENABLE_GST_PLUGIN_MLVPOSE=ON `
+            `-DENABLE_GST_PLUGIN_MLVSEGMENTATION=ON `
+            `-DENABLE_GST_PLUGIN_MLTFLITE=ON `
+            `-DENABLE_GST_PLUGIN_MLSNPE=ON `
+            `-DENABLE_GST_PLUGIN_MLQNN=ON `
+            `-DENABLE_GST_PLUGIN_MLMETAPARSER=ON `
+            `-DENABLE_GST_PLUGIN_METATRANSFORM=ON `
+            `-DENABLE_GST_PLUGIN_OBJTRACKER=ON `
+            `-DENABLE_GST_PLUGIN_MLMETAEXTRACTOR=ON `
+            `-DENABLE_GST_PLUGIN_MLPOSTPROCESS=ON `
+            `-DENABLE_GST_PLUGIN_MSGBROKER=ON                                                   && \
+        print-green "${FUNCNAME} completed successfully!"
 }
 
 # Clean gst-plugins-qti-oss
