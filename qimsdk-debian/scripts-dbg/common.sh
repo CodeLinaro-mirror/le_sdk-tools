@@ -656,7 +656,7 @@ function qimsdk-get-map-for-dbg-container() {
         }
 
         [ -d ${GST_SRC_DIR} ] && {
-            DEV_MAP_ARR+="-v ${GST_SRC_DIR}:/mnt/work/src/gst-plugins-qti-oss "
+            DEV_MAP_ARR+="-v ${GST_SRC_DIR}:/mnt/work/src/gst-plugins-imsdk "
         }
 
     }

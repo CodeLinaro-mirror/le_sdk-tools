@@ -19,12 +19,12 @@ RUN echo "[url \"file:///mnt/work/download/repo/meta-qti-gst\"]                 
         insteadOf = https://git.codelinaro.org/clo/le/meta-qti-gst.git"                            \
         >> /etc/gitconfig
 
-# gst-plugins-qti-oss: Add
-COPY tmp/gst-plugins-qti-oss /mnt/work/download/repo/gst-plugins-qti-oss
+# gst-plugins-imsdk: Add
+COPY tmp/gst-plugins-imsdk /mnt/work/download/repo/gst-plugins-imsdk
 
-RUN echo "[url \"file:///mnt/work/download/repo/gst-plugins-qti-oss\"] insteadOf =                 \
-        https://git.codelinaro.org/clo/le/platform/vendor/qcom-opensource/gst-plugins-qti-oss.git" \
-        >> /root/.gitconfig
+RUN echo "[url \"file:///mnt/work/download/repo/gst-plugins-imsdk\"] insteadOf =                   \
+        https://github.com/qualcomm/gst-plugins-imsdk.git"                                         \
+        >> /etc/gitconfig
 
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts/

@@ -239,7 +239,7 @@ Two QIMSDK docker images are built. One for development. One for device target.
 ### QIMSDK Debug Image
 1. Start from Debian trixie Image
 2. Alter git configuration in QIMSDK Build Image to use gst meta layers locally provided by user in config json instead of codelinaro
-3. Alter git configuration in QIMSDK Build Image to use gst source code locally provided by user in config json instead of codelinaro
+3. Alter git configuration in QIMSDK Build Image to use gst source code locally provided by user in config json instead of github
 4. Copy helper scripts to build image
 5. Set dev environment variables for build image
 
@@ -251,7 +251,7 @@ Two QIMSDK docker images are built. One for development. One for device target.
 3. Install required open source packages for deploy image to build image
 4. Copy build and install scripts to build image
 5. Fetch meta layers with patches needed and apply patches to opensource gst repositories
-6. Fetch gst source code from codelinaro
+6. Fetch gst source code from github
 7. Call wrapper function to build and install plugins
 
 <div id="QIMSDK_Deploy_Image">
@@ -284,7 +284,7 @@ Config json files *(config.json)* must contain the following data:
  2. ***MANDATORY*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose - allows to avoid image conflicts if more than one user on the same machine.
  3. ***MANDATORY*** - **Docker_image_path** - Remote ssh destination or local path to sync docker images or artifacts
  4. ***MANDATORY*** -  **Target_device_ID** - adb device ID of the target device qimsdk is to be installed on. Any faux value can still be provided and compilation will carry on.
- 5. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-qti-oss directory! Code checked out on local branch imsdk.lnx.2.0.0 will be built. Ensure desired code is checked out on imsdk.lnx.2.0.0 branch before proceeding with debug variant QIMSDK build!***
+ 5. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-imsdk directory! Code checked out on local branch main will be built. Ensure desired code is checked out on main branch before proceeding with debug variant QIMSDK build!***
  6. ***MANDATORY*** - **IM_SDK_Meta_Dir** - PATH to meta IM SDK directory, which contains recipes for all gst plugins. ***Note: Path provided must point to meta-qti-gst directory! Code checked out on local branch imsdk.lnx.2.0.0 will be built. Ensure desired code is checked out on imsdk.lnx.2.0.0 branch before proceeding with debug variant QIMSDK build!***
  7. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir is wanted to be mapped to the build container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
 
@@ -343,7 +343,7 @@ source scripts-dbgs/docker_env_setup.sh
 
 These functions are available immediately inside development container:
 
- - qimsdk-incremental-build-qti - Incremental build of all qti gst plugins
+ - qimsdk-cmake-build-gst-plugins-imsdk - Incremental build all gst-plugins-imsdk
  - qimsdk-help-build - Display all cmake functions to build/clean any gst plugin
  - qimsdk-incremental-build - Incremental build of all gst plugins
  - qimsdk-dbg-save-artifacts - Save release variant artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment
@@ -575,8 +575,8 @@ Inside the development container, New CMake project can be added to extend qimsd
 
 1. Add source code and top-level CMakeLists.txt file in Project Directory.
   - Project Directory Name should be same as project name.
-  - It is recommended to add projects as subdirectiories of /mnt/work/src/gst-plugins-qti-oss
-  - Example: /mnt/work/src/gst-plugins-qti-oss/\<Project-Directory-Name\>
+  - It is recommended to add projects as subdirectiories of /mnt/work/src/gst-plugins-imsdk
+  - Example: /mnt/work/src/gst-plugins-imsdk/\<Project-Directory-Name\>
 
 2. In /mnt/work/tmp/scripts/build.sh, add a function which calls base qimsdk-cmake-build function
 

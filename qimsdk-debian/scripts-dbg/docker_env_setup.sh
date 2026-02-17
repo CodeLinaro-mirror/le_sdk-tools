@@ -50,7 +50,7 @@ function qimsdk-docker-parse-json() {
 
     [ -d "${OUT_QIMSDK_GST_SOURCES}/.git" ]                                                     || \
             [ -d "${OUT_QIMSDK_GST_SOURCES}/gst-plugin-base" ]                                  || {
-        print-red "Please provide path to gst-plugins-qti-oss directory in config json!!!"
+        print-red "Please provide path to gst-plugins-imsdk directory in config json!!!"
         print-red "Directory currently provided: ${OUT_QIMSDK_GST_SOURCES}"
         return -1
     }
@@ -115,8 +115,8 @@ function qimsdk-docker-build-initialize() {
         return -1
     }
 
-    git -C ${QIMSDK_GST_SOURCES} branch | grep -q "imsdk.lnx.2.0.0"                             || {
-        print-red "ERROR: ${QIMSDK_GST_SOURCES} does not contain local branch: imsdk.lnx.2.0.0 !!!"
+    git -C ${QIMSDK_GST_SOURCES} branch | grep -q "main"                                        || {
+        print-red "ERROR: ${QIMSDK_GST_SOURCES} does not contain local branch: main !!!"
         return -1
     }
 
@@ -125,7 +125,7 @@ function qimsdk-docker-build-initialize() {
         return -1
     }
 
-    rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-qti-oss               && \
+    rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-imsdk                 && \
             rsync -aL ${QIMSDK_GST_META}/ ${QIMSDK_TMP_FOLDER_PTR}/meta-qti-gst
 }
 
