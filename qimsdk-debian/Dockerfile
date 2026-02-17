@@ -4,8 +4,8 @@ FROM debian:trixie-slim AS qimsdk-build
 # Add deb-src for everything
 RUN sed -Ei 's/^Types: deb$/Types: deb deb-src/'  /etc/apt/sources.list.d/debian.sources
 
-# build time dependencies, needed for gst-plugins-qti-oss compilation:
-# gst-plugins-qti-oss is not an apt package, so we need to install its build dependencies manually
+# build time dependencies, needed for gst-plugins-imsdk compilation:
+# gst-plugins-imsdk is not an apt package, so we need to install its build dependencies manually
 #   instead of doing it using 'apt-get build-dep'
 #  gst-plugin-mlaconverter:       libeigen3-dev
 #  gst-plugin-mlaclassification:  libcairo-dev
@@ -213,10 +213,9 @@ RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                   
     cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSNPE.so                                  \
         ${QIMSDK_INSTALL_DIR}/usr/lib/
 
-# gst-plugins-qti-oss: fetch
-RUN git clone --progress                                                                           \
-        https://git.codelinaro.org/clo/le/platform/vendor/qcom-opensource/gst-plugins-qti-oss.git  \
-        --single-branch --branch imsdk.lnx.2.0.0 ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss
+# gst-plugins-imsdk: fetch
+RUN git clone --single-branch --branch main https://github.com/qualcomm/gst-plugins-imsdk.git      \
+        ${QIMSDK_SRC_DIR}/gst-plugins-imsdk
 
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts/

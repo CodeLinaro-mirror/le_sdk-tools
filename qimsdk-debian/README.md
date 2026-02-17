@@ -35,7 +35,7 @@ Two QIMSDK docker images are built. One for target GStreamer multimedia framewor
     7. Alter apt sources list and istall dependency custom mesa libs to make our build work
     8. Setup Tensorflow Lite 2.20
     9. Fetch meta layers with patches needed
-    10. Fetch gst source code from codelinaro
+    10. Fetch gst source code from github
     11. Copy build and install scripts to build image
     12. Source container helper scripts from bashrc
     14. Copy tflite headers and libs using qimsdk-copy-tf-lite-headers-to-sysroot and qimsdk-propagate-prebuilt-libs
@@ -72,8 +72,8 @@ Handles the compilation and installation of open-source and QTI GStreamer plugin
 - qimsdk-cmake-build - Wrapper function that calls configure, compile and install for CMake projects
 - qimsdk-debian-rules-build-\<name-of-project\> - Builds specific open-source component with custom configuration
 - qimsdk-debian-rules-clean-\<name-of-project\> - Cleans build directory for specific open-source component
-- qimsdk-incremental-build-qti - Base QTI GStreamer plugins that the others depend on are built. After which, a hardcoded list of QTI GStreamer plugins is built in paralel. If one wishes to add a new GStreamer plugin to build using CMake, simply add the plugin directory name under gst-plugins-qti-oss/ source dir to the list.
-- qimsdk-incremental-build - Main entry point that builds all GStreamer components in sequence with success reporting. Also calls qimsdk-incremental-build-qti, to build QTI GStreamer plugins.
+- Incremental build all gst-plugins-imsdk - Base QTI GStreamer plugins that the others depend on are built. After which, a hardcoded list of QTI GStreamer plugins is built in parallel. If one wishes to add a new GStreamer plugin to build using CMake, simply add the plugin directory name under gst-plugins-imsdk/ source dir to the list.
+- qimsdk-incremental-build - Main entry point that builds all GStreamer components in sequence with success reporting. Also calls Incremental build all gst-plugins-imsdk, to build QTI GStreamer plugins.
 
 <div id="env_setup.sh">
 
@@ -109,15 +109,15 @@ Building qimsdk-deploy: minimal set of runtime binaries needed to execute gst us
 docker build  --platform linux/arm64 --target qimsdk-deploy -t <desired-image-name> .
 ```
 
-***NOTE: Adding a new QTI GStreamer plugin to the qimsdk-incremental-build-qti function***
+***NOTE: Adding a new QTI GStreamer plugin to the Incremental build all gst-plugins-imsdk function***
 
-Let's say one would like to add a new QTI plugin to the incremental build - 'gst-plugin-new'. That plugin's source is located inside QTI GStreamer plugins repo, in gst-plugins-qti-oss/gst-plugin-new. The gst-plugin-new source directory needs to be added to the QIMSDK_QTI_PLUGINS_LIST in qimsdk-incremental-build-qti:
+Let's say one would like to add a new QTI plugin to the incremental build - 'gst-plugin-new'. That plugin's source is located inside QTI GStreamer plugins repo, in gst-plugins-imsdk/gst-plugin-new. The gst-plugin-new source directory needs to be added to the QIMSDK_QTI_PLUGINS_LIST in Incremental build all gst-plugins-imsdk:
 
 ```bash
 ...
 ...
 ...
-function qimsdk-incremental-build-qti() {
+function qimsdk-cmake-build-gst-plugins-imsdk() {
     local QIMSDK_BASE_QTI_PLUGINS_LIST="gst-plugin-base"
     local QIMSDK_QTI_PLUGINS_LIST="`
             `gst-plugin-batch `

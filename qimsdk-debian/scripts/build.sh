@@ -244,9 +244,9 @@ function qimsdk-debian-rules-clean-gst-plugins-good() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
-# Wrapper function to build all QTI gstreamer plugins incrementally
-function qimsdk-incremental-build-qti() {
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss `
+# Incremental build all gst-plugins-imsdk
+function qimsdk-cmake-build-gst-plugins-imsdk() {
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-imsdk `
             `-DENABLE_GST_PLUGIN_VCOMPOSER=ON `
             `-DENABLE_GST_PLUGIN_BATCH=ON `
             `-DENABLE_GST_PLUGIN_METAMUX=ON `
@@ -279,9 +279,9 @@ function qimsdk-incremental-build-qti() {
         print-green "${FUNCNAME} completed successfully!"
 }
 
-# Clean gst-plugins-qti-oss
-function qimsdk-cmake-clean-qti() {
-    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-qti-oss
+# Clean gst-plugins-imsdk
+function qimsdk-cmake-clean-gst-plugins-imsdk() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-imsdk
 
     print-green "${FUNCNAME} completed successfully!"
 }
@@ -290,11 +290,11 @@ function qimsdk-cmake-clean-qti() {
 function qimsdk-incremental-build() {
     qimsdk-debian-rules-build-gst-plugins-base                                                  && \
             qimsdk-debian-rules-build-gst-plugins-good                                          && \
-            qimsdk-incremental-build-qti                                                        && \
+            qimsdk-cmake-build-gst-plugins-imsdk                                                && \
         print-green "QIMSDK GStreamer targets built successfully !!!"
 }
 
 print-green "qimsdk-incremental-build"
 echo "    Incremental build of gst plugins"
-print-green "qimsdk-incremental-build-qti"
-echo "    Incremental build of all QTI gst plugins"
+print-green "qimsdk-cmake-build-gst-plugins-imsdk"
+echo "    Incremental build all gst-plugins-imsdk"
