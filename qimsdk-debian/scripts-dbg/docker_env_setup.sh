@@ -152,33 +152,9 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
         local DOCKERFILE="${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE}/Dockerfile"
 
         # Modify Dockerfile to import artifacts from debug build container
-        sed -E                                                                                     \
-                "s|^(COPY[[:space:]]+)--from=qimsdk-build([[:space:]]+[$][{]QIMSDK_INSTALL_DIR[}]/usr[[:space:]]+/usr)|\1--from=${IMAGE_NAME}-debian\2|" \
-                ${DOCKERFILE} > ${DOCKERFILE}.work_deploy_install                          || {
-            rm -f ${DOCKERFILE}.work
-            rm -f ${DOCKERFILE}.work_deploy_install
-            print-red "Modify Dockerfile to import artifacts from debug build container failed!"
-            return -1
-        }
-
-        # Modify Dockerfile to import prebuilt deb artifacts from debug build container
-        sed -E                                                                                     \
-                "s|^(COPY[[:space:]]+)--from=qimsdk-build([[:space:]]+/mnt/work/downloads/debs[[:space:]]+[$][{]QIMSDK_DEB_DIR[}])|\1--from=${IMAGE_NAME}-debian\2|" \
-                ${DOCKERFILE}.work_deploy_install > ${DOCKERFILE}.work_deploy_deb           || {
-            rm -f ${DOCKERFILE}.work
-            rm -f ${DOCKERFILE}.work_deploy_install
-            rm -f ${DOCKERFILE}.work_deploy_deb
-            print-red "Modify Dockerfile to import artifacts from debug build container failed!"
-            return -1
-        }
-
-        # Modify Dockerfile to import prebuilt artifacts from debug build container
-        sed -E "s|--from=debian:trixie-slim|--from=${IMAGE_NAME}-deploy|g"                                     \
-                ${DOCKERFILE}.work_deploy_deb > ${DOCKERFILE}.work_deploy_tflite           || {
-            rm -f ${DOCKERFILE}.work
-            rm -f ${DOCKERFILE}.work_deploy_install
-            rm -f ${DOCKERFILE}.work_deploy_deb
-            rm -f ${DOCKERFILE}.work_deploy_tflite
+        sed -E "s/--from=qimsdk-build/--from=${IMAGE_NAME}-debian/g"                               \
+                ${DOCKERFILE} > ${DOCKERFILE}.work_deploy                                       || {
+            rm -f ${DOCKERFILE}.work_deploy
             print-red "Modify Dockerfile to import artifacts from debug build container failed!"
             return -1
         }
@@ -186,18 +162,13 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
         DOCKER_BUILDKIT=1 docker build                                                             \
                 --progress=plain --target qimsdk-deploy                                            \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian-deploy                 \
-                -f ${DOCKERFILE}.work_deploy_tflite                                             || {
-            rm -f ${DOCKERFILE}.work
-            rm -f ${DOCKERFILE}.work_deploy_install
-            rm -f ${DOCKERFILE}.work_deploy_tflite
+                -f ${DOCKERFILE}.work_deploy                                                    || {
+            rm -f ${DOCKERFILE}.work_deploy
             print-red "Build ${IMAGE_NAME}-debian-deploy image failed !!!"
             return -1
         }
 
-        rm -f ${DOCKERFILE}.work
-        rm -f ${DOCKERFILE}.work_deploy_install
-        rm -f ${DOCKERFILE}.work_deploy_deb
-        rm -f ${DOCKERFILE}.work_deploy_tflite
+        rm -f ${DOCKERFILE}.work_deploy
     )
 }
 
@@ -247,20 +218,11 @@ function qimsdk-docker-build-image() {
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
-    local DOCKER_IMAGE_PATH
-    local QIMSDK_DEVICE_ID
 
-    local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
-    mkdir -p ${QIMSDK_TMP_FOLDER}
-
-    qimsdk-docker-build-initialize ${PATH_TO_CONFIG_JSON}                                          \
+    qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
-            QIMSDK_IMAGE_NAME                                                                      \
-            QIMSDK_TMP_FOLDER                                                                      \
-            DOCKER_IMAGE_PATH                                                                      \
-            QIMSDK_DEVICE_ID                                                                    || {
-        print-red "FAILED: qimsdk-docker-build-initialize !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER}
+            QIMSDK_IMAGE_NAME                                                                   || {
+        print-red "FAILED: qimsdk-get-container-and-image-name !!!"
         return -1
     }
 
@@ -271,11 +233,8 @@ function qimsdk-docker-build-image() {
 
     qimsdk-docker-build-qimsdk-debian-deploy-image ${QIMSDK_IMAGE_NAME}                         || {
         print-red "FAILED: qimsdk-docker-build-qimsdk-debian-deploy-image !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER}
         return -1
     }
-
-    rm -rf ${QIMSDK_TMP_FOLDER}
 
     print-green "Build image completed successfully !!!"
 
@@ -424,7 +383,7 @@ function qimsdk-docker-device-save-image() {
     }
 
     [[ "${DOCKER_IMAGE_PATH}" != *":"* ]] && [ ! -d "${DOCKER_IMAGE_PATH}" ]                    && {
-            mkdir -p ${DOCKER_IMAGE_PATH}                                                       || {
+        mkdir -p ${DOCKER_IMAGE_PATH}                                                           || {
             print-red "FAILED: mkdir -p ${DOCKER_IMAGE_PATH} !!!"
             return -1
         }
@@ -573,7 +532,6 @@ function qimsdk-docker-device-load-image() {
                     /tmp/data/docker_images !!!"
 
             qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
-
             return -1
         }
 
@@ -1029,7 +987,7 @@ function qimsdk-dbg-load-artifacts-variant() {
     }
 
     [[ "${DOCKER_IMAGE_PATH}" != *":"* ]] && [ ! -d "${DOCKER_IMAGE_PATH}" ]                    && {
-            mkdir -p ${DOCKER_IMAGE_PATH}                                                       || {
+        mkdir -p ${DOCKER_IMAGE_PATH}                                                           || {
             print-red "FAILED: mkdir -p ${DOCKER_IMAGE_PATH} !!!"
             return -1
         }
@@ -1050,9 +1008,9 @@ function qimsdk-dbg-load-artifacts-variant() {
         rsync -aP ${DOCKER_IMAGE_PATH}/qimsdk_dev_artifacts_${VARIANT}.tar .                    && \
                 qimsdk-device-command "mkdir -p /tmp/qti/development" ${QIMSDK_DEVICE_ID}       && \
                 adb push qimsdk_dev_artifacts_${VARIANT}.tar /tmp/qti/development/              && \
-                qimsdk-device-command "cd /tmp/qti/development                                  && \
-                        tar -xf /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar        && \
-                        docker cp usr ${QIMSDK_CONTAINER_NAME}:/" ${QIMSDK_DEVICE_ID}           && \
+                qimsdk-device-command "cd /tmp/qti/development && `
+                        `tar -xf /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar && `
+                        `docker cp usr ${QIMSDK_CONTAINER_NAME}:/" ${QIMSDK_DEVICE_ID}          && \
                 qimsdk-device-command "rm -rf /tmp/qti/development/usr"                            \
                         ${QIMSDK_DEVICE_ID}                                                     || {
             print-red "Artifacts load failed !!!"

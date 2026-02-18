@@ -351,79 +351,6 @@ These functions are available immediately inside development container:
  - qimsdk-dbg-push-artifacts - Push release variant artifacts to device with specified id in configuration json file
  - qimsdk-dbg-push-artifacts-dbg - Push debug variant artifacts  to device with specified id in configuration json file
 
-### Changing environment for deploy image size optimization
-
-If the user wishes to reduce the size of qimsdk-debian deploy image, that can be done by no longer installing the runtime dependency apt packages.
-
-Instead, these packages' minimal set of needed libraries and other contents can be copied over from build image.
-That can reduce deploy image size by approximately 1.01GB.
-
-From Dockerfile snippet in deploy image, which installs apt packages:
-
-```
-RUN apt-get update                                                                              && \
-        DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y                               \
-        adduser bash-completion nano libhiredis1.1.0 gstreamer1.0-tools ocl-icd-libopencl1 wget    \
-        mesa-opencl-icd libopencl-clang-19-dev libgstrtspserver-1.0-0 libopencv-imgproc410         \
-        gstreamer1.0-plugins-good pulseaudio gstreamer1.0-plugins-base gstreamer1.0-gl             \
-        libgraphene-1.0-dev libgl1 libegl1 libwayland-egl1 libwayland-dev                          \
-        gstreamer1.0-plugins-ugly                                                               && \
-        apt -y upgrade                                                                          && \
-        apt-get autoremove -y                                                                   && \
-        apt-get clean                                                                           && \
-        rm -rf /var/lib/apt/lists* /var/tmp/*
-```
-
-**These packages need to be removed from apt install list:**
-
-ocl-icd-libopencl1 wget mesa-opencl-icd libopencl-clang-19-dev libgstrtspserver-1.0-0 libopencv-imgproc410 gstreamer1.0-plugins-good pulseaudio gstreamer1.0-plugins-base gstreamer1.0-gl libgraphene-1.0-dev libgl1 libegl1 libwayland-egl1 libwayland-dev gstreamer1.0-plugins-ugly
-
-This snippet in Dockerfile describing the deploy image, needs to be deleted:
-
-```
-# Add deb-src for everything
-RUN sed -Ei 's/^Types: deb$/Types: deb deb-src/'  /etc/apt/sources.list.d/debian.sources        && \
-    wget --no-check-certificate https://github.com/qualcomm-linux/qcom-deb-images/raw/refs/heads/main/debos-recipes/overlays/qsc-deb-releases/etc/apt/keyrings/qsc-deb-releases.asc -O /etc/apt/keyrings/qsc-deb-releases.asc
-
-COPY <<EOF /etc/apt/sources.list.d/qsc-deb-releases.sources
-# QArtifactory qsc-deb-releases repository
-# NB: publishing Sources indices for deb-src isn't supported by Artifactory,
-# but sources are published with other packages files
-Types: deb
-URIs: https://qartifactory-edge.qualcomm.com/artifactory/qsc-deb-releases
-Suites: trixie-overlay
-Components: main
-Signed-By: /etc/apt/keyrings/qsc-deb-releases.asc
-Enabled: yes
-EOF
-
-# Update again
-# Install the basic mesa dependencies to make our build work
-# Install libegl-mesa0 which contains the mesa vendor library for EGL.
-RUN DEBIAN_FRONTEND=noninteractive apt-get update                                               && \
-    apt -y install mesa-common-dev libegl-dev libgles-dev libgl1-mesa-dri libegl-mesa0          && \
-        apt -y upgrade                                                                          && \
-        apt-get autoremove -y                                                                   && \
-        apt-get clean                                                                           && \
-        rm -rf /var/lib/apt/lists* /var/tmp/*
-```
-
-In place of qimsdk-propagate-prebuilt-libs in Dockerfile section describing the build image, qimsdk-propagate-all-prebuilt-libs needs to be called.
-
-Instead of:
-
-```
-# Sync prebuilt libs
-RUN bash /root/.bashrc qimsdk-propagate-prebuilt-libs
-```
-
-It should look like this:
-
-```
-# Sync prebuilt libs
-RUN bash /root/.bashrc qimsdk-propagate-all-prebuilt-libs
-```
-
 <div id="Development_Workflow">
 
 ## Development Workflow
@@ -578,41 +505,21 @@ Inside the development container, New CMake project can be added to extend qimsd
   - It is recommended to add projects as subdirectiories of /mnt/work/src/gst-plugins-imsdk
   - Example: /mnt/work/src/gst-plugins-imsdk/\<Project-Directory-Name\>
 
-2. In /mnt/work/tmp/scripts/build.sh, add a function which calls base qimsdk-cmake-build function
+2. Add in top level CMakeLists.txt file option (with default value OFF) to add as subdirectory \<Project-Directory-Name\>
+
+3. For new project to be compiled automatically during `qimsdk-incremental-build`, newly created option from last step needs to be added to "qimsdk-cmake-build-gst-plugins-imsdk" with value ON in /mnt/work/scripts/build.sh
 
 ```bash
-# CMake Build <Project-Directory-Name>
-function qimsdk-cmake-build-<Project-Directory-Name>() {
-    local CONFIG_FLAGS="-DFLAG0=flag-value -DFLAG1=flag-value"
-
-    qimsdk-cmake-build <Path/To/Project/Directory> ${CONFIG_FLAGS}
-}
-```
-
-3. For new project to be compiled automatically during `qimsdk-incremental-build`, newly created function from last steps needs to be added to "qimsdk-incremental-build" in /mnt/work/tmp/scripts/build.sh
-
-```bash
-# Configure and build gst plugins
-function qimsdk-incremental-build() {
+# Incremental build all gst-plugins-imsdk
+function qimsdk-cmake-build-gst-plugins-imsdk() {
 ...
 ...
 ...
-        qimsdk-cmake-build-<Project-Directory-Name>
+        `-DENABLE_GST_PLUGIN_<plugin name>=ON `
 ...
 ...
 ...
-        print-green "QIMSDK GStreamer targets built successfully !!!"
-}
-```
-
-4. Add cleanup function to /mnt/work/tmp/scripts/build.sh
-
-```bash
-# Clean CMake <Project-Directory-Name> build directory
-function qimsdk-cmake-clean-<Project-Directory-Name>() {
-    rm -rf ${QIMSDK_BUILD_DIR}/<Project-Directory-Name>
-
-    print-green "${FUNCNAME} completed succesfully!"
+        print-green "${FUNCNAME} completed successfully!"
 }
 ```
 
@@ -712,47 +619,6 @@ qimsdk-docker-device-run-container <path-to-config-json>
 #### Python scripts to load image, run container and build artifacts from Windows
 *Note: Docker_image_path in json file should be path from host machine*
 
-#### Windows
-
-#### Install necessary pip3 packages
-
-```powershell
-pip3 install colorama
-```
-
-Example for adding adb to powershell path
-
-```powershell
-$Env:PATH += ";<path to adb>"
-```
-
-1. Load QIMSDK device image via python
-
-```powershell
-# Load docker image
-python3 DockerEssentials.py -j <path-to-qimsdk-debian-project>\targets\config.json load_image
-```
-
-2. Run container via python
-
-```powershell
-# Run container
-python3 DockerEssentials.py -j <path-to-qimsdk-debian-project>\targets\config.json run_container
-```
-
-3. Load artifacts to the existing docker container in device
-
-3.1 Load release artifacts
-
-```powershell
-python3 DockerEssentials.py -j <path-to-qimsdk-debian-project>\targets\config.json load_artifacts -v release
-```
-
-3.2 Load debug artifacts
-```powershell
-python3 DockerEssentials.py -j <path-to-qimsdk-debian-project>\targets\config.json load_artifacts -v debug
-```
-
 <div id="Docker_Container_Renaming">
 
 ## Docker Container Renaming
@@ -769,7 +635,7 @@ Device Container can be renamed by using the "Additional_tag_container" in *conf
 
 ## Release Variant - Manual Commands Instead Of Scripts
 
-In Release variant, qimsdk-debian build image can directly compile gst plugin code from codelinaro. After, gst plugins, together with dependencies can be propagated to deploy image and installed on device to run qimsdk-debian deploy container
+In Release variant, qimsdk-debian build image can directly compile gst plugin code from github. After, gst plugins, together with dependencies can be propagated to deploy image and installed on device to run qimsdk-debian deploy container
 
 In that case, the intermediate QIMSDK Debug Image is not built, and QIMSDK Deploy Image is not altered to use custom code provided by the user.
 
