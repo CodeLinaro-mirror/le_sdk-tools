@@ -85,9 +85,13 @@ function qimsdk-cmake-configure() {
 
         set -o pipefail
 
-        cmake ${CMAKE_FLAGS} "${SOURCE_PATH}"                                                     |&
-                tee "${QIMSDK_LOGS_DIR}/cmake_configure_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
+        local DATE=$(date "+%Y_%m_%d-%H_%M_%S")
 
+        ln -fs ${QIMSDK_LOGS_DIR}/cmake_configure_${TARGET}_${DATE}.log                            \
+                ${QIMSDK_LOGS_DIR}/cmake_configure_${TARGET}.log
+
+        cmake ${CMAKE_FLAGS} "${SOURCE_PATH}"                                                     |&
+                tee "${QIMSDK_LOGS_DIR}/cmake_configure_${TARGET}_${DATE}.log"
     ) || {
         print-red "FAILED: qimsdk-cmake-configure-${TARGET}: cmake configure failed !!!"
         return -1
@@ -114,8 +118,13 @@ function qimsdk-cmake-compile() {
 
         set -o pipefail
 
+        local DATE=$(date "+%Y_%m_%d-%H_%M_%S")
+
+        ln -fs ${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}_${DATE}.log                              \
+                ${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}.log
+
         cmake --build . -j                                                                        |&
-                tee "${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}_$(date "+%Y_%m_%d-%H_%M_%S").log"
+                tee "${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}_${DATE}.log"
     ) || {
         print-red "FAILED: qimsdk-cmake-compile-${TARGET}: cmake compile failed !!!"
         return -1
@@ -146,6 +155,9 @@ function qimsdk-cmake-install() {
 
         set -o pipefail
 
+        ln -fs ${LOG_FILE_NAME} ${QIMSDK_LOGS_DIR}/cmake_install_${TARGET}.log
+
+        ln -fs ${LOG_FILE_NAME_DBG} ${QIMSDK_LOGS_DIR}/cmake_install_${TARGET}_dbg.log
 
         cmake --install . --prefix ${QIMSDK_INSTALL_DEBUG_DIR}/usr/                               |&
                 tee ${LOG_FILE_NAME_DBG}                                                        && \
