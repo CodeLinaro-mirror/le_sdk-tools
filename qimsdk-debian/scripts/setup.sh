@@ -26,7 +26,7 @@ function qimsdk-apply-patches() {
 
 # Apply patches to gst-plugins-base
 function qimsdk-apply-patches-gst-plugins-base() {
-    [ ! -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-${GST_PLUGINS_BASE_VERSION}" ] && {
+    [ ! -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-${GST_PLUGINS_BASE_VERSION}" ]           && {
         echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/`
                 `gst-plugins-base1.0-${GST_PLUGINS_BASE_VERSION} !"
         return -1
@@ -52,7 +52,7 @@ function qimsdk-apply-patches-gst-plugins-base() {
 # Apply patches to gst-plugins-good
 function qimsdk-apply-patches-gst-plugins-good() {
 
-    [ ! -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-${GST_PLUGINS_GOOD_VERSION}" ] && {
+    [ ! -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-${GST_PLUGINS_GOOD_VERSION}" ]           && {
         echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/`
                 `gst-plugins-good1.0-${GST_PLUGINS_GOOD_VERSION} !"
         return -1
@@ -83,16 +83,15 @@ function qimsdk-copy-tf-lite-headers-to-sysroot() {
     local PENDING_LIST_INIT=""
 
     local ML_TFLITE_ENGINE_CC="${QIMSDK_SRC_DIR}/`
-        `gst-plugins-imsdk/gst-plugin-mltflite/ml-tflite-engine-c-api.cc"
+            `gst-plugins-imsdk/gst-plugin-mltflite/ml-tflite-engine-c-api.cc"
     local ML_TFLITE_ENGINE_H="${QIMSDK_SRC_DIR}/`
-        `gst-plugins-imsdk/gst-plugin-mltflite/ml-tflite-engine.h"
+            `gst-plugins-imsdk/gst-plugin-mltflite/ml-tflite-engine.h"
 
     local ML_TFLITE_ENGINE_CC_INCS=""
 
     ML_TFLITE_ENGINE_CC_INCS=$(
-        cat ${ML_TFLITE_ENGINE_CC}                                                                 |
-            grep "include.*.tensorflow"                                                            |
-            cut -f2 -d "<" | rev | cut -f2 -d ">" | rev
+        cat ${ML_TFLITE_ENGINE_CC} |grep "include.*.tensorflow" | cut -f2 -d "<" | rev |
+                cut -f2 -d ">" | rev
     )
 
     PENDING_LIST_INIT+="${ML_TFLITE_ENGINE_CC_INCS}"
@@ -101,9 +100,8 @@ function qimsdk-copy-tf-lite-headers-to-sysroot() {
     local ML_TFLITE_ENGINE_H_INCS=""
 
     ML_TFLITE_ENGINE_H_INCS=$(
-        cat ${ML_TFLITE_ENGINE_H}                                                                  |
-            grep "include.*.tensorflow"                                                            |
-            cut -f2 -d "<" | rev | cut -f2 -d ">" | rev
+        cat ${ML_TFLITE_ENGINE_H} | grep "include.*.tensorflow" | cut -f2 -d "<" | rev |
+                cut -f2 -d ">" | rev
     )
 
     PENDING_LIST_INIT+="${ML_TFLITE_ENGINE_H_INCS}"
@@ -117,7 +115,7 @@ function qimsdk-copy-tf-lite-headers-to-sysroot() {
 
     # Remove the header from pending_list if it doesn't exist
     for HEADER in "${!PENDING_LIST[@]}"; do
-        [ ! -f "${QIMSDK_TF_SRC_DIR}/${PENDING_LIST[${HEADER}]}" ] && {
+        [ ! -f "${QIMSDK_TF_SRC_DIR}/${PENDING_LIST[${HEADER}]}" ]                              && {
             unset 'PENDING_LIST[HEADER]'
         }
     done
@@ -128,7 +126,7 @@ function qimsdk-copy-tf-lite-headers-to-sysroot() {
         # Get next file to be processed
         local H_FILE=${PENDING_LIST[0]}
 
-        [ -z ${H_FILE} ] && {
+        [ -z ${H_FILE} ]                                                                        && {
             # Remove file from pending list
             PENDING_LIST=( "${PENDING_LIST[@]:1}" )
             continue
@@ -163,39 +161,5 @@ function qimsdk-copy-tf-lite-headers-to-sysroot() {
         local H_FILE_SRC="${!H_FILE_PATH}/./${H_FILE}"
 
         rsync -a --relative "${H_FILE_SRC}" "${DST_INC_DIR}"
-    done
-}
-
-# Invoke Recipe Parser script
-function qimsdk-invoke-recipe-parser() {
-    local PYTHON_ARG_FOR_LAYERS="${QIMSDK_TMP_DIR}"
-
-    python3 ${QIMSDK_SCRIPTS}/RecipeParser.py                                                      \
-            -l ${PYTHON_ARG_FOR_LAYERS}                                                            \
-            -m ${QIMSDK_PATH_TO_GST_META}                                                          \
-            -t ${QIMSDK_SCRIPTS}                                                                   \
-            "BuildCodeGenerator"                                                                || {
-        print-red "Python Parser returns error, mode ${PYTHON_ARG_FOR_CODE_GENERATOR} !!!"
-        return -1
-    }
-
-    return 0
-}
-
-# Reset project to the initial commmit
-#   $1 - Path to project to reset to initial commit
-function qimsdk-reset-project-to-initial-commit() {
-    local PATH_TO_PROJECT=${1}
-
-    local rc
-
-    while true; do
-        git -C ${PATH_TO_PROJECT} reset --hard HEAD~1
-
-        rc=$?
-        [ ${rc} -ne 0 ] && {
-            print-green "Reached the initial commit."
-            return 0
-        }
     done
 }

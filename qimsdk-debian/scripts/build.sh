@@ -12,35 +12,35 @@ function qimsdk-strip-trailing-slashes() {
 # get first subdir after SOURCE_PATH
 # Uses env vars: QIMSDK_SRC_DIR, QIMSDK_DOWNLOAD_DIR
 function qimsdk-get-project() {
-  local SOURCE_PATH="${1}"
-  local BASES=("${QIMSDK_SRC_DIR}" "${QIMSDK_DOWNLOAD_DIR}")
-  local DIR BASE REST FIRST
+    local SOURCE_PATH="${1}"
+    local BASES=("${QIMSDK_SRC_DIR}" "${QIMSDK_DOWNLOAD_DIR}")
+    local DIR BASE REST FIRST
 
-  DIR="$(qimsdk-strip-trailing-slashes "${SOURCE_PATH}")"
+    DIR="$(qimsdk-strip-trailing-slashes "${SOURCE_PATH}")"
 
-  for BASE in "${BASES[@]}"; do
-    # Skip empty/unset bases
-    [[ -n "${BASE}" ]] || continue
-    BASE="$(qimsdk-strip-trailing-slashes "${BASE}")"
+    for BASE in "${BASES[@]}"; do
+        # Skip empty/unset bases
+        [[ -n "${BASE}" ]] || continue
+        BASE="$(qimsdk-strip-trailing-slashes "${BASE}")"
 
-    # Match only if path starts with base path boundary (so /foo/bar doesn't match /fo)
-    # Two cases: exact match, or base + "/" + rest
-    if [[ "${DIR}" == "${BASE}" ]]; then
-      # SOURCE_PATH equals base, so there's no subdir after it
-      printf '%s\n' ""
-      return 0
-    elif [[ "${DIR}" == "${BASE}/"* ]]; then
-      # Trim the base + slash
-      REST="${DIR#"${BASE}/"}"
-      # Extract first component after base
-      FIRST="${REST%%/*}"
-      printf '%s\n' "${FIRST}"
-      return 0
-    fi
-  done
+        # Match only if path starts with base path boundary (so /foo/bar doesn't match /fo)
+        # Two cases: exact match, or base + "/" + rest
+        if [[ "${DIR}" == "${BASE}" ]]; then
+            # SOURCE_PATH equals base, so there's no subdir after it
+            printf '%s\n' ""
+            return 0
+        elif [[ "${DIR}" == "${BASE}/"* ]]; then
+            # Trim the base + slash
+            REST="${DIR#"${BASE}/"}"
+            # Extract first component after base
+            FIRST="${REST%%/*}"
+            printf '%s\n' "${FIRST}"
+            return 0
+        fi
+    done
 
-  # No base matched: return basename of SOURCE_PATH
-  printf '%s\n' "${DIR##*/}"
+    # No base matched: return basename of SOURCE_PATH
+    printf '%s\n' "${DIR##*/}"
 }
 
 # Configure qimsdk CMake Target
@@ -64,20 +64,20 @@ function qimsdk-cmake-configure() {
 
     (
         export CFLAGS="-mbranch-protection=standard -fstack-protector-strong -O2 `
-            `-D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security -pipe `
-            `-feliminate-unused-debug-types"
+                `-D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security -pipe `
+                `-feliminate-unused-debug-types"
         export CXXFLAGS="${CFLAGS}"
 
-        local CMAKE_FLAGS="-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON`
-            ` -DSYSROOT_INCDIR=/usr/include`
-            ` -DSYSROOT_LIBDIR=/usr/lib`
-            ` -DCMAKE_INSTALL_PREFIX=/usr`
-            ` -DCMAKE_INSTALL_INCLUDEDIR=include`
-            ` -DCMAKE_INSTALL_BINDIR=bin`
-            ` -DCMAKE_INSTALL_LIBDIR=lib/aarch64-linux-gnu`
-            ` -DCMAKE_INSTALL_SYSCONFDIR=/etc`
-            ` -DCMAKE_BUILD_TYPE=Debug`
-            ` "${CMAKE_CUSTOM_CONFIG_FLAGS}""
+        local CMAKE_FLAGS="-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON `
+                `-DSYSROOT_INCDIR=/usr/include `
+                `-DSYSROOT_LIBDIR=/usr/lib `
+                `-DCMAKE_INSTALL_PREFIX=/usr `
+                `-DCMAKE_INSTALL_INCLUDEDIR=include `
+                `-DCMAKE_INSTALL_BINDIR=bin `
+                `-DCMAKE_INSTALL_LIBDIR=lib/aarch64-linux-gnu `
+                `-DCMAKE_INSTALL_SYSCONFDIR=/etc `
+                `-DCMAKE_BUILD_TYPE=Debug `
+                `"${CMAKE_CUSTOM_CONFIG_FLAGS}""
 
         mkdir -p ${QIMSDK_BUILD_DIR}/${TARGET}
 
