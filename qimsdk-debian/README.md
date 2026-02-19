@@ -106,8 +106,9 @@ Handles patching, library propagation, and dependency management for GStreamer p
 Building qimsdk-deploy: minimal set of runtime binaries needed to execute gst use-cases are available in this image.
 
 ```bash
-docker build  --platform linux/arm64 --target qimsdk-deploy -t <desired-image-name> .
+docker build  --platform linux/arm64 --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.39.0.250925> --target qimsdk-deploy -t <desired-image-name> .
 ```
+In the docker build command above, provide the version of QAIRT SDK that you want to install, e.g. *--build-arg QIMSDK_ARG_QNP_VERSION=2.39.0.250925*. If this argument is not provided, the QNN and SNPE plugins will be disabled in the image.
 
 <div id="How_to_add_new_QCOM_GStreamer_plugin">
 

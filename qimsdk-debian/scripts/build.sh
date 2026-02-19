@@ -258,6 +258,8 @@ function qimsdk-debian-rules-clean-gst-plugins-good() {
 
 # Incremental build all gst-plugins-imsdk
 function qimsdk-cmake-build-gst-plugins-imsdk() {
+    local IS_QNP_ENABLED=$( [ -n "${QIMSDK_ARG_QNP_VERSION:-}" ] && echo ON || echo OFF )
+
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-imsdk `
             `-DENABLE_GST_PLUGIN_VCOMPOSER=ON `
             `-DENABLE_GST_PLUGIN_BATCH=ON `
@@ -280,8 +282,8 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
             `-DENABLE_GST_PLUGIN_MLVPOSE=ON `
             `-DENABLE_GST_PLUGIN_MLVSEGMENTATION=ON `
             `-DENABLE_GST_PLUGIN_MLTFLITE=ON `
-            `-DENABLE_GST_PLUGIN_MLSNPE=ON `
-            `-DENABLE_GST_PLUGIN_MLQNN=ON `
+            `-DENABLE_GST_PLUGIN_MLSNPE=${IS_QNP_ENABLED} `
+            `-DENABLE_GST_PLUGIN_MLQNN=${IS_QNP_ENABLED} `
             `-DENABLE_GST_PLUGIN_MLMETAPARSER=ON `
             `-DENABLE_GST_PLUGIN_METATRANSFORM=ON `
             `-DENABLE_GST_PLUGIN_OBJTRACKER=ON `
