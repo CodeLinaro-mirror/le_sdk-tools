@@ -413,10 +413,10 @@ function qimsdk-docker-device-save-image() {
         return -1
     }
 
-    local PLATFORMS=("qcs2210")
+    for DEVICE_JSON in ${QIMSDK_DOCKER_DIR}/targets/target_*.json; do
 
-    for SUFFIX_NAME in ${PLATFORMS[@]}; do
-        local DEVICE_JSON="${QIMSDK_DOCKER_DIR}/targets/${SUFFIX_NAME}.json"
+        local SUFFIX_NAME="$(basename "${DEVICE_JSON%.json}")"
+        SUFFIX_NAME="${SUFFIX_NAME#target_}"
 
         qimsdk-generate-docker-run-cmd ${DEVICE_JSON}                                              \
                 ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                                        \
@@ -700,8 +700,6 @@ function qimsdk-docker-device-run-container() {
     }
 
     (
-        local PLATFORMS=("qcs2210")
-
         export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
 
         local MACHINE=$(adb shell "cat /sys/devices/soc0/machine" | tr -d '\r')                 || {
@@ -722,8 +720,10 @@ function qimsdk-docker-device-run-container() {
 
         local TMP_RUN_CMD_DIR=$(mktemp -d)
 
-        for SUFFIX_NAME in ${PLATFORMS[@]}; do
-            local DEVICE_JSON="${QIMSDK_DOCKER_DIR}/targets/${SUFFIX_NAME}.json"
+        for DEVICE_JSON in ${QIMSDK_DOCKER_DIR}/targets/target_*.json; do
+
+            local SUFFIX_NAME="$(basename "${DEVICE_JSON%.json}")"
+            SUFFIX_NAME="${SUFFIX_NAME#target_}"
 
             qimsdk-generate-docker-run-cmd ${DEVICE_JSON}                                          \
                     ${TMP_RUN_CMD_DIR}/docker_run_${SUFFIX_NAME}.sh                                \
