@@ -9,12 +9,14 @@
 #   $3 - (mandatory) variable to take image name value
 #   $4 - (mandatory) variable to take Gstreamer sources of SP
 #   $5 - (mandatory) variable to take Gstreamer meta of SP
+#   $6 - (mandatory) variable to take QAIRT SDK version
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
     local -n OUT_QIMSDK_IMAGE_NAME=${3}
     local -n OUT_QIMSDK_GST_SOURCES=${4}
     local -n OUT_QIMSDK_GST_META=${5}
+    local -n OUT_QIMSDK_QAIRT_SDK_VERSION=${6}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ]                                                           && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -67,6 +69,8 @@ function qimsdk-docker-parse-json() {
         return -1
     }
 
+    OUT_QIMSDK_QAIRT_SDK_VERSION=$(echo ${JSON_CONTENT} |  jq '.QAIRT_SDK_version' | tr -d '"')
+
     return 0
 }
 
@@ -77,6 +81,7 @@ function qimsdk-docker-parse-json() {
 #   $4 - (mandatory) temp folder
 #   $5 - (mandatory) docker image path
 #   $6 - (mandatory) device ID
+#   $7 - (mandatory) QAIRT SDK version
 function qimsdk-docker-build-initialize() {
     local PATH_TO_CONFIG_JSON=${1}
 
@@ -85,6 +90,7 @@ function qimsdk-docker-build-initialize() {
     local -n QIMSDK_TMP_FOLDER_PTR=${4}
     local -n DOCKER_IMAGE_PATH_PTR=${5}
     local -n QIMSDK_DEVICE_ID_PTR=${6}
+    local -n QIMSDK_QAIRT_SDK_VERSION_PTR=${7}
 
     local QIMSDK_GST_SOURCES
     local QIMSDK_GST_META
@@ -93,7 +99,8 @@ function qimsdk-docker-build-initialize() {
             QIMSDK_CONTAINER_NAME_PTR                                                              \
             QIMSDK_IMAGE_NAME_PTR                                                                  \
             QIMSDK_GST_SOURCES                                                                     \
-            QIMSDK_GST_META                                                                     || {
+            QIMSDK_GST_META                                                                        \
+            QIMSDK_QAIRT_SDK_VERSION_PTR                                                        || {
         print-red "FAILED: qimsdk-docker-parse-json !!!"
         return -1
     }
@@ -176,6 +183,7 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
 #   $1 - (mandatory) image name
 function qimsdk-docker-build-qimsdk-debian-image() {
     local IMAGE_NAME=${1}
+    local QIMSDK_QAIRT_SDK_VERSION=${2}
 
     local PATH_TO_QIMSDK_DEBIAN_DOCKERFILE=${QIMSDK_DOCKER_DIR}
 
@@ -200,6 +208,7 @@ function qimsdk-docker-build-qimsdk-debian-image() {
             ${DOCKERFILE} > ${DOCKERFILE}.work
 
         DOCKER_BUILDKIT=1 docker build                                                             \
+                --build-arg QIMSDK_ARG_QNP_VERSION=${QIMSDK_QAIRT_SDK_VERSION}                     \
                 --progress=plain --target qimsdk-build                                             \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian                        \
                 -f ${DOCKERFILE}.work                                                           || {
@@ -249,6 +258,7 @@ function qimsdk-dbg-docker-build-image() {
     local QIMSDK_IMAGE_NAME
     local DOCKER_IMAGE_PATH
     local QIMSDK_DEVICE_ID
+    local QIMSDK_QAIRT_SDK_VERSION
 
     local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
     mkdir -p ${QIMSDK_TMP_FOLDER}
@@ -258,7 +268,8 @@ function qimsdk-dbg-docker-build-image() {
             QIMSDK_IMAGE_NAME                                                                      \
             QIMSDK_TMP_FOLDER                                                                      \
             DOCKER_IMAGE_PATH                                                                      \
-            QIMSDK_DEVICE_ID                                                                    || {
+            QIMSDK_DEVICE_ID                                                                       \
+            QIMSDK_QAIRT_SDK_VERSION                                                            || {
         print-red "FAILED: qimsdk-docker-build-initialize !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -1
@@ -275,7 +286,7 @@ function qimsdk-dbg-docker-build-image() {
         return -1
     }
 
-    qimsdk-docker-build-qimsdk-debian-image ${QIMSDK_IMAGE_NAME}                                || {
+    qimsdk-docker-build-qimsdk-debian-image ${QIMSDK_IMAGE_NAME} ${QIMSDK_QAIRT_SDK_VERSION}    || {
         print-red "FAILED: qimsdk-docker-build-qimsdk-debian-image !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -1
