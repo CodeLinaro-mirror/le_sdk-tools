@@ -17,6 +17,9 @@ RUN sed -Ei 's/^Types: deb$/Types: deb deb-src/'  /etc/apt/sources.list.d/debian
 #  gst-plugin-rtspbin:            libgstrtspserver-1.0-dev
 #  gst-plugin-restricted-zonedbg: libgstreamer-plugins-bad1.0-dev
 
+# build time dependencies, needed for camera-service compilation:
+#  libprotobuf-dev, protobuf-compiler, libabsl-dev
+
 # Installing dependencies, needed in order for gst plugins to load succesfully runtime:
 #  gstreamer base plugins:        gobject-introspection,
 #                                 flex,
@@ -40,7 +43,8 @@ RUN apt-get update                                                              
             gobject-introspection flex bison locales-all ninja-build gpg                           \
             libeigen3-dev libcairo-dev libjson-glib-dev libmosquitto-dev opencl-headers            \
             libhiredis-dev libgstrtspserver-1.0-dev libgstreamer-plugins-bad1.0-dev                \
-            librdkafka-dev                                                                      && \
+            librdkafka-dev                                                                         \
+            libprotobuf-dev protobuf-compiler libabsl-dev                                       && \
     apt-get build-dep -y gst-plugins-base1.0 gst-plugins-good1.0                                && \
     apt -y upgrade                                                                              && \
     apt-get autoremove -y                                                                       && \
@@ -117,6 +121,19 @@ RUN git config --global http.postBuffer 157286400                               
 # Initialize environment variables
 ENV QIMSDK_SRC_DIR=${QIMSDK_BASE_DIR}/src
 ENV QIMSDK_PATH_TO_GST_META=${QIMSDK_SRC_DIR}/meta-qti-gst
+
+# media: fetch and propagate needed camera_metadata headers (camera-service dependency)
+RUN git clone --progress https://android.googlesource.com/platform/system/media.git                \
+        --single-branch --branch main ${QIMSDK_DOWNLOAD_DIR}/media                              && \
+    sed -i '\|#include <cutils/compiler\.h>|d'                                                     \
+        ${QIMSDK_DOWNLOAD_DIR}/media/camera/include/system/camera_metadata.h                    && \
+    sed -i '\|ANDROID_API|d'                                                                       \
+        ${QIMSDK_DOWNLOAD_DIR}/media/camera/include/system/camera_metadata.h                    && \
+    rsync -a ${QIMSDK_DOWNLOAD_DIR}/media/camera/include/system /usr/include/
+
+# camera-service: fetch
+RUN git clone --progress https://github.com/qualcomm/camera-service.git                            \
+        --single-branch --branch main ${QIMSDK_SRC_DIR}/camera-service
 
 # meta-qti-gst: fetch
 RUN git clone --progress https://git.codelinaro.org/clo/le/meta-qti-gst.git                        \

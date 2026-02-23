@@ -36,9 +36,10 @@ Two QIMSDK docker images are built. One for target GStreamer multimedia framewor
     7. Setup Tensorflow Lite 2.20
     8. Fetch meta layers with patches needed
     9. Fetch and install QNP release
-    10. Fetch QCOM gst source code from github
-    11. Copy build and install scripts to build image
-    12. Source container helper scripts from bashrc
+    10. Fetch open-source camera-service repo needed to enable camera functionality
+    11. Fetch QCOM gst source code from github
+    12. Copy build and install scripts to build image
+    13. Source container helper scripts from bashrc
     14. Copy tflite headers and libs using qimsdk-copy-tf-lite-headers-to-sysroot
     15. Apply patches to open-source projects which need to be patched
     16. Call incremental build function which builds open-source and QCOM GStreamer plugins
@@ -75,6 +76,7 @@ Handles the compilation and installation of open-source and QCOM GStreamer plugi
 - qimsdk-cmake-build - Wrapper function that calls configure, compile and install for CMake projects
 - qimsdk-debian-rules-build-\<name-of-project\> - Builds specific open-source component with custom configuration
 - qimsdk-debian-rules-clean-\<name-of-project\> - Cleans build directory for specific open-source component
+- qimsdk-cmake-build-camera-service - Build and install open-source project needed in order to enable camera functionality.
 - qimsdk-cmake-build-gst-plugins-imsdk - Base QCOM GStreamer plugins that the others depend on are built. After which, a hardcoded list of QCOM GStreamer plugins is built in parallel. If one wishes to add a new GStreamer plugin to build using CMake, simply add the plugin directory name under gst-plugins-imsdk/ source dir to the list.
 - qimsdk-incremental-build - Main entry point that builds all GStreamer components in sequence with success reporting. Also calls qimsdk-cmake-build-gst-plugins-imsdk, to build QCOM GStreamer plugins.
 

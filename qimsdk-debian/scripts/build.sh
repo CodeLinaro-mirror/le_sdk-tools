@@ -256,6 +256,19 @@ function qimsdk-debian-rules-clean-gst-plugins-good() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
+# CMake Build camera-service
+function qimsdk-cmake-build-camera-service () {
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/camera-service `
+            `-DBUILD_CATEGORY=CLIENT                                                            && \
+        print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Clean camera-service
+function qimsdk-cmake-clean-camera-service () {
+    rm -rf ${QIMSDK_BUILD_DIR}/camera-service                                                   && \
+        print-green "${FUNCNAME} completed successfully!"
+}
+
 # Incremental build all gst-plugins-imsdk
 function qimsdk-cmake-build-gst-plugins-imsdk() {
     local IS_QNP_ENABLED=$( [ -n "${QIMSDK_ARG_QNP_VERSION:-}" ] && echo ON || echo OFF )
@@ -289,7 +302,10 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
             `-DENABLE_GST_PLUGIN_OBJTRACKER=ON `
             `-DENABLE_GST_PLUGIN_MLMETAEXTRACTOR=ON `
             `-DENABLE_GST_PLUGIN_MLPOSTPROCESS=ON `
-            `-DENABLE_GST_PLUGIN_MSGBROKER=ON                                                   && \
+            `-DENABLE_GST_PLUGIN_MSGBROKER=ON `
+            # TODO remove VHDR_MODES_ENABLE after qmmf src is cleaned up from compile time flags
+            `-DVHDR_MODES_ENABLE=ON `
+            `-DENABLE_GST_PLUGIN_QMMFSRC=ON                                                     && \
         print-green "${FUNCNAME} completed successfully!"
 }
 
@@ -304,6 +320,7 @@ function qimsdk-cmake-clean-gst-plugins-imsdk() {
 function qimsdk-incremental-build() {
     qimsdk-debian-rules-build-gst-plugins-base                                                  && \
             qimsdk-debian-rules-build-gst-plugins-good                                          && \
+            qimsdk-cmake-build-camera-service                                                   && \
             qimsdk-cmake-build-gst-plugins-imsdk                                                && \
         print-green "QIMSDK GStreamer targets built successfully !!!"
 }
