@@ -238,30 +238,43 @@ Two QIMSDK docker images are built. One for development. One for device target.
 
 ### QIMSDK Debug Image
 1. Start from Debian trixie Image
-2. Alter git configuration in QIMSDK Build Image to use gst meta layers locally provided by user in config json instead of codelinaro
-3. Alter git configuration in QIMSDK Build Image to use gst source code locally provided by user in config json instead of github
-4. Copy helper scripts to build image
-5. Set dev environment variables for build image
+2. Alter git configuration in QIMSDK Build Image to use camera-service code locally provided by user in config json instead of github
+3. Alter git configuration in QIMSDK Build Image to use gst meta layers locally provided by user in config json instead of codelinaro
+4. Alter git configuration in QIMSDK Build Image to use gst source code locally provided by user in config json instead of github
+5. Copy helper scripts to build image
+6. Set dev environment variables for build image
 
 <div id="QIMSDK_Build_Image">
 
 ### QIMSDK Build Image
-1. Start from Debian trixie Image
-2. Install required open source packages to build image
-3. Install required open source packages for deploy image to build image
-4. Copy build and install scripts to build image
-5. Fetch meta layers with patches needed and apply patches to opensource gst repositories
-6. Fetch gst source code from github
-7. Call wrapper function to build and install plugins
+1. Start from Debian Trixie
+2. Add deb-src for everything
+3. Install build time dependencies, needed for gst-plugins-imsdk compilation
+4. Create deploy and prebuilt directories to install binaries to be propagated to deploy image
+5. Create qimsdk build directory and logs directory
+6. Set up download directory and download open-source projects which need to be patched
+7. Setup Tensorflow Lite 2.20
+8. Fetch meta layers with patches needed
+9. Fetch and install QNP release
+10. Fetch open-source camera-service repo needed to enable camera functionality
+11. Fetch QCOM gst source code from github
+12. Copy build and install scripts to build image
+13. Source container helper scripts from bashrc
+14. Copy tflite headers and libs using qimsdk-copy-tf-lite-headers-to-sysroot
+15. Apply patches to open-source projects which need to be patched
+16. Call incremental build function which builds open-source and QCOM GStreamer plugins
 
 <div id="QIMSDK_Deploy_Image">
 
 ### QIMSDK Deploy Image
-1. Start from Debian trixie Image
+1. Start from base debian:trixie image
 2. Install runtime dependency Open Source packages to deploy image
-3. Copy built binaries from QIMSDK Build Image
+3. Add QCOM PPA and install QCOM dependencies
 4. Add qimsdk user
-5. Add environment variables
+5. Copy built binaries from QIMSDK Build Image
+6. Copy deb packages to device image
+7. Install deb packages to deploy image and remove the directory after install
+8. Add environment variables
 
 <div id="Host_Side_Helper_Scripts">
 
@@ -285,9 +298,10 @@ Config json files *(config.json)* must contain the following data:
  3. ***MANDATORY*** - **Docker_image_path** - Remote ssh destination or local path to sync docker images or artifacts
  4. ***MANDATORY*** -  **Target_device_ID** - adb device ID of the target device qimsdk is to be installed on. Any faux value can still be provided and compilation will carry on.
  5. ***OPTIONAL*** -  **QAIRT_SDK_version** - Version of the Qualcomm AI Runtime SDK to be used in the container.
- 6. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-imsdk directory! Code checked out on local branch main will be built. Ensure desired code is checked out on main branch before proceeding with debug variant QIMSDK build!***
- 7. ***MANDATORY*** - **IM_SDK_Meta_Dir** - PATH to meta IM SDK directory, which contains recipes for all gst plugins. ***Note: Path provided must point to meta-qti-gst directory! Code checked out on local branch imsdk.lnx.2.0.0 will be built. Ensure desired code is checked out on imsdk.lnx.2.0.0 branch before proceeding with debug variant QIMSDK build!***
- 8. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir is wanted to be mapped to the build container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
+ 6. ***MANDATORY*** - **camera_service_Source_Dir** - PATH to camera-service sources directory, which contains open-source repo needed to enable camera functionality.
+ 7. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-imsdk directory! Code checked out on local branch main will be built. Ensure desired code is checked out on main branch before proceeding with debug variant QIMSDK build!***
+ 8. ***MANDATORY*** - **IM_SDK_Meta_Dir** - PATH to meta IM SDK directory, which contains recipes for all gst plugins. ***Note: Path provided must point to meta-qti-gst directory! Code checked out on local branch imsdk.lnx.2.0.0 will be built. Ensure desired code is checked out on imsdk.lnx.2.0.0 branch before proceeding with debug variant QIMSDK build!***
+ 9. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir is wanted to be mapped to the build container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
 
 Target specific json files *(\<target-name\>.json)* must contain the following data:
  1. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform

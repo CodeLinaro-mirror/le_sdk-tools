@@ -7,16 +7,18 @@
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) variable to take container name value
 #   $3 - (mandatory) variable to take image name value
-#   $4 - (mandatory) variable to take Gstreamer sources of SP
-#   $5 - (mandatory) variable to take Gstreamer meta of SP
-#   $6 - (mandatory) variable to take QAIRT SDK version
+#   $4 - (mandatory) variable to take camera-service sources of SP
+#   $5 - (mandatory) variable to take Gstreamer sources of SP
+#   $6 - (mandatory) variable to take Gstreamer meta of SP
+#   $7 - (mandatory) variable to take QAIRT SDK version
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
     local -n OUT_QIMSDK_IMAGE_NAME=${3}
-    local -n OUT_QIMSDK_GST_SOURCES=${4}
-    local -n OUT_QIMSDK_GST_META=${5}
-    local -n OUT_QIMSDK_QAIRT_SDK_VERSION=${6}
+    local -n OUT_QIMSDK_CAMERA_SERVICE_SOURCES=${4}
+    local -n OUT_QIMSDK_GST_SOURCES=${5}
+    local -n OUT_QIMSDK_GST_META=${6}
+    local -n OUT_QIMSDK_QAIRT_SDK_VERSION=${7}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ]                                                           && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -44,6 +46,19 @@ function qimsdk-docker-parse-json() {
 
     ADDITIONAL_TAG_IMAGE="-${ADDITIONAL_TAG_IMAGE}"
     OUT_QIMSDK_IMAGE_NAME="qimsdk${ADDITIONAL_TAG_IMAGE}"
+
+    OUT_QIMSDK_CAMERA_SERVICE_SOURCES=$(echo ${JSON_CONTENT} | jq '.camera_service_Source_Dir'   | \
+            tr -d '"')
+    OUT_QIMSDK_CAMERA_SERVICE_SOURCES=${OUT_QIMSDK_CAMERA_SERVICE_SOURCES%/}
+
+    qimsdk-expand-tilde OUT_QIMSDK_CAMERA_SERVICE_SOURCES
+
+    [ -d "${OUT_QIMSDK_CAMERA_SERVICE_SOURCES}/.git" ]                                          || \
+            [ -d "${OUT_QIMSDK_CAMERA_SERVICE_SOURCES}/recorder" ]                              || {
+        print-red "Please provide path to camera-service directory in config json!!!"
+        print-red "Directory currently provided: ${OUT_QIMSDK_CAMERA_SERVICE_SOURCES}"
+        return -1
+    }
 
     OUT_QIMSDK_GST_SOURCES=$(echo ${JSON_CONTENT} | jq '.IM_SDK_Source_Dir' | tr -d '"')
     OUT_QIMSDK_GST_SOURCES=${OUT_QIMSDK_GST_SOURCES%/}
@@ -92,12 +107,14 @@ function qimsdk-docker-build-initialize() {
     local -n QIMSDK_DEVICE_ID_PTR=${6}
     local -n QIMSDK_QAIRT_SDK_VERSION_PTR=${7}
 
+    local QIMSDK_CAMERA_SERVICE_SOURCES
     local QIMSDK_GST_SOURCES
     local QIMSDK_GST_META
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
             QIMSDK_CONTAINER_NAME_PTR                                                              \
             QIMSDK_IMAGE_NAME_PTR                                                                  \
+            QIMSDK_CAMERA_SERVICE_SOURCES                                                          \
             QIMSDK_GST_SOURCES                                                                     \
             QIMSDK_GST_META                                                                        \
             QIMSDK_QAIRT_SDK_VERSION_PTR                                                        || {
@@ -122,6 +139,11 @@ function qimsdk-docker-build-initialize() {
         return -1
     }
 
+    git -C ${QIMSDK_CAMERA_SERVICE_SOURCES} branch | grep -q "main"                             || {
+        print-red "ERROR: ${QIMSDK_CAMERA_SERVICE_SOURCES} does not contain local branch: main !!!"
+        return -1
+    }
+
     git -C ${QIMSDK_GST_SOURCES} branch | grep -q "main"                                        || {
         print-red "ERROR: ${QIMSDK_GST_SOURCES} does not contain local branch: main !!!"
         return -1
@@ -132,7 +154,8 @@ function qimsdk-docker-build-initialize() {
         return -1
     }
 
-    rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-imsdk                 && \
+    rsync -aL ${QIMSDK_CAMERA_SERVICE_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/camera-service         && \
+            rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-imsdk         && \
             rsync -aL ${QIMSDK_GST_META}/ ${QIMSDK_TMP_FOLDER_PTR}/meta-qti-gst
 }
 

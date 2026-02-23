@@ -5,6 +5,7 @@
     "Target_device_ID" : "<adb-device-id>",
     "QAIRT_SDK_version" : "<version, e.g. 2.39.0.250925>",
 
+    "camera_service_Source_Dir" : "<path-to-camera-service-dir>",
     "IM_SDK_Source_Dir" : "<path-to-gst-plugins-imsdk-dir>",
     "IM_SDK_Meta_Dir" : "<path-to-meta-qti-gst>",
 

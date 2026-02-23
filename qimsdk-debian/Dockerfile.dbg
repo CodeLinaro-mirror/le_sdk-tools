@@ -12,6 +12,13 @@ RUN mkdir -p ${QIMSDK_TMP_DIR}
 # Add supported targets files
 COPY targets ${QIMSDK_TMP_DIR}/targets
 
+# camera-service: Add (open-source camera-service repository (gst-plugins-imsdk dependency))
+COPY tmp/camera-service /mnt/work/download/repo/camera-service
+
+RUN echo "[url \"file:///mnt/work/download/repo/camera-service\"]                                  \
+        insteadOf = https://github.com/qualcomm/camera-service.git"                                \
+        >> /etc/gitconfig
+
 # meta-qti-gst: Add
 COPY tmp/meta-qti-gst /mnt/work/download/repo/meta-qti-gst
 
