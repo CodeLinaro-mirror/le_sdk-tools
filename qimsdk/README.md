@@ -50,6 +50,16 @@ Ubuntu 18.04 or Ubuntu 20.04 or Ubuntu 22.04 is required for host file system
 
 Prerequisite packages must be installed on the host (one time)
 
+Prerequisite packages for arm architecture build systems:
+
+```bash
+sudo apt install -y jq tofrodos
+sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+sudo chmod +x /usr/bin/yq
+```
+
+Prerequisite packages for x86 architecture build systems:
+
 ```bash
 sudo apt install -y jq tofrodos qemu-user-static qemu-system-arm
 sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
@@ -245,21 +255,24 @@ Two QIMSDK docker images are built. One for development. One for device target.
 <div id="QIMSDK_Dev_Image">
 
 ### QIMSDK Dev Image
-1. Start from specified base image
-2. Install required open source packages to dev image
-3. Copy helper build and install scripts to dev image
-4. Copy private headers and patches needed
-5. Set up download dir for Open Source gst plugins
-6. Apply necessary changes to Open Source plugins
-7. Get gst source code from provided path in config json
-8. Call wrapper function to build and install plugins
+1. Start from specified base image on architecture native to build machine
+2. Install required dependency arm64 open source packages to dev image
+3. Install required open-source cross-compilation packages for native arch to dev image
+4. Install rest of required dependency arm64 packages to avoid aptitude conflicts
+5. Copy helper build and install scripts to dev image
+6. Copy private headers and patches needed
+7. Set up download dir for Open Source gst plugins
+8. Apply necessary changes to Open Source plugins
+9. Get gst source code from provided path in config json
+10. Call wrapper function to build and install plugins
 
 <div id="QIMSDK_Device_Image">
 
 ### QIMSDK Device Image
-1. Install runtime dependency Open Source packages to device image
-2. Copy built binaries from development Image
-3. Add qimsdk user
+1. Start from specified base image on arm64 architecture for device
+2. Install runtime dependency Open Source packages to device image
+3. Copy built binaries from development Image
+4. Add qimsdk user
 
 <div id="Host_Side_Helper_Scripts_And_Configuration">
 
@@ -284,8 +297,9 @@ Config json files *(config.json)* must contain the following data:
  8. ***MANDATORY*** - **IM_SDK_Meta_Dir** - PATH to meta IM SDK directory, which contains recipes for all gst plugins. ***Note: Path provided must point to meta-qti-gst directory!***
  9. ***MANDATORY*** - **Solution_Microservices_Dir** - PATH to solutions-microservices directory, which contains all qimsdk microservices shell scripts. ***Note: Path provided must point to solutions-microservices directory!***
  10. ***MANDATORY*** - **LE_Services_Source_Dir** - PATH to le-services directory, which contains source code of camera recorder client and camera metadata libs compiled inside dev container. ***Note: Path provided must point to le-services directory!***
- 11. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
- 12. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir or Solution_Microservices_Dir is wanted to be mapped to the development container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
+ 11. ***MANDATORY*** - **Path_to_headers_dir** - Path to usr/include headers dir, containing all needed headers for qimsdk-build image compilation. ***Note: Custom usr/include/ dir can be provided, but subfolder ./sysroots/\<arch-name\>/usr/include/ of unarchived standard SDK contains the needed headers.***
+ 12. ***MANDATORY*** - **Path_to_pkgconfig_dir** - Path to usr/lib/pkgconfig packageconfig dir, containing all needed pkg-config files for qimsdk-build image compilation. ***Note: Custom usr/lib/pkgconfig/ dir can be provided, but subfolder ./sysroots/\<arch-name\>/usr/lib/pkgconfig/ of unarchived standard SDK contains the needed pkg-config files.***
+ 13. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir or Solution_Microservices_Dir is wanted to be mapped to the development container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
 
 Target specific json files *(\<target-name\>.json)* must contain the following data:
  1. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
@@ -357,6 +371,8 @@ These functions are available immediately inside development container:
 
 # Steps for SDK Installation
 
+***IMPORTANT: Standard SDK is used to get include heaeders and pkg-config files needed for qimsdk-build image compilation. Custom usr/lib/pkgconfig/ and usr/include dirs can be provided, if user does not wish to use Standard SDK. This is done by setting json fields 'Path_to_headers_dir' and 'Path_to_pkgconfig_dir' to custom paths containing all needed headers and pkg-config files. It that is done - SDK portion of readme steps can be skipped.***
+
 ## SDK
 
 ### Prerequisites:
@@ -369,6 +385,8 @@ sudo apt install -y python3 locales diffstat gawk cpio gcc g++ libxml-simple-per
 
 #### SDK Instalation example:
 
+SDK installation does not work on ARM architecture build machines. This step can be done on a x86 machine ONLY.
+
 ```bash
 cd <path/to/SDK/shell/file>
 chmod a+r <sample-qcom-ARM-toolchain-ext.sh>
@@ -376,11 +394,16 @@ umask 022
 ./sample-qcom-ARM-toolchain-ext.sh -y -d <some/destination/directory>
 ```
 
-#### JSON should be filled:
+If user wishes to compile qimsdk on ARM build machine, using headers and pkgconfig files from standard SDK:
+
+Standard SDK Installed(Unarchived) needs to be sent to ARM build machine server storage. Paths to headers/pkgconfig dirs in ARM machine storage need to be provided in the according fields.
+
+#### JSON can be filled:
 ```bash
 {
   ...
-  "Path_to_SDK_dir" : "<some/destination/directory>",
+  "Path_to_headers_dir" : "<some/destination/directory>/sysroots/arm<arch-name>/usr/include/",
+  "Path_to_pkgconfig_dir" : "<some/destination/directory>/sysroots/arm<arch-name>/usr/lib/pkgconfig/",
   ...
 }
 ```
@@ -665,6 +688,8 @@ Docker compose file gets automatically generated by `qimsdk-docker-device-save-i
 
 <h3 style="color:orange">Prerequisites:</h3>
 
+***IMPORTANT: Standard SDK is used to get include heaeders and pkg-config files needed for qimsdk-build image compilation. Custom usr/lib/pkgconfig/ and usr/include dirs can be provided, if user does not wish to use Standard SDK. This is done by copying custom header and pkg-config directory contents to respective destinations like so:***
+
   - Instructions how to set up projects to be built inside QIMSDK Development container:
     - The following open-source projects need to be downloaded by the user.
     - Once synced, code for the following projects must be made available in <current/docker/dir>/tmp directory:
@@ -725,74 +750,94 @@ Docker compose file gets automatically generated by `qimsdk-docker-device-save-i
       <div style="color:#90EE90">DIR: tmp/headers</div>
 
       ```bash
-        cd <path/to/unarchived/SDK/directory>/tmp/sysroots/${TARGET}/
+        # If user wishes to use Standard SDK headers:
+        cd <path/to/unarchived/SDK/directory>/tmp/sysroots/${TARGET}/usr/include/
 
-        rsync -aR ./usr/include/fastcv/fastcv.h                                                    \
+        # Or, alternatively, if user wishes to use custom headers directory:
+        cd <path-to-/usr/include/-dir-containing-needed-headers>
+
+        rsync -aR ./fastcv/fastcv.h                                                                \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/gstreamer-1.0/gst/gfx/ib2c.h                                       \
+        rsync -aR ./gstreamer-1.0/gst/gfx/ib2c.h                                                   \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/CL/cl_ext_qcom.h                                                   \
+        rsync -aR ./CL/cl_ext_qcom.h                                                               \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/properties.h                                                       \
+        rsync -aR ./properties.h                                                                   \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/properties_def.h                                                   \
+        rsync -aR ./properties_def.h                                                               \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/log.h                                                              \
+        rsync -aR ./log.h                                                                          \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/system/camera_metadata.h                                           \
+        rsync -aR ./system/camera_metadata.h                                                       \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/system/camera_metadata_tags.h                                      \
+        rsync -aR ./system/camera_metadata_tags.h                                                  \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/system/camera_vendor_tags.h                                        \
+        rsync -aR ./system/camera_vendor_tags.h                                                    \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/hardware/graphics.h                                                \
+        rsync -aR ./hardware/graphics.h                                                            \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/iot-core-algs/videoctrl.h                                          \
+        rsync -aR ./iot-core-algs/videoctrl.h                                                      \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/hardware/native_handle.h                                           \
+        rsync -aR ./hardware/native_handle.h                                                       \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/dfs_factory.h                                                      \
+        rsync -aR ./dfs_factory.h                                                                  \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/mv.h                                                               \
+        rsync -aR ./mv.h                                                                           \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/mvSRW.h                                                            \
+        rsync -aR ./mvSRW.h                                                                        \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/mvVM.h                                                             \
+        rsync -aR ./mvVM.h                                                                         \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/mvVSLAM.h                                                          \
+        rsync -aR ./mvVSLAM.h                                                                      \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rv.h                                                               \
+        rsync -aR ./rv.h                                                                           \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvAE.h                                                             \
+        rsync -aR ./rvAE.h                                                                         \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvCamera.h                                                         \
+        rsync -aR ./rvCamera.h                                                                     \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvDFS.h                                                            \
+        rsync -aR ./rvDFS.h                                                                        \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvGoalDetection.h                                                  \
+        rsync -aR ./rvGoalDetection.h                                                              \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvLog.h                                                            \
+        rsync -aR ./rvLog.h                                                                        \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvNAVMAP.h                                                         \
+        rsync -aR ./rvNAVMAP.h                                                                     \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvPLANNER.h                                                        \
+        rsync -aR ./rvPLANNER.h                                                                    \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvQueue.h                                                          \
+        rsync -aR ./rvQueue.h                                                                      \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvVIO.h                                                            \
+        rsync -aR ./rvVIO.h                                                                        \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvVM.h                                                             \
+        rsync -aR ./rvVM.h                                                                         \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvVSLAM.h                                                          \
+        rsync -aR ./rvVSLAM.h                                                                      \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvVWSLAM.h                                                         \
+        rsync -aR ./rvVWSLAM.h                                                                     \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rvWOD.h                                                            \
+        rsync -aR ./rvWOD.h                                                                        \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rv_dfs_base.h                                                      \
+        rsync -aR ./rv_dfs_base.h                                                                  \
             <current/docker/dir>/tmp/headers/                                                   && \
-        rsync -aR ./usr/include/rv_multi_dfs_base.h                                                \
+        rsync -aR ./rv_multi_dfs_base.h                                                            \
             <current/docker/dir>/tmp/headers/
+      ```
+    </ul>
+
+    <div name="pkgconfig"> PKG-CONFIG FILES
+    <ul>
+      <div style="color:#90EE90">DIR: tmp/lib/pkgconfig</div>
+
+      ```bash
+        # If user wishes to use Standard SDK headers:
+        cd <path/to/unarchived/SDK/directory>/tmp/sysroots/${TARGET}/usr/lib/pkgconfig/
+
+        # Or, alternatively, if user wishes to use custom headers directory:
+        cd <path-to-usr/lib/pkgconfig/-dir-containing-needed-pkg-config-files>
+
+        rsync -aR ./usr/lib/pkg-config/*                                                           \
+            <current/docker/dir>/tmp/lib/pkgconfig/                                             && \
       ```
     </ul>
 
@@ -852,20 +897,6 @@ Docker compose file gets automatically generated by `qimsdk-docker-device-save-i
       </ul>
 
       <ul>
-      <div style="color:#90EE90">BuildCodeGenerator</div>
-      <div style="color:#6495ED">
-        Automatically add build and clean functions for qti plugins.
-      </div>
-
-        python3 ${QIMSDK_DOCKER_DIR}/scripts/tools/RecipeParser.py                                 \
-                -l <path/to/unarchived/SDK/directory>/layers/                                      \
-                -m <path/to/unarchived/SDK/directory>/layers/meta-qti-gst                          \
-                -p <target>                                                                        \
-                -t <current/docker/dir>/tmp/                                                       \
-                BuildCodeGenerator
-      </ul>
-
-      <ul>
       <div style="color:#90EE90">RuntimeFlagsGenerator</div>
       <div style="color:#6495ED">
         Generate json file with content of runtime flags with upcomming data from gstreamer recipes.
@@ -906,7 +937,7 @@ Docker compose file gets automatically generated by `qimsdk-docker-device-save-i
   ```bash
   DOCKER_BUILDKIT=1 docker build                                                                   \
       --build-arg QIMSDK_ARG_BASE_DIR=/mnt/work                                                    \
-      --progress=plain --target QIMSDK_device_image <path/to/Dockerfile/directory> -t <generated-image-name>
+      --progress=plain --target qimsdk_device_image_arm64 <path/to/Dockerfile/directory> -t <generated-image-name>
   ```
   </ul>
 

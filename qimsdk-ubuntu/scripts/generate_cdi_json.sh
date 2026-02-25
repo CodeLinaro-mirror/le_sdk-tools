@@ -215,6 +215,8 @@ QIMSDK_SHARED_LIBS=($(printf "%s\n" "${QIMSDK_SHARED_LIBS[@]}" | sort -u))
 # Handle few exceptions
 QIMSDK_SHARED_LIBS+=("/usr/lib/aarch64-linux-gnu/libcdsprpc.so")
 QIMSDK_SHARED_LIBS+=("/usr/lib/aarch64-linux-gnu/libadsprpc.so")
+QIMSDK_SHARED_LIBS+=("/usr/lib/aarch64-linux-gnu/libEGL_adreno.so.1.0.0")
+QIMSDK_SHARED_LIBS+=("/usr/share/glvnd/egl_vendor.d/10_adreno.json")
 
 # Fill QIMSDK_PATHS_TO_MOUNT with all the paths to be mapped.
 QIMSDK_PATHS_TO_MOUNT=(
@@ -238,7 +240,7 @@ jq -n                                                                           
         --argjson containerEdits "$(jq -n                                                          \
             --argjson env "$(printf '%s\n' "${QIMSDK_EXPORTS[@]}" | jq -R . | jq -s .)"            \
             --argjson deviceNodes "$(printf '%s\n' "${QIMSDK_DEVICE_NODES[@]}" | jq                \
-                                   -R '{path: .}' | jq -s .)"                                      \
+                                   -R '{path: ., fileMode: 438}' | jq -s .)"                       \
             --argjson mounts "$(printf '%s\n' "${QIMSDK_PATHS_TO_MOUNT[@]}" | jq                   \
                               -R '{hostPath: ., containerPath: ., options: ["bind"]}' | jq -s .)"  \
         '$ARGS.named')"                                                                            \

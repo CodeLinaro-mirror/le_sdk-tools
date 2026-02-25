@@ -3,6 +3,46 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
+# Normalize simple trailing slashes (portable; avoids requiring readlink/realpath)
+# e.g., "/a/b///" -> "/a/b"
+function qimsdk-strip-trailing-slashes() {
+    echo "${1%/}";
+}
+
+# get first subdir after SOURCE_PATH
+# Uses env vars: QIMSDK_SRC_DIR, QIMSDK_DOWNLOAD_DIR
+function qimsdk-get-project() {
+  local SOURCE_PATH="${1}"
+  local BASES=("${QIMSDK_SRC_DIR}" "${QIMSDK_DOWNLOAD_DIR}")
+  local DIR BASE REST FIRST
+
+  DIR="$(qimsdk-strip-trailing-slashes "${SOURCE_PATH}")"
+
+  for BASE in "${BASES[@]}"; do
+    # Skip empty/unset bases
+    [[ -n "${BASE}" ]] || continue
+    BASE="$(qimsdk-strip-trailing-slashes "${BASE}")"
+
+    # Match only if path starts with base path boundary (so /foo/bar doesn't match /fo)
+    # Two cases: exact match, or base + "/" + rest
+    if [[ "${DIR}" == "${BASE}" ]]; then
+      # SOURCE_PATH equals base, so there's no subdir after it
+      printf '%s\n' ""
+      return 0
+    elif [[ "${DIR}" == "${BASE}/"* ]]; then
+      # Trim the base + slash
+      REST="${DIR#"${BASE}/"}"
+      # Extract first component after base
+      FIRST="${REST%%/*}"
+      printf '%s\n' "${FIRST}"
+      return 0
+    fi
+  done
+
+  # No base matched: return basename of SOURCE_PATH
+  printf '%s\n' "${DIR##*/}"
+}
+
 # Configure qimsdk meson Target
 #    ${1} - SOURCE_PATH - Path to top-level Meson Project Directory
 #    ${2} - TARGET - meson Target
@@ -16,11 +56,7 @@ function qimsdk-meson-configure() {
     local MESON_CONFIG_FLAGS=$@
 
     (
-        export CFLAGS="-mbranch-protection=standard -fstack-protector-strong -O2 `
-            `-D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security -pipe `
-            `-feliminate-unused-debug-types"
-        export CXXFLAGS="${CFLAGS}"
-
+        qimsdk-setup-crosscompilation
         mkdir -p ${QIMSDK_BUILD_DIR}
         cd ${QIMSDK_BUILD_DIR}
         set -o pipefail
@@ -58,21 +94,16 @@ function qimsdk-cmake-configure() {
     local CMAKE_CUSTOM_CONFIG_FLAGS=$@
 
     (
-        export CFLAGS="-mbranch-protection=standard -fstack-protector-strong -O2 `
-            `-D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security -pipe `
-            `-feliminate-unused-debug-types"
-        export CXXFLAGS="${CFLAGS}"
-
+        qimsdk-setup-crosscompilation
         local CMAKE_FLAGS="
             -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
-            -DGST_PLUGINS_QTI_OSS_VERSION=1.24
-            -DGST_VERSION_REQUIRED=1.24
             -DSYSROOT_INCDIR=/usr/include
             -DSYSROOT_LIBDIR=/usr/lib
-            -DGST_PLUGINS_QTI_OSS_INSTALL_INCDIR=/usr/include
-            -DGST_PLUGINS_QTI_OSS_INSTALL_BINDIR=/usr/bin
-            -DGST_PLUGINS_QTI_OSS_INSTALL_LIBDIR=/usr/lib/aarch64-linux-gnu
-            -DGST_PLUGINS_QTI_OSS_INSTALL_CONFIG=/etc/configs/
+            -DCMAKE_INSTALL_PREFIX=/usr
+            -DCMAKE_INSTALL_INCLUDEDIR=include
+            -DCMAKE_INSTALL_BINDIR=bin
+            -DCMAKE_INSTALL_LIBDIR=lib/aarch64-linux-gnu
+            -DCMAKE_INSTALL_SYSCONFDIR=/etc
             -DCMAKE_BUILD_TYPE=Debug
             ${CMAKE_CUSTOM_CONFIG_FLAGS}
         "
@@ -99,6 +130,7 @@ function qimsdk-cmake-configure() {
 function qimsdk-meson-compile() {
     local TARGET=${1}
     (
+        qimsdk-setup-crosscompilation
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
@@ -127,6 +159,7 @@ function qimsdk-cmake-compile() {
     }
 
     (
+        qimsdk-setup-crosscompilation
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
@@ -156,6 +189,7 @@ function qimsdk-meson-install() {
 
     # Install to dev container root to be used by other dev container projects
     (
+        qimsdk-setup-crosscompilation
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
@@ -171,6 +205,7 @@ function qimsdk-meson-install() {
 
     # Propagate minimal needed files to device container deploy dir
     (
+        qimsdk-setup-crosscompilation
         set -o pipefail
 
         cat ${INSTALL_LOG} | grep -E '^Installing'                                                |\
@@ -195,6 +230,7 @@ function qimsdk-meson-install() {
 
     # Propagate symlinks to device container deploy dir
     (
+        qimsdk-setup-crosscompilation
         set -o pipefail
 
         cat ${INSTALL_LOG} | grep -E '^Installing symlink' > ${FILEPATH_LOG}
@@ -229,6 +265,7 @@ function qimsdk-cmake-install() {
     }
 
     (
+        qimsdk-setup-crosscompilation
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
@@ -258,7 +295,7 @@ function qimsdk-cmake-install() {
 #    ${3} - MESON_CONFIG_FLAGS - meson configure flags
 function qimsdk-meson-build() {
     local SOURCE_PATH=${1}
-    local T=`basename ${SOURCE_PATH}`
+    local T=$(qimsdk-get-project ${SOURCE_PATH})
     local DESTINATION_DIR=${2}
 
     shift;shift;
@@ -275,7 +312,7 @@ function qimsdk-meson-build() {
 #    ${2} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
 function qimsdk-cmake-build() {
     local SOURCE_PATH=${1}
-    local T=`basename ${SOURCE_PATH}`
+    local T=$(qimsdk-get-project ${SOURCE_PATH})
 
     shift
 
@@ -424,7 +461,7 @@ qimsdk-meson-build-gstd() {
 
 # CMake Build le-services
 function qimsdk-cmake-build-le-services () {
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/le-services -DTARGET_BOARD_PLATFORM=qimsdk && \
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/le-services -DBUILD_CATEGORY=CLIENT                    && \
             print-green "${FUNCNAME} completed successfully!"
 }
 
@@ -486,6 +523,68 @@ function qimsdk-cmake-clean-le-services() {
 # Clean CMake solutions-microservices build directory
 function qimsdk-cmake-clean-solutions-microservices() {
     rm -rf ${QIMSDK_BUILD_DIR}/solutions-microservices
+
+    print-green "${FUNCNAME} completed successfully!"
+}
+
+# Configure and build gst plugins
+function qimsdk-incremental-build-qti() {
+
+    # Get the runtime flags generated from RecipeParser.py
+    local RECIPE_PARSED_FLAGS_ARRAY=(
+        $(cat ${QIMSDK_TMP_DIR}/runtime_flags.json                                               | \
+                jq .[] | jq -r 'to_entries[] | "\(.key)=\(.value)"')
+    )
+
+    local RECIPE_PARSED_FLAGS="${RECIPE_PARSED_FLAGS_ARRAY[@]}"
+
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss                                       \
+            -DENABLE_GST_PLUGIN_QMMFSRC=ON                                                         \
+            -DENABLE_GST_PLUGIN_VCOMPOSER=ON                                                       \
+            -DENABLE_GST_PLUGIN_BATCH=ON                                                           \
+            -DENABLE_GST_PLUGIN_METAMUX=ON                                                         \
+            -DENABLE_GST_PLUGIN_SOCKET=ON                                                          \
+            -DENABLE_GST_PLUGIN_VSPLIT=ON                                                          \
+            -DENABLE_GST_PLUGIN_VTRANSFORM=ON                                                      \
+            -DENABLE_GST_PLUGIN_VOVERLAY=ON                                                        \
+            -DENABLE_GST_PLUGIN_RESTRICTED_ZONE=ON                                                 \
+            -DENABLE_GST_PLUGIN_RTSPBIN=ON                                                         \
+            -DENABLE_GST_PLUGIN_REDISSINK=ON                                                       \
+            -DENABLE_GST_PLUGIN_SMARTVENCBIN=ON                                                    \
+            -DENABLE_GST_PLUGIN_VIDEOTEMPLATE=ON                                                   \
+            -DENABLE_GST_PLUGIN_MLACONVERTER=ON                                                    \
+            -DENABLE_GST_PLUGIN_MLACLASSIFICATION=ON                                               \
+            -DENABLE_GST_PLUGIN_MLDEMUX=ON                                                         \
+            -DENABLE_GST_PLUGIN_MLVCONVERTER=ON                                                    \
+            -DENABLE_GST_PLUGIN_MLVCLASSIFICATION=ON                                               \
+            -DENABLE_GST_PLUGIN_MLVSUPERRESOLUTION=ON                                              \
+            -DENABLE_GST_PLUGIN_MLVDETECTION=ON                                                    \
+            -DENABLE_GST_PLUGIN_MLVPOSE=ON                                                         \
+            -DENABLE_GST_PLUGIN_MLVSEGMENTATION=ON                                                 \
+            -DENABLE_GST_PLUGIN_MLTOOLS=ON                                                         \
+            -DENABLE_GST_PLUGIN_MLTFLITE=ON                                                        \
+            -DENABLE_GST_PLUGIN_MLSNPE=ON                                                          \
+            -DENABLE_GST_PLUGIN_MLQNN=ON                                                           \
+            -DENABLE_GST_PLUGIN_MLMETAPARSER=ON                                                    \
+            -DENABLE_GST_PLUGIN_METATRANSFORM=ON                                                   \
+            -DENABLE_GST_PLUGIN_OBJTRACKER=ON                                                      \
+            -DENABLE_GST_PLUGIN_MLMETAEXTRACTOR=ON                                                 \
+            -DENABLE_GST_PLUGIN_MLPOSTPROCESS=ON                                                   \
+            -DENABLE_GST_SAMPLE_APPS=ON                                                            \
+            -DENABLE_GST_PLUGIN_TOOLS=ON                                                           \
+            -DENABLE_GST_TEST_FRAMEWORK=ON                                                         \
+            -DENABLE_GST_PYTHON_EXAMPLES=ON                                                        \
+            -DENABLE_GST_PLUGIN_MSGBROKER=ON                                                       \
+            -DENABLE_GST_PLUGIN_DFS=ON                                                             \
+            -DENABLE_GST_PLUGIN_CAMIMGREPROC=ON                                                    \
+            -DENABLE_GST_PLUGIN_CAMREPROC=ON                                                       \
+            ${RECIPE_PARSED_FLAGS}                                                              && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
+# Clean gst-plugins-qti-oss
+function qimsdk-cmake-clean-qti() {
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-qti-oss
 
     print-green "${FUNCNAME} completed successfully!"
 }
