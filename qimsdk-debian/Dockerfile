@@ -18,7 +18,7 @@ RUN sed -Ei 's/^Types: deb$/Types: deb deb-src/'  /etc/apt/sources.list.d/debian
 #  gst-plugin-restricted-zonedbg: libgstreamer-plugins-bad1.0-dev
 
 # build time dependencies, needed for camera-service compilation:
-#  libprotobuf-dev, protobuf-compiler, libabsl-dev
+#  libprotobuf-dev, protobuf-compiler
 
 # Installing dependencies, needed in order for gst plugins to load succesfully runtime:
 #  gstreamer base plugins:        gobject-introspection,
@@ -43,8 +43,7 @@ RUN apt-get update                                                              
             gobject-introspection flex bison locales-all ninja-build gpg                           \
             libeigen3-dev libcairo-dev libjson-glib-dev libmosquitto-dev opencl-headers            \
             libhiredis-dev libgstrtspserver-1.0-dev libgstreamer-plugins-bad1.0-dev                \
-            librdkafka-dev                                                                         \
-            libprotobuf-dev protobuf-compiler libabsl-dev                                       && \
+            librdkafka-dev libprotobuf-dev protobuf-compiler                                    && \
     apt-get build-dep -y gst-plugins-base1.0 gst-plugins-good1.0                                && \
     apt -y upgrade                                                                              && \
     apt-get autoremove -y                                                                       && \
@@ -55,6 +54,9 @@ RUN apt-get update                                                              
 ENV QIMSDK_BASE_DIR=/mnt/work
 ENV QIMSDK_TMP_DIR=${QIMSDK_BASE_DIR}/tmp
 RUN mkdir -p ${QIMSDK_TMP_DIR}
+
+# Add host-tools directory
+ENV QIMSDK_HOST_TOOLS_DIR=${QIMSDK_BASE_DIR}/host-tools
 
 # Add qimsdk install directory
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
@@ -113,10 +115,38 @@ RUN GST_PLUGINS_GOOD_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good*    
     echo "export GST_PLUGINS_GOOD_VERSION=${GST_PLUGINS_GOOD_VERSION}" >> /root/.bashrc
 
 # Clone Tensorflow Lite
+ENV QIMSDK_TF_LITE_MAJOR="2"
+ENV QIMSDK_TF_LITE_MINOR="20"
+ENV QIMSDK_TF_LITE_PATCH="0"
 ENV QIMSDK_TF_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/tensorflow
 RUN git config --global http.postBuffer 157286400                                               && \
-    git clone --progress https://github.com/tensorflow/tensorflow.git                              \
-            --single-branch --branch r2.20 ${QIMSDK_TF_SRC_DIR}
+    git clone --progress https://github.com/tensorflow/tensorflow.git --single-branch              \
+            --branch r${QIMSDK_TF_LITE_MAJOR}.${QIMSDK_TF_LITE_MINOR} ${QIMSDK_TF_SRC_DIR}
+
+# Clone meta-qcom-distro and apply tflite patches for it
+ENV QIMSDK_META_QCOM_DISTRO_DIR=${QIMSDK_DOWNLOAD_DIR}/meta-qcom-distro
+RUN git clone https://github.com/qualcomm-linux/meta-qcom-distro.git --single-branch --branch main \
+            ${QIMSDK_META_QCOM_DISTRO_DIR}                                                      && \
+    git -C ${QIMSDK_TF_SRC_DIR} am ${QIMSDK_META_QCOM_DISTRO_DIR}/recipes-ml/tflite/files/tflite/0*
+
+# Clone flatbuffers. Use the exact git tag as specified in tflite dependency
+ENV QIMSDK_FLATBUFFERS_24_3_25_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/flatbuffers_24.3.25
+ENV QIMSDK_FLATBUFFERS_24_3_25_INSTALL_DIR=${QIMSDK_HOST_TOOLS_DIR}/flatbuffers_24.3.25/usr
+RUN QIMSDK_FLATBUFFERS_24_3_25_TAG=$(cat ${QIMSDK_TF_SRC_DIR}/tensorflow/lite/tools/cmake/modules/flatbuffers.cmake | \
+            grep GIT_TAG | rev | cut -d ' ' -f 1 | rev)                                         && \
+    git clone --progress https://github.com/google/flatbuffers.git                                 \
+            --single-branch --branch master ${QIMSDK_FLATBUFFERS_24_3_25_SRC_DIR}               && \
+    git -C ${QIMSDK_FLATBUFFERS_24_3_25_SRC_DIR} checkout -b work ${QIMSDK_FLATBUFFERS_24_3_25_TAG}
+
+# Clone abseil-cpp. Use the git tag compatible with tflite 2.20 and lite rt 2.1.2
+ENV QIMSDK_ABSEIL_CPP_DIR=${QIMSDK_DOWNLOAD_DIR}/abseil-cpp
+RUN QIMSDK_ABSEIL_CPP_TAG=d38452e1ee03523a208362186fd42248ff2609f6                              && \
+    git clone --progress https://github.com/abseil/abseil-cpp.git                                  \
+            --single-branch --branch lts_2025_08_14 ${QIMSDK_ABSEIL_CPP_DIR}                    && \
+    git -C ${QIMSDK_ABSEIL_CPP_DIR} checkout -b work ${QIMSDK_ABSEIL_CPP_TAG}
+
+# Add CMake redirects
+COPY cmake ${QIMSDK_DOWNLOAD_DIR}/cmake
 
 # Initialize environment variables
 ENV QIMSDK_SRC_DIR=${QIMSDK_BASE_DIR}/src

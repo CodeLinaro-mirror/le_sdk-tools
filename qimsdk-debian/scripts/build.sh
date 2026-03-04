@@ -136,8 +136,10 @@ function qimsdk-cmake-compile() {
 
 # Install qimsdk CMake Target
 #    ${1} - TARGET - CMake Target
+#    ${2} - INSTALL_PATH - Path used for install prefix
 function qimsdk-cmake-install() {
     local TARGET=${1}
+    local INSTALL_PATH=${2}
 
     local DATE=$(date "+%Y_%m_%d-%H_%M_%S")
     local LOG_FILE_NAME=${QIMSDK_LOGS_DIR}/cmake_install_${TARGET}_${DATE}.log
@@ -161,7 +163,7 @@ function qimsdk-cmake-install() {
 
         cmake --install . --prefix ${QIMSDK_INSTALL_DEBUG_DIR}/usr/                               |&
                 tee ${LOG_FILE_NAME_DBG}                                                        && \
-        cmake --install . --prefix /usr --strip                                                   |&
+        cmake --install . --prefix ${INSTALL_PATH} --strip                                        |&
                 tee ${LOG_FILE_NAME}                                                              |\
                 grep -E 'Up-to-date:|Installing:|configuration:' | tail -n +2                     |\
                 cut -d ' ' -f 3 | xargs -i rsync -aR {} ${QIMSDK_INSTALL_DIR}/ -f"- *.h"
@@ -204,18 +206,20 @@ function qimsdk-debian-rules-build() {
 
 # Wrapper function to configure, compile & install qimsdk CMake Target
 #    ${1} - SOURCE_PATH - Path to top-level CMake Project Directory
-#    ${2} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
+#    ${2} - INSTALL_PATH - Path used for install prefix
+#    ${3..} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
 function qimsdk-cmake-build() {
     local SOURCE_PATH=${1}
+    local INSTALL_PATH=${2}
     local T=$(qimsdk-get-project ${SOURCE_PATH})
 
-    shift
+    shift;shift
 
     local CMAKE_CUSTOM_CONFIG_FLAGS=$@
 
     qimsdk-cmake-configure ${SOURCE_PATH} ${T} ${CMAKE_CUSTOM_CONFIG_FLAGS}                     && \
             qimsdk-cmake-compile ${T}                                                           && \
-            qimsdk-cmake-install ${T}
+            qimsdk-cmake-install ${T} ${INSTALL_PATH}
 }
 
 ###########################################################
@@ -258,7 +262,7 @@ function qimsdk-debian-rules-clean-gst-plugins-good() {
 
 # CMake Build camera-service
 function qimsdk-cmake-build-camera-service () {
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/camera-service `
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/camera-service /usr `
             `-DBUILD_CATEGORY=CLIENT                                                            && \
         print-green "${FUNCNAME} completed successfully!"
 }
@@ -269,11 +273,95 @@ function qimsdk-cmake-clean-camera-service () {
         print-green "${FUNCNAME} completed successfully!"
 }
 
+# CMake Build abseil-cpp
+qimsdk-cmake-build-abseil-cpp() {
+    qimsdk-cmake-build ${QIMSDK_ABSEIL_CPP_DIR} /usr `
+            `-DABSL_USE_GOOGLETEST_HEAD=OFF `
+            `-DABSL_RUN_TESTS=OFF                                                               && \
+        print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Clean abseil-cpp
+function qimsdk-cmake-clean-abseil-cpp() {
+    rm -rf ${QIMSDK_BUILD_DIR}/abseil-cpp                                                       && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Build flatbuffers
+qimsdk-cmake-build-flatbuffers-v24-3-25() {
+    qimsdk-cmake-build ${QIMSDK_FLATBUFFERS_24_3_25_SRC_DIR} `
+            `${QIMSDK_FLATBUFFERS_24_3_25_INSTALL_DIR} `
+            `-DFLATBUFFERS_BUILD_TESTS=OFF `
+            `-DFLATBUFFERS_BUILD_SHAREDLIB=OFF                                                  && \
+        print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Clean flatbuffers
+function qimsdk-cmake-clean-flatbuffers-v24-3-25() {
+    rm -rf ${QIMSDK_BUILD_DIR}/flatbuffersflatbuffers_24.3.25                                   && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Build tflite
+function qimsdk-cmake-build-tflite() {
+    (
+        qimsdk-cmake-build ${QIMSDK_DOWNLOAD_DIR}/tensorflow/tensorflow/lite/c /usr `
+                `-DCMAKE_PROJECT_TOP_LEVEL_INCLUDES="${QIMSDK_DOWNLOAD_DIR}/cmake/force-system-protobuf.cmake" `
+                `-DCMAKE_POLICY_DEFAULT_CMP0135=OLD `
+                `-DCMAKE_POLICY_DEFAULT_CMP0169=OLD `
+                `-DCMAKE_POLICY_DEFAULT_CMP0077=OLD `
+                `-DCMAKE_POLICY_DEFAULT_CMP0177=OLD `
+                `-DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON `
+                `-DCMAKE_POLICY_VERSION_MINIMUM=3.5 `
+                `-DCMAKE_SYSTEM_NAME=Linux `
+                `-DCPUINFO_BUILD_UNIT_TESTS=OFF `
+                `-DCPUINFO_SUPPORTED_PLATFORM=ON `
+                `-DCMAKE_SYSTEM_PROCESSOR=arm64 `
+                `-DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc `
+                `-DTFLITE_HOST_TOOLS_DIR=${QIMSDK_FLATBUFFERS_24_3_25_INSTALL_DIR}/bin `
+                `-DTF_MAJOR_VERSION=${QIMSDK_TF_LITE_MAJOR} `
+                `-DTF_MINOR_VERSION=${QIMSDK_TF_LITE_MINOR} `
+                `-DTF_PATCH_VERSION=${QIMSDK_TF_LITE_PATCH} `
+                `-DTF_VERSION_SUFFIX= `
+                `-DTFLITE_ENABLE_INSTALL=ON `
+                `-DTFLITE_ENABLE_LABEL_IMAGE=ON `
+                `-DTFLITE_ENABLE_BENCHMARK_MODEL=ON `
+                `-DTFLITE_ENABLE_XNNPACK=ON `
+                `-DTFLITE_ENABLE_NNAPI=OFF `
+                `-DTFLITE_ENABLE_RUY=ON `
+                `-DTFLITE_ENABLE_GPU=ON                                                         && (
+            cd ${QIMSDK_BUILD_DIR}/tensorflow
+
+            # Install manually tflite apps to workaround tflite cmake file issues
+            cmake -DCMAKE_INSTALL_PREFIX=${QIMSDK_INSTALL_DEBUG_DIR}/usr/ -P                       \
+                    tensorflow-lite/tools/benchmark/cmake_install.cmake                         && \
+            cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_DO_STRIP=ON -P                       \
+                    tensorflow-lite/tools/benchmark/cmake_install.cmake                         && \
+            cmake -DCMAKE_INSTALL_PREFIX=${QIMSDK_INSTALL_DIR}/usr -DCMAKE_INSTALL_DO_STRIP=ON -P  \
+                    tensorflow-lite/tools/benchmark/cmake_install.cmake                         && \
+
+            cmake -DCMAKE_INSTALL_PREFIX=${QIMSDK_INSTALL_DEBUG_DIR}/usr/ -P                       \
+                    tensorflow-lite/examples/label_image/cmake_install.cmake                    && \
+            cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_DO_STRIP=ON -P                       \
+                    tensorflow-lite/examples/label_image/cmake_install.cmake                    && \
+            cmake -DCMAKE_INSTALL_PREFIX=${QIMSDK_INSTALL_DIR}/usr -DCMAKE_INSTALL_DO_STRIP=ON -P  \
+                    tensorflow-lite/examples/label_image/cmake_install.cmake
+        )                                                                                       && \
+        print-green "${FUNCNAME} completed successfully!"
+    )
+}
+
+# CMake Clean tflite
+function qimsdk-cmake-clean-tflite() {
+    rm -rf ${QIMSDK_BUILD_DIR}/tensorflow                                                       && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
 # Incremental build all gst-plugins-imsdk
 function qimsdk-cmake-build-gst-plugins-imsdk() {
     local IS_QNP_ENABLED=$( [ -n "${QIMSDK_ARG_QNP_VERSION:-}" ] && echo ON || echo OFF )
 
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-imsdk `
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-imsdk /usr `
             `-DENABLE_GST_PLUGIN_VCOMPOSER=ON `
             `-DENABLE_GST_PLUGIN_BATCH=ON `
             `-DENABLE_GST_PLUGIN_METAMUX=ON `
@@ -321,6 +409,9 @@ function qimsdk-incremental-build() {
     qimsdk-debian-rules-build-gst-plugins-base                                                  && \
             qimsdk-debian-rules-build-gst-plugins-good                                          && \
             qimsdk-cmake-build-camera-service                                                   && \
+            qimsdk-cmake-build-abseil-cpp                                                       && \
+            qimsdk-cmake-build-flatbuffers-v24-3-25                                             && \
+            qimsdk-cmake-build-tflite                                                           && \
             qimsdk-cmake-build-gst-plugins-imsdk                                                && \
         print-green "QIMSDK GStreamer targets built successfully !!!"
 }
