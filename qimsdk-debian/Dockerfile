@@ -35,15 +35,16 @@ RUN sed -Ei 's/^Types: deb$/Types: deb deb-src/'  /etc/apt/sources.list.d/debian
 #  software encoder needed for
 #    rtspsrc usecases:            gstreamer1.0-plugins-ugly
 #  pulseaudio runtime dependency: pulseaudio
+#  fast rpc:                      libyaml-dev
 
 # Installing required apt packages
 RUN apt-get update                                                                              && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
             git tar unzip ssh rsync bash-completion jq cmake android-tools-adb wget pipx xz-utils  \
-            gobject-introspection flex bison locales-all ninja-build gpg                           \
+            gobject-introspection flex bison locales-all ninja-build gpg curl                      \
             libeigen3-dev libcairo-dev libjson-glib-dev libmosquitto-dev opencl-headers            \
             libhiredis-dev libgstrtspserver-1.0-dev libgstreamer-plugins-bad1.0-dev                \
-            librdkafka-dev libprotobuf-dev protobuf-compiler                                    && \
+            librdkafka-dev libprotobuf-dev protobuf-compiler libyaml-dev                        && \
     apt-get build-dep -y gst-plugins-base1.0 gst-plugins-good1.0                                && \
     apt -y upgrade                                                                              && \
     apt-get autoremove -y                                                                       && \
@@ -61,6 +62,7 @@ ENV QIMSDK_HOST_TOOLS_DIR=${QIMSDK_BASE_DIR}/host-tools
 # Add qimsdk install directory
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 ENV QIMSDK_ADSP_DIR=${QIMSDK_INSTALL_DIR}/usr/lib/rfsa/adsp
+RUN mkdir -p ${QIMSDK_INSTALL_DIR}/usr/lib
 
 # Add qimsdk debug install directory
 ENV QIMSDK_INSTALL_DEBUG_DIR=${QIMSDK_BASE_DIR}/deploy_dbg
@@ -75,10 +77,17 @@ RUN mkdir -p ${QIMSDK_LOGS_DIR}
 ENV QIMSDK_DOWNLOAD_DIR=${QIMSDK_BASE_DIR}/downloads
 RUN mkdir -p ${QIMSDK_DOWNLOAD_DIR}
 
-# Update and clean, fetch GStreamer base and good plugins
+# Add the Ubuntu QCOM PPA as source-only (safe to fetch source on Debian)
+RUN install -d -m 0755 /etc/apt/keyrings                                                        && \
+    curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x33EF0ACBC6FE252590ABBAF21C70EB0C444248D7" | \
+            gpg --dearmor -o /etc/apt/keyrings/qcom-noble-ppa.gpg                               && \
+    echo "deb-src [signed-by=/etc/apt/keyrings/qcom-noble-ppa.gpg] https://ppa.launchpadcontent.net/ubuntu-qcom-iot/qcom-noble-ppa/ubuntu noble main" \
+            > /etc/apt/sources.list.d/qcom-noble-ppa-src.list
+
+# Update and clean, fetch dma buf heap and GStreamer base and good plugins
 RUN DEBIAN_FRONTEND=noninteractive apt-get update                                               && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    apt source gst-plugins-base1.0 gst-plugins-good1.0                                          && \
+    apt source gst-plugins-base1.0 gst-plugins-good1.0 qcom-libdmabufheap                       && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
     rm -rf /var/lib/apt/lists* /var/tmp/*
@@ -160,6 +169,41 @@ RUN git clone --progress https://android.googlesource.com/platform/system/media.
     sed -i '\|ANDROID_API|d'                                                                       \
         ${QIMSDK_DOWNLOAD_DIR}/media/camera/include/system/camera_metadata.h                    && \
     rsync -a ${QIMSDK_DOWNLOAD_DIR}/media/camera/include/system /usr/include/
+
+# Build qcom-libdmabufheap
+RUN cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
+    cd $(ls -d qcom-libdmabufheap-* | head -n1)                                                 && \
+    DEB_BUILD_OPTIONS="nocheck parallel=$(nproc)" dpkg-buildpackage -b -us -uc -aarm64
+
+# Build fastrpc
+RUN cd "${QIMSDK_DOWNLOAD_DIR}"                                                                 && \
+    git clone --depth 1 https://github.com/quic/fastrpc.git                                     && \
+    cd fastrpc                                                                                  && \
+    autoreconf -is                                                                              && \
+    BUILD_ARCH="$(dpkg --print-architecture)"                                                   && \
+    TARGET_ARCH=arm64                                                                           && \
+    TARGET_TRIPLET=aarch64-linux-gnu                                                            && \
+    PREFIX="${QIMSDK_INSTALL_DIR}/usr"                                                          && \
+    LIBDIR="${PREFIX}/lib/${TARGET_TRIPLET}"                                                    && \
+    if [ "${BUILD_ARCH}" = "${TARGET_ARCH}" ]; then                                                \
+        CC=gcc                                                                                  && \
+        AR=ar                                                                                   && \
+        RANLIB=ranlib                                                                           && \
+        CONFIGURE_ARGS="";                                                                         \
+    else                                                                                           \
+        CC=${TARGET_TRIPLET}-gcc                                                                && \
+        AR=${TARGET_TRIPLET}-ar                                                                 && \
+        RANLIB=${TARGET_TRIPLET}-ranlib                                                         && \
+        CONFIGURE_ARGS="--host=${TARGET_TRIPLET}";                                                 \
+    fi                                                                                          && \
+    CFLAGS='-UMACHINE_NAME_PATH -DMACHINE_NAME_PATH=\"/run/device-model\"'                         \
+        CC="${CC}" AR="${AR}" RANLIB="${RANLIB}"                                                   \
+        ./configure                                                                                \
+            ${CONFIGURE_ARGS}                                                                      \
+            --prefix="${PREFIX}"                                                                   \
+            --libdir="${LIBDIR}"                                                                && \
+    make -j"$(nproc)"                                                                           && \
+    make install
 
 # camera-service: fetch
 RUN git clone --progress https://github.com/qualcomm/camera-service.git                            \
@@ -297,6 +341,7 @@ RUN cp ${QIMSDK_DOWNLOAD_DIR}/*base-1.0_* ${QIMSDK_DOWNLOAD_DIR}/*alsa_*        
        ${QIMSDK_DOWNLOAD_DIR}/*base-apps_* ${QIMSDK_DOWNLOAD_DIR}/*good_*                          \
        ${QIMSDK_DOWNLOAD_DIR}/*pulseaudio_* ${QIMSDK_DOWNLOAD_DIR}/*x_*                            \
        ${QIMSDK_DOWNLOAD_DIR}/*base1.0-0_1*                                                        \
+       ${QIMSDK_DOWNLOAD_DIR}/qcom-libdmabufheap_*_arm64.deb                                       \
        ${QIMSDK_DOWNLOAD_DIR}/debs/
 
 # --------------------------------------------------------------------------------------------------
@@ -326,37 +371,14 @@ ENV QIMSDK_DEB_DIR=${QIMSDK_BASE_DIR}/downloads/debs
 #  software encoder needed for
 #    rtspsrc usecases:            gstreamer1.0-plugins-ugly
 #  pulseaudio runtime dependency: pulseaudio
+#  fast rpc runtime dependency:   libyaml-0-2:arm64
 RUN apt-get update                                                                              && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
             adduser bash-completion nano libhiredis1.1.0 gstreamer1.0-tools wget                   \
             libgstrtspserver-1.0-0 libopencv-imgproc410 libxv1                                     \
             gstreamer1.0-plugins-good pulseaudio gstreamer1.0-plugins-base librdkafka1             \
-            gstreamer1.0-plugins-ugly gir1.2-gst-1.0                                            && \
+            gstreamer1.0-plugins-ugly gir1.2-gst-1.0 libyaml-0-2                                && \
     apt -y upgrade                                                                              && \
-    apt-get autoremove -y                                                                       && \
-    apt-get clean                                                                               && \
-    rm -rf /var/lib/apt/lists* /var/tmp/*
-
-# Add QTI PPA and install QTI dependencies
-#  gpg curl:                        install PPA
-#  firmware-qcom-hlosfw:            qcom firmware
-#  linux-firmware:                  linux firmware
-#  qcom-fastrpc1:                   fast rpc
-#  qcom-libdmabufheap:              dma buf
-RUN apt-get update                                                                              && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gpg curl             \
-            ca-certificates                                                                     && \
-    update-ca-certificates                                                                      && \
-    install -d -m 0700 /var/lib/apt/gnupg                                                       && \
-    install -d -m 0755 /etc/apt/keyrings                                                        && \
-    curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x33EF0ACBC6FE252590ABBAF21C70EB0C444248D7" | \
-            env GNUPGHOME=/var/lib/apt/gnupg gpg --dearmor                                         \
-            -o /etc/apt/keyrings/qcom-noble-ppa.gpg                                             && \
-    echo "deb [signed-by=/etc/apt/keyrings/qcom-noble-ppa.gpg] https://ppa.launchpadcontent.net/ubuntu-qcom-iot/qcom-noble-ppa/ubuntu noble main" \
-            > /etc/apt/sources.list.d/qcom-noble-ppa.list                                       && \
-    apt update                                                                                  && \
-    DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends                          \
-            qcom-fastrpc1 qcom-libdmabufheap                                                    && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
     rm -rf /var/lib/apt/lists* /var/tmp/*
