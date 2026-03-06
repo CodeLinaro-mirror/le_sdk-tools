@@ -180,7 +180,7 @@ service docker start
 The json file must contain certain data :
  1. ***MANDATORY*** - **Qnn_Version** - SDK Version for QNP to be downloaded and installed. Example Value `"v2.25.0.240728"`
  2. ***MANDATORY*** - **Base_Image** - Base docker image to be used on the device. By default, it's ubuntu:24.04
- 3. ***MANDATORY*** -  **Target_platform** - Target device platform, which can be kalama, qcs6490, qrb5165, etc.
+ 3. ***MANDATORY*** -  **Target_platform** - Target device platform, which can be kalama, qcs6490, qrb5165, klm, etc.
  4. ***OPTIONAL*** - **Additional_tag** - Additional tag to be appended to the name of the container and image - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
  5. ***MANDATORY*** - **URL** - Remote destination to be able to sync image tar to this destination folder
  6. ***MANDATORY*** -  **DeviceID** - adb devices command ID of the device.

@@ -1,7 +1,7 @@
 {
-    "Qnn_Version": "2.34.0.250424",
+    "Qnn_Version": "2.43.0.260128",
     "Base_Image": "ubuntu:24.04",
-    "Target_platform": "qcs8300",
+    "Target_platform": "klm",
 
     "Additional_tag": "",
     "URL": "",

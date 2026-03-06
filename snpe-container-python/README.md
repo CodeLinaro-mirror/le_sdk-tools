@@ -199,7 +199,7 @@ The json file must contain certain data :
  1. ***MANDATORY*** - **SNPE_version** - SDK Version for SNPE to be downloaded and installed. Example Value `"v2.25.0.240728"`
  2. ***MANDATORY*** - **Base_Image** - Base docker image to be used on the device
  ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
- 3. ***MANDATORY*** - **Target_platform** - Target device platform, which can be kalama or qcs6490 or qrb5165
+ 3. ***MANDATORY*** - **Target_platform** - Target device platform, which can be kalama or qcs6490 or qrb5165 or klm, etc.
  4. ***OPTIONAL*** - **Additional_tag_container** - Additional tag for container - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
  5. ***OPTIONAL*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose (to not set an additional tag just leave the value for this field empty)
  6. ***MANDATORY*** - **URL** - Remote destination To be able to sync to this destination folder

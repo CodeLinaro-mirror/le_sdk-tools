@@ -37,7 +37,7 @@ function qml-docker-parse-json() {
     OUT_QML_TARGET_PLATFORM=$(echo ${JSON_CONTENT} | jq '.Target_platform' | tr -d '"')
     [ -z "${QML_TARGET_PLATFORM}" ] && {
         print-red "Target_platform attribute is not set in json file !!!"
-        print-yellow "Target_platform attribute can be any of these: kalama, qcm6490, qcs6490, qrb5165 or qcs9100."
+        print-yellow "Target_platform attribute can be any of these: kalama, qcm6490, qcs6490, qrb5165 or qcs9100 or klm."
 
         return -4
     }

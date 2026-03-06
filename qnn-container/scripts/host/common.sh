@@ -63,7 +63,7 @@ function qnn-tools-parse-json() {
     OUT_QNN_TARGET_PLATFORM=$(echo ${JSON_CONTENT} | jq '.Target_platform' | tr -d '"')
     [ -z "${OUT_QNN_TARGET_PLATFORM}" ] && {
         print-red "Target_platform attribute is not set in json file !!!"
-        print-yellow "Target_platform attribute can be: kalama or qcs6490 or qrb5165 or qcs9100 or qcs8300."
+        print-yellow "Target_platform attribute can be: kalama or qcs6490 or qrb5165 or qcs9100 or qcs8300 or KLM."
         return -3
     }
 
