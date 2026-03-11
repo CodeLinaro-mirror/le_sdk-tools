@@ -236,7 +236,7 @@ Two QIMSDK docker images are built. One for development. One for device target.
 
 <div id="QIMSDK_Debug_Image">
 
-### QIMSDK Debug Image
+### QIMSDK Debug Image (based on host architecture)
 1. Start from Debian trixie Image
 2. Alter git configuration in QIMSDK Build Image to use camera-service code locally provided by user in config json instead of github
 3. Alter git configuration in QIMSDK Build Image to use gst meta layers locally provided by user in config json instead of codelinaro
@@ -246,7 +246,7 @@ Two QIMSDK docker images are built. One for development. One for device target.
 
 <div id="QIMSDK_Build_Image">
 
-### QIMSDK Build Image
+### QIMSDK Build Image (based on host arm64 architecture)
 1. Start from Debian Trixie
 2. Add deb-src for everything
 3. Install build time dependencies, needed for gst-plugins-imsdk compilation
@@ -664,7 +664,7 @@ In that case, the intermediate QIMSDK Debug Image is not built, and QIMSDK Deplo
   ```bash
   # Build qimsdk-debian deploy docker image
   DOCKER_BUILDKIT=1 docker build                                                                   \
-      --progress=plain --target qimsdk-deploy <path/to/Dockerfile/directory> -t <generated-image-name>
+      --progress=plain --target qimsdk_deploy_arm64 <path/to/Dockerfile/directory> -t <generated-image-name>
   ```
   </ul>
 

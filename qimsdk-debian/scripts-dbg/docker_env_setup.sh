@@ -182,7 +182,7 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
         local DOCKERFILE="${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE}/Dockerfile"
 
         # Modify Dockerfile to import artifacts from debug build container
-        sed -E "s/--from=qimsdk-build/--from=${IMAGE_NAME}-debian/g"                               \
+        sed -E "s/--from=qimsdk_build/--from=${IMAGE_NAME}-debian/g"                               \
                 ${DOCKERFILE} > ${DOCKERFILE}.work_deploy                                       || {
             rm -f ${DOCKERFILE}.work_deploy
             print-red "Modify Dockerfile to import artifacts from debug build container failed!"
@@ -190,7 +190,7 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
         }
 
         DOCKER_BUILDKIT=1 docker build                                                             \
-                --progress=plain --target qimsdk-deploy                                            \
+                --progress=plain --target qimsdk_deploy_arm64                                      \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian-deploy                 \
                 -f ${DOCKERFILE}.work_deploy                                                    || {
             rm -f ${DOCKERFILE}.work_deploy
@@ -227,12 +227,12 @@ function qimsdk-docker-build-qimsdk-debian-image() {
 
         # Modify Dockerfile to use debug container as base
         sed -E                                                                                     \
-            "s|^(FROM[[:space:]]+)debian:trixie-slim([[:space:]]+AS[[:space:]]+qimsdk-build)|\1${IMAGE_NAME}\2|"  \
+            "s|^(FROM[[:space:]]+)debian:trixie-slim([[:space:]]+AS[[:space:]]+qimsdk_build)|\1${IMAGE_NAME}\2|"  \
             ${DOCKERFILE} > ${DOCKERFILE}.work
 
         DOCKER_BUILDKIT=1 docker build                                                             \
                 --build-arg QIMSDK_ARG_QNP_VERSION=${QIMSDK_QAIRT_SDK_VERSION}                     \
-                --progress=plain --target qimsdk-build                                             \
+                --progress=plain --target qimsdk_build                                             \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian                        \
                 -f ${DOCKERFILE}.work                                                           || {
             rm -f ${DOCKERFILE}.work
