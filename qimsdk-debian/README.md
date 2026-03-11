@@ -3,8 +3,8 @@
 ## Table of Contents
 
 * [QIMSDK Docker Images](#Docker_images)
-    * [qimsdk-build](#qimsdk_build)
-    * [qimsdk-deploy](#qimsdk_deploy)
+    * [qimsdk_build](#qimsdk_build)
+    * [qimsdk_deploy_arm64](#qimsdk_deploy)
 * [Scripts](#Scripts)
     * [build.sh](#build.sh)
     * [env_setup.sh](#env_setup.sh)
@@ -20,12 +20,12 @@
 ## QIMSDK Docker Images
 
 Two QIMSDK docker images are built. One for target GStreamer multimedia framework binary compilation. One for device target GStreamer runtime use.
-- Build image (qimsdk-build) is based on an debian trixie image, provided by platform team.
-- Deploy image (qimsdk-deploy) is based on a bare debian:trixie OS docker image.
+- Build image (qimsdk_build) is based on an debian trixie image, which is based on host architecture.
+- Deploy image (qimsdk_deploy_arm64) is based on a arm64 debian:trixie OS docker image.
 
 <div id="qimsdk_build">
 
-### qimsdk-build
+### qimsdk_build (based on host architecture)
 
     1. Start from Debian Trixie
     2. Add deb-src for everything
@@ -46,7 +46,7 @@ Two QIMSDK docker images are built. One for target GStreamer multimedia framewor
 
 <div id="qimsdk_deploy">
 
-### qimsdk-deploy
+### qimsdk_deploy_arm64 (based on arm64 architecture)
 
     1. Start from base debian:trixie image
     2. Install runtime dependency Open Source packages to deploy image
@@ -105,10 +105,10 @@ Handles patching, library propagation, and dependency management for GStreamer p
 
 ### How to build
 
-Building qimsdk-deploy: minimal set of runtime binaries needed to execute gst use-cases are available in this image.
+Building qimsdk_deploy_arm64: minimal set of runtime binaries needed to execute gst use-cases are available in this image.
 
 ```bash
-docker build  --platform linux/arm64 --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.39.0.250925> --target qimsdk-deploy -t <desired-image-name> .
+docker build --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.39.0.250925> --target qimsdk_deploy_arm64 -t <desired-image-name> .
 ```
 In the docker build command above, provide the version of QAIRT SDK that you want to install, e.g. *--build-arg QIMSDK_ARG_QNP_VERSION=2.39.0.250925*. If this argument is not provided, the QNN and SNPE plugins will be disabled in the image.
 
@@ -145,7 +145,7 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
 
 ### Running the qimsdk deploy container
 
-In order to run the qimsdk container with GStreamer functionalities inside, it must be run from the qimsdk-deploy image built earlier, container needs to be ran with 'host' network mode. GPU devices, video devices, and other needed user volumes need to be mounted as such:
+In order to run the qimsdk container with GStreamer functionalities inside, it must be run from the qimsdk_deploy_arm64 image built earlier, container needs to be ran with 'host' network mode. GPU devices, video devices, and other needed user volumes need to be mounted as such:
 
 ```bash
 docker run -it -d --net host --device /dev/video0 --device /dev/video1 --device /dev/video2 --device /dev/video3 --device /dev/dri/card0 --device /dev/dri/renderD128 --device /dev/dma_heap -v /run/user/1000:/run/user/1000 -v /etc/OpenCL/vendors:/etc/OpenCL/vendors -v /etc/labels:/etc/labels -v /etc/media:/etc/media -v /etc/models:/etc/models -h qimsdk --name qimsdk <desired-image-name>

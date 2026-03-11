@@ -1,55 +1,60 @@
 # QIMSDK Development Image
-FROM debian:trixie-slim AS qimsdk-build
+FROM debian:trixie-slim AS qimsdk_build
 
 # Add deb-src for everything
 RUN sed -Ei 's/^Types: deb$/Types: deb deb-src/'  /etc/apt/sources.list.d/debian.sources
 
+# Add arm64 to dpkg
+RUN dpkg --add-architecture arm64
+
+# Packages installed for the native arch, needed to establish the debian/rules build system:
+#   fakeroot git tar unzip ssh rsync bash-completion jq cmake android-tools-adb wget pipx
+#   xz-utils gobject-introspection flex bison locales-all ninja-build gpg curl devscripts
+#   debhelper crossbuild-essential-arm64 binutils-aarch64-linux-gnu pkgconf:arm64 libc6:arm64
+#   libgcc-s1:arm64 libstdc++6:arm64
+
 # build time dependencies, needed for gst-plugins-imsdk compilation:
 # gst-plugins-imsdk is not an apt package, so we need to install its build dependencies manually
 #   instead of doing it using 'apt-get build-dep'
-#  gst-plugin-mlaconverter:       libeigen3-dev
-#  gst-plugin-mlaclassification:  libcairo-dev
-#  gst-plugin-mlmetaparser:       libjson-glib-dev
-#  gst-plugin-msgbroker:          libmosquitto-dev,
-#                                 librdkafka-dev
-#  gst-plugin-overlay:            opencl-headers
-#  gst-plugin-redissink:          libhiredis-dev
-#  gst-plugin-rtspbin:            libgstrtspserver-1.0-dev
-#  gst-plugin-restricted-zonedbg: libgstreamer-plugins-bad1.0-dev
+#  GCC support libraries:         libc6:arm64 libgcc-s1:arm64 libstdc++6:arm64
+#  gst-plugin-mlaconverter:       libeigen3-dev:arm64
+#  gst-plugin-mlaclassification:  libcairo-dev:arm64
+#  gst-plugin-mlmetaparser:       libjson-glib-dev:arm64
+#  gst-plugin-msgbroker:          libmosquitto-dev:arm64
+#  gst-plugin-overlay:            opencl-headers:arm64
+#  gst-plugin-redissink:          libhiredis-dev:arm64
+#  gst-plugin-rtspbin:            libgstrtspserver-1.0-dev:arm64
+#  gst-plugin-restricted-zonedbg: libgstreamer-plugins-bad1.0-dev:arm64
+#  gst-plugin-objtracker:         libeigen3-dev:arm64
+
+# build time dependencies, needed for fast-rpc compilation:
+#  libyaml-dev:arm64, libbsd-dev:arm64
 
 # build time dependencies, needed for camera-service compilation:
-#  libprotobuf-dev, protobuf-compiler
+#  libprotobuf-dev:arm64, protobuf-compiler:arm64
 
-# Installing dependencies, needed in order for gst plugins to load succesfully runtime:
-#  gstreamer base plugins:        gobject-introspection,
-#                                 flex,
-#                                 bison,
-#                                 libglib2.0-0,
-#  glimagesink:                   gstreamer1.0-gl,
-#                                 gstreamer1.0-plugins-good,
-#                                 libgraphene-1.0-dev,
-#                                 libgl1,
-#                                 libegl1,
-#                                 libwayland-egl1,
-#                                 libwayland-dev
-#  software encoder needed for
-#    rtspsrc usecases:            gstreamer1.0-plugins-ugly
-#  pulseaudio runtime dependency: pulseaudio
-#  fast rpc:                      libyaml-dev
+# build time dependencies, needed for glimagesink compilation:
+#  libgraphene-1.0-dev:arm64, libdrm-dev:arm64
 
 # Installing required apt packages
 RUN apt-get update                                                                              && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
-            git tar unzip ssh rsync bash-completion jq cmake android-tools-adb wget pipx xz-utils  \
-            gobject-introspection flex bison locales-all ninja-build gpg curl                      \
-            libeigen3-dev libcairo-dev libjson-glib-dev libmosquitto-dev opencl-headers            \
-            libhiredis-dev libgstrtspserver-1.0-dev libgstreamer-plugins-bad1.0-dev                \
-            librdkafka-dev libprotobuf-dev protobuf-compiler libyaml-dev                        && \
-    apt-get build-dep -y gst-plugins-base1.0 gst-plugins-good1.0                                && \
+            fakeroot git tar unzip ssh rsync bash-completion jq cmake wget pipx xz-utils           \
+            gobject-introspection flex bison locales-all ninja-build gpg curl devscripts           \
+            debhelper libprotobuf-dev:arm64 protobuf-compiler:arm64 crossbuild-essential-arm64     \
+            binutils-aarch64-linux-gnu pkgconf:arm64 libc6:arm64 libgcc-s1:arm64 libstdc++6:arm64  \
+            dpkg-dev libyaml-dev:arm64 libbsd-dev:arm64 libeigen3-dev:arm64                        \
+            libgstrtspserver-1.0-dev:arm64 libmosquitto-dev:arm64 libcairo-dev:arm64               \
+            libjson-glib-dev:arm64 libhiredis-dev:arm64 libgstreamer-plugins-bad1.0-dev:arm64      \
+            libdrm-dev:arm64 libgraphene-1.0-dev:arm64 opencl-headers:arm64                     && \
+    apt-get build-dep -a arm64 -y gst-plugins-base1.0 gst-plugins-good1.0                       && \
     apt -y upgrade                                                                              && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
     rm -rf /var/lib/apt/lists* /var/tmp/*
+
+# Set target sysroot for cross-compilation system
+ENV QIMSDK_TARGET_SYSROOT="/"
 
 # Set base directory
 ENV QIMSDK_BASE_DIR=/mnt/work
@@ -347,7 +352,7 @@ RUN cp ${QIMSDK_DOWNLOAD_DIR}/*base-1.0_* ${QIMSDK_DOWNLOAD_DIR}/*alsa_*        
 # --------------------------------------------------------------------------------------------------
 
 # QIMSDK Device Image
-FROM debian:trixie-slim AS qimsdk-deploy
+FROM --platform=linux/arm64 debian:trixie-slim AS qimsdk_deploy_arm64
 
 # Set base directory
 ENV QIMSDK_BASE_DIR=/mnt/work
@@ -394,10 +399,10 @@ RUN addgroup qcom                                                               
 RUN ulimit -n 16192
 
 # Copy installed binaries to device image
-COPY --from=qimsdk-build ${QIMSDK_INSTALL_DIR}/usr /usr
+COPY --from=qimsdk_build ${QIMSDK_INSTALL_DIR}/usr /usr
 
 # Copy deb packages to device image
-COPY --from=qimsdk-build /mnt/work/downloads/debs ${QIMSDK_DEB_DIR}
+COPY --from=qimsdk_build /mnt/work/downloads/debs ${QIMSDK_DEB_DIR}
 
 # Install deb packages to deploy image and remove the directory after install
 RUN dpkg -i ${QIMSDK_DEB_DIR}/* && rm -rf ${QIMSDK_DEB_DIR}

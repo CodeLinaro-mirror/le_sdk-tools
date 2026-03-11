@@ -63,6 +63,8 @@ function qimsdk-cmake-configure() {
     local CMAKE_CUSTOM_CONFIG_FLAGS=$@
 
     (
+        qimsdk-setup-crosscompilation
+
         export CFLAGS="-mbranch-protection=standard -fstack-protector-strong -O2 `
                 `-D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security -pipe `
                 `-feliminate-unused-debug-types"
@@ -114,6 +116,8 @@ function qimsdk-cmake-compile() {
     }
 
     (
+        qimsdk-setup-crosscompilation
+
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
@@ -153,6 +157,8 @@ function qimsdk-cmake-install() {
     }
 
     (
+        qimsdk-setup-crosscompilation
+
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
@@ -182,25 +188,38 @@ function qimsdk-cmake-install() {
 # Wrapper function to configure, compile, install & clean qimsdk debian/rules Target
 function qimsdk-debian-rules-build() {
     (
+        set -e
+
+        # Cross architecture
+        export DEB_HOST_ARCH=arm64
+        export DEB_BUILD_OPTIONS="parallel=$(nproc)"
+
+        # GCC/G++ cross toolchain (optional but helps many builds)
+        export CC=aarch64-linux-gnu-gcc
+        export CXX=aarch64-linux-gnu-g++
+
+        # GStreamer ARM64 plugin scanner
         export GST_PLUGIN_SCANNER=/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/`
                 `gst-plugin-scanner
 
-        DEB_BUILD_OPTIONS=parallel=$(nproc) debian/rules build binary || {
-            print-red "FAILED: qimsdk-debian-rules-build: debian/rules build failed !!!"
-            return -1
+        fakeroot debian/rules build binary || {
+            echo "FAILED: qimsdk-debian-rules-build: debian/rules build failed!"
+            return 1
         }
 
         # Install debian packages from patched and built gst-plugins-base and gst-plugins-good
         # Installing is done through dpkg instead of apt as dependencies of these packages has
-        #   already been installed through 'apt-get build-dep' in qimsdk-build image setup
+        #   already been installed through 'apt-get build-dep -a arm64' in qimsdk_build image setup
         # They need to be installed in build image environment as compilation of QTI plugins depend
         #   on these packages' outputs being present in the system
         dpkg -i ${QIMSDK_DOWNLOAD_DIR}/gstreamer1.0-*.deb                                          \
                 ${QIMSDK_DOWNLOAD_DIR}/libgstreamer-*.deb                                          \
                 ${QIMSDK_DOWNLOAD_DIR}/gir1.2-gst-*.deb || {
-            print-red "FAILED: qimsdk-debian-rules-build: dpkg install to root failed !!!"
-            return -1
+            echo "FAILED: qimsdk-debian-rules-build: dpkg installation failed!"
+            return 1
         }
+
+        echo "=== DONE: ARM64 build completed ==="
     )
 }
 
@@ -277,6 +296,9 @@ function qimsdk-cmake-clean-camera-service () {
 qimsdk-cmake-build-abseil-cpp() {
     qimsdk-cmake-build ${QIMSDK_ABSEIL_CPP_DIR} /usr `
             `-DABSL_USE_GOOGLETEST_HEAD=OFF `
+            `-DCMAKE_SYSTEM_NAME=Linux `
+            `-DCMAKE_SYSTEM_PROCESSOR=aarch64 `
+            `-DABSL_BUILD_TESTING=OFF `
             `-DABSL_RUN_TESTS=OFF                                                               && \
         print-green "${FUNCNAME} completed successfully!"
 }
