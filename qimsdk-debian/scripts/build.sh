@@ -71,8 +71,6 @@ function qimsdk-cmake-configure() {
         export CXXFLAGS="${CFLAGS}"
 
         local CMAKE_FLAGS="-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON `
-                `-DSYSROOT_INCDIR=/usr/include `
-                `-DSYSROOT_LIBDIR=/usr/lib `
                 `-DCMAKE_INSTALL_DATAROOTDIR=share `
                 `-DCMAKE_INSTALL_PREFIX=/usr `
                 `-DCMAKE_INSTALL_INCLUDEDIR=include `
