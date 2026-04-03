@@ -19,13 +19,6 @@ RUN echo "[url \"file:///mnt/work/download/repo/camera-service\"]               
         insteadOf = https://github.com/qualcomm/camera-service.git"                                \
         >> /etc/gitconfig
 
-# meta-qti-gst: Add
-COPY tmp/meta-qti-gst /mnt/work/download/repo/meta-qti-gst
-
-RUN echo "[url \"file:///mnt/work/download/repo/meta-qti-gst\"]                                    \
-        insteadOf = https://git.codelinaro.org/clo/le/meta-qti-gst.git"                            \
-        >> /etc/gitconfig
-
 # gst-plugins-imsdk: Add
 COPY tmp/gst-plugins-imsdk /mnt/work/download/repo/gst-plugins-imsdk
 

@@ -9,16 +9,14 @@
 #   $3 - (mandatory) variable to take image name value
 #   $4 - (mandatory) variable to take camera-service sources of SP
 #   $5 - (mandatory) variable to take Gstreamer sources of SP
-#   $6 - (mandatory) variable to take Gstreamer meta of SP
-#   $7 - (mandatory) variable to take QAIRT SDK version
+#   $6 - (mandatory) variable to take QAIRT SDK version
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
     local -n OUT_QIMSDK_IMAGE_NAME=${3}
     local -n OUT_QIMSDK_CAMERA_SERVICE_SOURCES=${4}
     local -n OUT_QIMSDK_GST_SOURCES=${5}
-    local -n OUT_QIMSDK_GST_META=${6}
-    local -n OUT_QIMSDK_QAIRT_SDK_VERSION=${7}
+    local -n OUT_QIMSDK_QAIRT_SDK_VERSION=${6}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ]                                                           && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -72,18 +70,6 @@ function qimsdk-docker-parse-json() {
         return -1
     }
 
-    OUT_QIMSDK_GST_META=$(echo ${JSON_CONTENT} | jq '.IM_SDK_Meta_Dir' | tr -d '"')
-    OUT_QIMSDK_GST_META=${OUT_QIMSDK_GST_META%/}
-
-    qimsdk-expand-tilde OUT_QIMSDK_GST_META
-
-    [ -d "${OUT_QIMSDK_GST_META}/.git" ]                                                        || \
-            [ -d "${OUT_QIMSDK_GST_META}/recipes-gst/gstreamer" ]                               || {
-        print-red "Please provide path to meta-qti-gst directory in config json!!!"
-        print-red "Directory currently provided: ${IM_SDK_Meta_Dir}"
-        return -1
-    }
-
     OUT_QIMSDK_QAIRT_SDK_VERSION=$(echo ${JSON_CONTENT} |  jq '.QAIRT_SDK_version' | tr -d '"')
 
     return 0
@@ -109,14 +95,12 @@ function qimsdk-docker-build-initialize() {
 
     local QIMSDK_CAMERA_SERVICE_SOURCES
     local QIMSDK_GST_SOURCES
-    local QIMSDK_GST_META
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
             QIMSDK_CONTAINER_NAME_PTR                                                              \
             QIMSDK_IMAGE_NAME_PTR                                                                  \
             QIMSDK_CAMERA_SERVICE_SOURCES                                                          \
             QIMSDK_GST_SOURCES                                                                     \
-            QIMSDK_GST_META                                                                        \
             QIMSDK_QAIRT_SDK_VERSION_PTR                                                        || {
         print-red "FAILED: qimsdk-docker-parse-json !!!"
         return -1
@@ -149,14 +133,8 @@ function qimsdk-docker-build-initialize() {
         return -1
     }
 
-    git -C ${QIMSDK_GST_META} branch | grep -q "imsdk.lnx.2.0.0"                                || {
-        print-red "ERROR: ${QIMSDK_GST_META} does not contain local branch: imsdk.lnx.2.0.0 !!!"
-        return -1
-    }
-
     rsync -aL ${QIMSDK_CAMERA_SERVICE_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/camera-service         && \
-            rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-imsdk         && \
-            rsync -aL ${QIMSDK_GST_META}/ ${QIMSDK_TMP_FOLDER_PTR}/meta-qti-gst
+            rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-imsdk
 }
 
 # Qimsdk build qimsdk-debian deploy docker image

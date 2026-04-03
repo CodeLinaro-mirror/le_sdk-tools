@@ -7,7 +7,6 @@
 
     "camera_service_Source_Dir" : "<path-to-camera-service-dir>",
     "IM_SDK_Source_Dir" : "<path-to-gst-plugins-imsdk-dir>",
-    "IM_SDK_Meta_Dir" : "<path-to-meta-qti-gst>",
 
     "MAP_sources_to_dev_container" : "FALSE"
 }
