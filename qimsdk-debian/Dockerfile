@@ -166,15 +166,6 @@ COPY cmake ${QIMSDK_DOWNLOAD_DIR}/cmake
 ENV QIMSDK_SRC_DIR=${QIMSDK_BASE_DIR}/src
 ENV QIMSDK_PATH_TO_GST_META=${QIMSDK_SRC_DIR}/meta-qti-gst
 
-# media: fetch and propagate needed camera_metadata headers (camera-service dependency)
-RUN git clone --progress https://android.googlesource.com/platform/system/media.git                \
-        --single-branch --branch main ${QIMSDK_DOWNLOAD_DIR}/media                              && \
-    sed -i '\|#include <cutils/compiler\.h>|d'                                                     \
-        ${QIMSDK_DOWNLOAD_DIR}/media/camera/include/system/camera_metadata.h                    && \
-    sed -i '\|ANDROID_API|d'                                                                       \
-        ${QIMSDK_DOWNLOAD_DIR}/media/camera/include/system/camera_metadata.h                    && \
-    rsync -a ${QIMSDK_DOWNLOAD_DIR}/media/camera/include/system /usr/include/
-
 # Build qcom-libdmabufheap
 RUN cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
     cd $(ls -d qcom-libdmabufheap-* | head -n1)                                                 && \
