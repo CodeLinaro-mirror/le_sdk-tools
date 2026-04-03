@@ -47,7 +47,7 @@ RUN apt-get update                                                              
             libgstrtspserver-1.0-dev:arm64 libmosquitto-dev:arm64 libcairo-dev:arm64               \
             libjson-glib-dev:arm64 libhiredis-dev:arm64 libgstreamer-plugins-bad1.0-dev:arm64      \
             libdrm-dev:arm64 libgraphene-1.0-dev:arm64 opencl-headers:arm64                     && \
-    apt-get build-dep -a arm64 -y gst-plugins-base1.0 gst-plugins-good1.0                       && \
+    apt-get build-dep -a arm64 -y gst-plugins-base1.0 gst-plugins-good1.0 gst-plugins-bad1.0    && \
     apt -y upgrade                                                                              && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
@@ -89,10 +89,10 @@ RUN install -d -m 0755 /etc/apt/keyrings                                        
     echo "deb-src [signed-by=/etc/apt/keyrings/qcom-ppa.gpg] https://ppa.launchpadcontent.net/ubuntu-qcom-iot/qcom-ppa/ubuntu noble main" \
             > /etc/apt/sources.list.d/qcom-ppa-src.list
 
-# Update and clean, fetch dma buf heap and GStreamer base and good plugins
+# Update and clean, fetch dma buf heap and GStreamer base, good and bad plugins
 RUN DEBIAN_FRONTEND=noninteractive apt-get update                                               && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    apt source gst-plugins-base1.0 gst-plugins-good1.0 qcom-libdmabufheap                       && \
+    apt source gst-plugins-base1.0 gst-plugins-good1.0 gst-plugins-bad1.0 qcom-libdmabufheap    && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
     rm -rf /var/lib/apt/lists* /var/tmp/*
@@ -127,6 +127,21 @@ RUN GST_PLUGINS_GOOD_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good*    
     git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-${GST_PLUGINS_GOOD_VERSION}                  \
             commit -m "Initial Plugins Good Commit"                                             && \
     echo "export GST_PLUGINS_GOOD_VERSION=${GST_PLUGINS_GOOD_VERSION}" >> /root/.bashrc
+
+RUN GST_PLUGINS_BAD_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad*                         \
+            -maxdepth 1 -type d | head -1 | sed 's/.*-//')                                      && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION} init            && \
+    git config --global --add safe.directory                                                       \
+            ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}                && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}                    \
+            config --global user.name "username"                                                && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}                    \
+            config --global user.email "email"                                                  && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}                    \
+            add --all                                                                           && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}                    \
+            commit -m "Initial Plugins Bad Commit"                                              && \
+    echo "export GST_PLUGINS_BAD_VERSION=${GST_PLUGINS_BAD_VERSION}" >> /root/.bashrc
 
 # Clone Tensorflow Lite
 ENV QIMSDK_TF_LITE_MAJOR="2"
@@ -164,7 +179,7 @@ COPY cmake ${QIMSDK_DOWNLOAD_DIR}/cmake
 
 # Initialize environment variables
 ENV QIMSDK_SRC_DIR=${QIMSDK_BASE_DIR}/src
-ENV QIMSDK_PATH_TO_GST_META=${QIMSDK_SRC_DIR}/meta-qti-gst
+ENV QIMSDK_PATH_TO_GST_META=${QIMSDK_SRC_DIR}/gst-qti-oss-patches
 
 # Build qcom-libdmabufheap
 RUN cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
@@ -205,9 +220,9 @@ RUN cd "${QIMSDK_DOWNLOAD_DIR}"                                                 
 RUN git clone --progress https://github.com/qualcomm/camera-service.git                            \
         --single-branch --branch main ${QIMSDK_SRC_DIR}/camera-service
 
-# meta-qti-gst: fetch
-RUN git clone --progress https://git.codelinaro.org/clo/le/meta-qti-gst.git                        \
-        --single-branch --branch imsdk.lnx.2.0.0 ${QIMSDK_SRC_DIR}/meta-qti-gst
+# gst-qti-oss-patches: fetch
+RUN git clone --progress https://github.com/qualcomm/gst-qti-oss-patches.git --single-branch       \
+        --branch 1.26.2 ${QIMSDK_SRC_DIR}/gst-qti-oss-patches
 
 # qnp-sdk: fetch and copy the needed headers
 ARG QIMSDK_ARG_QNP_VERSION

@@ -66,7 +66,8 @@ function qimsdk-apply-patch() {
 # Wrapper function to apply qti patches to all needed opensource libs
 function qimsdk-apply-patches() {
     qimsdk-apply-patches-gst-plugins-base                                                       && \
-            qimsdk-apply-patches-gst-plugins-good
+            qimsdk-apply-patches-gst-plugins-good                                               && \
+            qimsdk-apply-patches-gst-plugins-bad
 }
 
 # Apply patches to gst-plugins-base
@@ -78,8 +79,7 @@ function qimsdk-apply-patches-gst-plugins-base() {
     }
 
     (
-        local PATH_TO_PATCHES="${QIMSDK_PATH_TO_GST_META}/`
-                `recipes-gst/gstreamer/gstreamer1.0-plugins-base/${GST_PLUGINS_BASE_VERSION}/"
+        local PATH_TO_PATCHES="${QIMSDK_PATH_TO_GST_META}/gstreamer1.0-plugins-base/"
 
         [ ! -d ${PATH_TO_PATCHES} ]                                                             && {
             print-red "gstreamer-plugins-base's patches NOT found in  ${PATH_TO_PATCHES} !!!"
@@ -104,8 +104,7 @@ function qimsdk-apply-patches-gst-plugins-good() {
     }
 
     (
-        local PATH_TO_PATCHES="${QIMSDK_PATH_TO_GST_META}/`
-                `recipes-gst/gstreamer/gstreamer1.0-plugins-good/${GST_PLUGINS_GOOD_VERSION}/"
+        local PATH_TO_PATCHES="${QIMSDK_PATH_TO_GST_META}/gstreamer1.0-plugins-good/"
 
         [ ! -d ${PATH_TO_PATCHES} ]                                                             && {
             print-red "gstreamer-plugins-good's patches NOT found in ${PATH_TO_PATCHES}!!!"
@@ -113,6 +112,30 @@ function qimsdk-apply-patches-gst-plugins-good() {
         }
 
         cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-${GST_PLUGINS_GOOD_VERSION}
+
+        for PATCH in ${PATH_TO_PATCHES}*.patch; do
+            qimsdk-apply-patch ${PATCH} || return -1
+        done
+    )
+}
+
+# Apply patches to gst-plugins-bad
+function qimsdk-apply-patches-gst-plugins-bad() {
+    [ ! -d "${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}" ]           && {
+        echo "No such file or directory: ${QIMSDK_DOWNLOAD_DIR}/`
+                `gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION} !"
+        return -1
+    }
+
+    (
+        local PATH_TO_PATCHES="${QIMSDK_PATH_TO_GST_META}/gstreamer1.0-plugins-bad/"
+
+        [ ! -d ${PATH_TO_PATCHES} ]                                                             && {
+            print-red "gstreamer-plugins-bad's patches NOT found in  ${PATH_TO_PATCHES} !!!"
+            return -1
+        }
+
+        cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}
 
         for PATCH in ${PATH_TO_PATCHES}*.patch; do
             qimsdk-apply-patch ${PATCH} || return -1

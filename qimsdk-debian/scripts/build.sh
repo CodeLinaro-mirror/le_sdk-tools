@@ -261,6 +261,14 @@ qimsdk-debian-rules-build-gst-plugins-good() {
     )
 }
 
+# debian/rules build gst-plugins-bad
+qimsdk-debian-rules-build-gst-plugins-bad() {
+    (
+        cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}
+        qimsdk-debian-rules-build
+    )
+}
+
 # Clean gst-plugins-base
 function qimsdk-debian-rules-clean-gst-plugins-base() {
     (
@@ -275,6 +283,16 @@ function qimsdk-debian-rules-clean-gst-plugins-base() {
 function qimsdk-debian-rules-clean-gst-plugins-good() {
     (
         cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-${GST_PLUGINS_GOOD_VERSION}
+        DEB_BUILD_OPTIONS=parallel=$(nproc) debian/rules clean
+    )
+
+    print-green "${FUNCNAME} completed successfully!"
+}
+
+# Clean gst-plugins-bad
+function qimsdk-debian-rules-clean-gst-plugins-bad() {
+    (
+        cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}
         DEB_BUILD_OPTIONS=parallel=$(nproc) debian/rules clean
     )
 
@@ -432,6 +450,7 @@ function qimsdk-cmake-clean-gst-plugins-imsdk() {
 function qimsdk-incremental-build() {
     qimsdk-debian-rules-build-gst-plugins-base                                                  && \
             qimsdk-debian-rules-build-gst-plugins-good                                          && \
+            qimsdk-debian-rules-build-gst-plugins-bad                                           && \
             qimsdk-cmake-build-camera-service                                                   && \
             qimsdk-cmake-build-abseil-cpp                                                       && \
             qimsdk-cmake-build-flatbuffers-v24-3-25                                             && \
