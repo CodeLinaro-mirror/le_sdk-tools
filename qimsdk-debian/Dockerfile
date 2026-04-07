@@ -97,6 +97,13 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update                               
     apt-get clean                                                                               && \
     rm -rf /var/lib/apt/lists* /var/tmp/*
 
+# Install additional dependencies required by some gstreamer plugins: (NOTE: This needs to be done
+#   separately, otherwise installation of these packages breaks.)
+#   gst-plugin-msgbroker:          librdkafka-dev
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y librdkafka-dev:arm64    && \
+    apt-get clean                                                                               && \
+    rm -rf /var/lib/apt/lists* /var/tmp/*
+
 # Automatically save gst source package version and set up gst source directories
 RUN GST_PLUGINS_BASE_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base*                       \
             -maxdepth 1 -type d | head -1 | sed 's/.*-//')                                      && \
