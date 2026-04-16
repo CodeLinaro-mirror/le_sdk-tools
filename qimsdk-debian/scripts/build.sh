@@ -403,7 +403,21 @@ function qimsdk-cmake-clean-tflite() {
 function qimsdk-cmake-build-gst-plugins-imsdk() {
     local IS_QNP_ENABLED=$( [ -n "${QIMSDK_ARG_QNP_VERSION:-}" ] && echo ON || echo OFF )
 
+    # Build the plugins base in a separate directory to ensure usage of the installed headers
+    #   located in /usr/include during the plugin build process.
+    # In Yocto, the plugins base is also built first as a separate recipe.
+
+    # Sync code in new repo for base
+    mkdir -p ${QIMSDK_SRC_DIR}/gst-plugins-imsdk-base                                           && \
+    rsync -aP ${QIMSDK_SRC_DIR}/gst-plugins-imsdk/* ${QIMSDK_SRC_DIR}/gst-plugins-imsdk-base/   && \
+
+    # Build only qti plugins base
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-imsdk-base /usr `
+            `-DENABLE_GST_PLUGIN_BASE=ON && \
+
+    # Build qti plugins
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-imsdk /usr `
+            `-DENABLE_GST_PLUGIN_BASE=ON `
             `-DENABLE_GST_PLUGIN_VCOMPOSER=ON `
             `-DENABLE_GST_PLUGIN_BATCH=ON `
             `-DENABLE_GST_PLUGIN_METAMUX=ON `
@@ -441,7 +455,8 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
 
 # Clean gst-plugins-imsdk
 function qimsdk-cmake-clean-gst-plugins-imsdk() {
-    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-imsdk
+    # Remove both the plugins base and plugins build directories.
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-imsdk ${QIMSDK_BUILD_DIR}/gst-plugins-imsdk-base
 
     print-green "${FUNCNAME} completed successfully!"
 }
