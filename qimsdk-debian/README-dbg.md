@@ -46,7 +46,7 @@
 
 ### Ubuntu Version
 
-Ubuntu 22.04 or 24.04 is required for host ARM system
+Ubuntu 22.04 or 24.04 is required for host system OS
 
 <div id="Ubuntu_Packages">
 
@@ -54,10 +54,23 @@ Ubuntu 22.04 or 24.04 is required for host ARM system
 
 Prerequisite packages must be installed on the host (one time)
 
+Prerequisite packages for arm architecture build systems:
+
 ```bash
 sudo apt install -y jq tofrodos
 sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
 sudo chmod +x /usr/bin/yq
+```
+
+Prerequisite packages for x86 architecture build systems:
+
+```bash
+sudo apt install -y jq tofrodos qemu-user-static qemu-system-arm
+sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+sudo chmod +x /usr/bin/yq
+wget http://archive.ubuntu.com/ubuntu/pool/universe/q/qemu/qemu-user-static_6.2+dfsg-2ubuntu6_amd64.deb
+sudo dpkg -i qemu-user-static_6.2+dfsg-2ubuntu6_amd64.deb
+rm qemu-user-static_6.2+dfsg-2ubuntu6_amd64.deb
 ```
 
 <h3 style="color:red">
@@ -77,12 +90,12 @@ sudo systemctl stop snapd
 
 Goto [Ubuntu Packages](#Ubuntu_Packages) and try to install yq with the instructions mentioned in Ubuntu Packages
 
-
 <div id="Max_user_watches">
 
 ### Max user watches and max user instances must be increased on the host system
 
-**Add these two lines to */etc/sysctl.conf* and reboot the PC**
+This is done to prevent "System limit for number of file watchers reached" error during development. Default system limits are too low.
+**Add these two lines to */etc/sysctl.conf* and reboot the PC:**
 
 ```bash
 fs.inotify.max_user_instances=8192
@@ -125,7 +138,7 @@ sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli
 ```
 
-#### Add User to Docker Group
+#### Add User to Docker Group in order to have access to docker daemon (to build images, see containers etc.)
 
 ```bash
 sudo groupadd docker
@@ -161,6 +174,8 @@ sudo systemctl restart docker
 
 ### Proxy. (optional)
 
+If any sort of network download or otherwise functionality on the host machine requires proxy, same proxy config can be added to the docker daemon in the following way:
+
 #### Note: Using a tab instead of space and other invisible whitespace characters may break the proper work of json configuration files and later may lead to 'docker.service failed to start' error.
 
 1. Add corresponding *http-proxy-url*, *https-proxy-url* and *no-proxy-url* values in the tag "http-proxy", *https-proxy* and *no-proxy* in: /etc/docker/daemon.json
@@ -190,6 +205,8 @@ export http_proxy=<http-proxy-url>
 export https_proxy=<https-proxy-url>
 export no_proxy=<no-proxy-url>
 ```
+
+This configuration ensures that both the Docker daemon and build processes use the same proxy settings as the host system.
 
 ***Please note that until PC reboot, *newgrp docker* should be invoked on every new console open***
 
@@ -224,15 +241,24 @@ sudo ls /var/lib/docker/
 service docker start
 ```
 
-***Restart all containers after moving docker directory***
+***All containers will need to be restarted after moving docker directory since docker service was stopped***
+
+```bash
+# Command to see all container names; <container_name> will be under the 'NAMES' coloumn
+docker ps -a
+# To start any of the listed containers
+docker start <container_name>
+```
 
 <div id="Docker_Images">
 
 ## Docker Images
 
-Two QIMSDK docker images are built. One for development. One for device target.
+Two QIMSDK docker images are built. One for development machine. One for device target.
 - They are based on debian trixie images
-- A Third QIMSDK debug image is only used when working in an environment which requires continuous development.
+- The first image - [QIMSDK Build Image](#QIMSDK_Build_Image) is used to build the IMSDK components and fetch and build any buildtime dependencies and to generate the final IMSDK packages.
+- The second image - [QIMSDK Deploy Image](#QIMSDK_Deploy_Image) contains the final IMSDK package for the target device. It contains only the required runtime libraries and binaries needed for IMSDK use-cases.
+- A third [QIMSDK Debug Image](#QIMSDK_Debug_Image) is only used when working in an environment which requires continuous development. This is done in order to enable the ability to select what code is compiled, instead of just compiling the tips of the mainline branches of the according projects
 
 <div id="QIMSDK_Debug_Image">
 
@@ -246,7 +272,7 @@ Two QIMSDK docker images are built. One for development. One for device target.
 
 <div id="QIMSDK_Build_Image">
 
-### QIMSDK Build Image (based on host arm64 architecture)
+### QIMSDK Build Image (based on host architecture)
 1. Start from Debian Trixie
 2. Add deb-src for everything
 3. Install build time dependencies, needed for gst-plugins-imsdk compilation
@@ -266,7 +292,7 @@ Two QIMSDK docker images are built. One for development. One for device target.
 
 <div id="QIMSDK_Deploy_Image">
 
-### QIMSDK Deploy Image
+### QIMSDK Deploy Image (based on target arm64 architecture)
 1. Start from base debian:trixie image
 2. Install runtime dependency Open Source packages to deploy image
 3. Add QCOM PPA and install QCOM dependencies
@@ -295,9 +321,9 @@ In qimsdk-debian project, two configuration json files are used:
 Config json files *(config.json)* must contain the following data:
  1. ***MANDATORY*** - **Additional_tag_container** - Additional tag for debug container - allows for personalization of the names of the docker containers according to their purpose - allows to avoid container conflict if more than one user on the same machine.
  2. ***MANDATORY*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose - allows to avoid image conflicts if more than one user on the same machine.
- 3. ***MANDATORY*** - **Docker_image_path** - Remote ssh destination or local path to sync docker images or artifacts
+ 3. ***MANDATORY*** - **Docker_image_path** - Absolute path to remote ssh or local destination to sync docker images or artifacts.
  4. ***MANDATORY*** -  **Target_device_ID** - adb device ID of the target device qimsdk is to be installed on. Any faux value can still be provided and compilation will carry on.
- 5. ***OPTIONAL*** -  **QAIRT_SDK_version** - Version of the Qualcomm AI Runtime SDK to be used in the container.
+ 5. ***OPTIONAL*** -  **QAIRT_SDK_version** - Version of the Qualcomm AI Runtime SDK to be used in the container. If field is left open - QAIRT functionalities will be disabled.
  6. ***MANDATORY*** - **camera_service_Source_Dir** - PATH to camera-service sources directory, which contains open-source repo needed to enable camera functionality.
  7. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-imsdk directory! Code checked out on local branch main will be built. Ensure desired code is checked out on main branch before proceeding with debug variant QIMSDK build!***
  8. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir is wanted to be mapped to the build container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
@@ -649,9 +675,14 @@ Device Container can be renamed by using the "Additional_tag_container" in *conf
 
 ## Release Variant - Manual Commands Instead Of Scripts
 
-In Release variant, qimsdk-debian build image can directly compile gst plugin code from github. After, gst plugins, together with dependencies can be propagated to deploy image and installed on device to run qimsdk-debian deploy container
+In the Release variant, the QIMSDK Debian build process follows a streamlined approach:
 
-In that case, the intermediate QIMSDK Debug Image is not built, and QIMSDK Deploy Image is not altered to use custom code provided by the user.
+1. The qimsdk-debian build image directly compiles GStreamer plugins from their GitHub repositories
+2. The compiled GStreamer plugins and their dependencies are then propagated to the deploy image
+3. The deploy image is installed on the target device
+4. The qimsdk-debian deploy container runs on the device with all required components
+
+This approach eliminates the need for intermediate debug images and does not require custom code modifications, making it suitable for production deployments where standard upstream code is preferred.
 
 <div id="Docker_Build">
 
