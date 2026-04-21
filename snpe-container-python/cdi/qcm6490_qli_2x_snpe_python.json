@@ -1,0 +1,36 @@
+{
+  "cdiVersion": "1.1.0",
+  "kind": "qualcomm.com/device",
+  "devices": [
+    {
+      "name": "snpe_python",
+      "containerEdits": {
+        "deviceNodes": [
+          {
+            "path": "/dev/fastrpc-cdsp",
+            "type": "c"
+          },
+          {
+            "path": "/dev/fastrpc-cdsp-secure",
+            "type": "c"
+          },
+          {
+            "path": "/dev/kgsl-3d0",
+            "type": "c"
+          },
+          {
+            "path": "/dev/dma_heap/system",
+            "type": "c"
+          }
+        ],
+        "mounts": [
+          {
+            "hostPath": "/usr/share/qcom/qcm6490/Thundercomm/RB3gen2/dsp/cdsp/fastrpc_shell_unsigned_3",
+            "containerPath": "/usr/lib/dsp/cdsp/fastrpc_shell_unsigned_3",
+            "options": ["rbind"]
+          }
+        ]
+      }
+    }
+  ]
+}

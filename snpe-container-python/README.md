@@ -34,7 +34,7 @@ The docker build generates device image on host files system. The device image c
 
 ### Ubuntu Version
 
-Ubuntu 18.04 or Ubuntu 20.04 or Ubuntu 22.04 is required for host file system
+Ubuntu 22.04 or Ubuntu 24.04 is required for host file system
 
 <div id="Ubuntu_Packages">
 
@@ -198,6 +198,7 @@ The json file must contain certain data :
 
  1. ***MANDATORY*** - **SNPE_version** - SDK Version for SNPE to be downloaded and installed. Example Value `"v2.25.0.240728"`
  2. ***MANDATORY*** - **Base_Image** - Base docker image to be used on the device
+   (Debian:trixie-slim is recommended)
  ***PATH MUST BE ABSOLUTE, DO NOT USE A RELATIVE PATH!***
  3. ***MANDATORY*** - **Target_platform** - Target device platform, which can be kalama or qcs6490 or qrb5165 or klm, etc.
  4. ***OPTIONAL*** - **Additional_tag_container** - Additional tag for container - allows for personalization of the names of the docker containers according to their purpose (to not set an additional tag just leave the value for this field empty)
@@ -302,6 +303,13 @@ qml-device-prepare
 
 ### Continuous Development After Initial Setup
 
+#### SNPE binaries installation (Optional)
+
+By default SNPE validation tools are not installed in the image. Add the following line to the "Docker Runtime Image" for SNPE binaries installation.
+```
+cp -a ${QML_ARG_BASE_DIR}/deploy/snpe/usr/bin/. /usr/bin/ ;
+```
+
 #### Compiling Device Docker Image
 
 ```bash
@@ -370,6 +378,16 @@ qml-docker-device-save-image <path-to-config-json>
 ```
 
 Load docker image and run the container on remote machine with device connected to it
+
+***NOTE: Ensure proper CDI json, which contains all of the needed platform mountings for the specific platform, is copied to /etc/cdi in device storage, before running the snpe container. CDI json for the specific hardware and platform is located in snpe-python-container/cdi/\<hardware\>_\<platform\>_snpe_python.json***
+
+For example, if working on qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be snpe-python-container/cdi/qcs6490_qli_1x_snpe_python.json
+
+```bash
+### push corresponding CDI json to the device
+adb push snpe-container-python/cdi/qcs6490_qli_1x_snpe_python.json /etc/cdi/
+```
+
 
 ```bash
 # Remote machine with device connected to it

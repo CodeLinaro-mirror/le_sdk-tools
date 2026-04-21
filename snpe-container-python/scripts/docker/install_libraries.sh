@@ -52,15 +52,18 @@ function qml-install-libraries-snpe() {
 
     local ACCELERATION_ENGINE_PATH="${QML_BASE_DIR}/downloads/qairt/${SDK_VER}"
 
-    cp ${ACCELERATION_ENGINE_PATH}/lib/${TARGET_ACCELERATION_ENGINE_LIBRARY}/* /deploy/snpe/usr/lib/
-    cp ${ACCELERATION_ENGINE_PATH}/bin/${TARGET_ACCELERATION_ENGINE_LIBRARY}/* /deploy/snpe/usr/bin/
+    find ${ACCELERATION_ENGINE_PATH}/lib/${TARGET_ACCELERATION_ENGINE_LIBRARY} \
+        -maxdepth 1 -type f -iname '*snpe*' \
+        -exec cp {} ${QML_INSTALL_DIR}/snpe/usr/lib/ \;
+
+    cp ${ACCELERATION_ENGINE_PATH}/bin/${TARGET_ACCELERATION_ENGINE_LIBRARY}/* ${QML_INSTALL_DIR}/snpe/usr/bin/
 
     if [[ "${TARGET_HEXAGON_LIBRARY_VERSION}" == "klm" ]]; then
-        cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v68/unsigned/lib* /deploy/snpe/usr/lib/rfsa/adsp/
-        cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v73/unsigned/lib* /deploy/snpe/usr/lib/rfsa/adsp/
-        cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v75/unsigned/lib* /deploy/snpe/usr/lib/rfsa/adsp/
+        cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v68/unsigned/lib* ${QML_INSTALL_DIR}/snpe/usr/lib/rfsa/adsp/
+        cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v73/unsigned/lib* ${QML_INSTALL_DIR}/snpe/usr/lib/rfsa/adsp/
+        cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v75/unsigned/lib* ${QML_INSTALL_DIR}/snpe/usr/lib/rfsa/adsp/
     else
-        cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-${TARGET_HEXAGON_LIBRARY_VERSION}/unsigned/lib* /deploy/snpe/usr/lib/rfsa/adsp/
+        cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-${TARGET_HEXAGON_LIBRARY_VERSION}/unsigned/lib* ${QML_INSTALL_DIR}/snpe/usr/lib/rfsa/adsp/
     fi
 
     return 0
@@ -79,7 +82,7 @@ function qml-download-models-snpe() {
         echo "FAILED: to unzip models.zip"
         return $rc
     }
-    cp ${QML_BASE_DIR}/downloads/deeplabv3_resnet50.dlc /deploy/snpe/opt
+    cp ${QML_BASE_DIR}/downloads/deeplabv3_resnet50.dlc ${QML_INSTALL_DIR}/snpe/opt
 
     return 0
 }
