@@ -532,7 +532,8 @@ function qimsdk-generate-docker-run-cmd() {
 
     QIMSDK_DOCKER_RUN_CMD_ARGUMENTS+="-v /dev/socket/weston:/dev/socket/weston "
 
-    echo "docker run -it -d --net host ${QIMSDK_DOCKER_RUN_CMD_ARGUMENTS}                          \
+    echo "docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env                       \
+            --device qualcomm.com/device=qimsdk ${QIMSDK_DOCKER_RUN_CMD_ARGUMENTS}                 \
             ${USER_SPECIFIC_MAP} ${USER_LIBS_TO_MOUNT} ${USER_EXPORTS} ${TARGET_EXPORTS}           \
             -h ${CONTAINER_NAME} --user qimsdk --name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}
 
