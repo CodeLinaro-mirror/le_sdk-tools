@@ -19,9 +19,18 @@
 
 ## QIMSDK Docker Images
 
-Two QIMSDK docker images are built. One for target GStreamer multimedia framework binary compilation. One for device target GStreamer runtime use.
-- Build image (qimsdk_build) is based on an debian trixie image, which is based on host architecture.
-- Deploy image (qimsdk_deploy_arm64) is based on a arm64 debian:trixie OS docker image.
+Two QIMSDK Docker images are provided:
+
+- Build Image (qimsdk_build):
+  - Based on Debian Trixie
+  - Matches the host architecture
+  - Handles GStreamer multimedia framework compilation
+
+- Deploy Image (qimsdk_deploy_arm64):
+  - Based on Debian Trixie
+  - Specifically for ARM64 architecture
+  - Contains only the necessary runtime components for target devices
+This separation allows for efficient development on the host system while ensuring proper deployment to ARM64-based target devices.
 
 <div id="qimsdk_build">
 
