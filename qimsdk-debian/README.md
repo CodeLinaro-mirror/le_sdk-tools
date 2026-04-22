@@ -154,10 +154,20 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
 
 ### Running the qimsdk deploy container
 
-In order to run the qimsdk container with GStreamer functionalities inside, it must be run from the qimsdk_deploy_arm64 image built earlier, container needs to be ran with 'host' network mode. GPU devices, video devices, and other needed user volumes need to be mounted as such:
+In order to run the qimsdk container with GStreamer functionalities inside, it must be run from the qimsdk_deploy_arm64 image built earlier, container needs to be ran with 'host' network mode. GPU devices, video devices, and other needed user volumes need to be mounted. CDI json for the specific platform contains all of these needed platform mountings. Because of the basic design principles of Docker, an .env file is needed for the environment variables inside device container as well.
+
+CDI files are located in: qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json;
+The CDI file needed for the specific hardware platform needs to be copied to /etc/cdi/ directory in device storage. (Create directory if it does not exist)
+
+.env files are located in: qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env;
+The .env file needed for the specific hardware platform needs to be copied to /etc/docker/env/ directory in device storage. (Create directory if it does not exist)
+
+Command to run the qimsdk device deploy container:
 
 ```bash
-docker run -it -d --net host --device /dev/video0 --device /dev/video1 --device /dev/video2 --device /dev/video3 --device /dev/dri/card0 --device /dev/dri/renderD128 --device /dev/dma_heap -v /run/user/1000:/run/user/1000 -v /etc/OpenCL/vendors:/etc/OpenCL/vendors -v /etc/labels:/etc/labels -v /etc/media:/etc/media -v /etc/models:/etc/models -h qimsdk --name qimsdk <desired-image-name>
+adb push qimsdk-debian/cdi/<hardware>-<platform>-qimsdk.json /etc/cdi/qimsdk.json
+adb push qimsdk-debian/env/<hardware>-<platform>-qimsdk.env /etc/docker/env/qimsdk.env
+docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env --device qualcomm.com/device=qimsdk -h qimsdk --name qimsdk <desired-image-name>
 ```
 
 <div id="Using_the_container">
