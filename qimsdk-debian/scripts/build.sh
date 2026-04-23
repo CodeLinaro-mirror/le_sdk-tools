@@ -449,7 +449,8 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
             `-DENABLE_GST_PLUGIN_MSGBROKER=ON `
             # TODO remove VHDR_MODES_ENABLE after qmmf src is cleaned up from compile time flags
             `-DVHDR_MODES_ENABLE=ON `
-            `-DENABLE_GST_PLUGIN_QMMFSRC=ON                                                     && \
+            `-DENABLE_GST_PLUGIN_QMMFSRC=ON `
+            `-DENABLE_GST_PLUGIN_SMARTVENCBIN=ON                                                && \
         print-green "${FUNCNAME} completed successfully!"
 }
 
