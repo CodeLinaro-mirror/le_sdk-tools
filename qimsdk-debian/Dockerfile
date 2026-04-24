@@ -225,7 +225,8 @@ RUN cd "${QIMSDK_DOWNLOAD_DIR}"                                                 
             --prefix="${PREFIX}"                                                                   \
             --libdir="${LIBDIR}"                                                                && \
     make -j"$(nproc)"                                                                           && \
-    make install
+    cp ./src/.libs/libcdsprpc.so* ${QIMSDK_INSTALL_DIR}/usr/lib/                                && \
+    aarch64-linux-gnu-strip ${QIMSDK_INSTALL_DIR}/usr/lib/libcdsprpc.so*
 
 # camera-service: fetch
 RUN git clone --progress https://github.com/qualcomm/camera-service.git                            \
@@ -242,7 +243,7 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
     else                                                                                           \
         export QIMSDK_QNP_SDK=v${QIMSDK_ARG_QNP_VERSION}.zip                                    && \
         export QIMSDK_QNN_LIB_PATH=${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_VERSION}/lib/  && \
-        wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                  \
+        wget -t 10 -T 3600 -P ${QIMSDK_DOWNLOAD_DIR}                                               \
         https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/${QIMSDK_ARG_QNP_VERSION}/${QIMSDK_QNP_SDK} && \
         cd ${QIMSDK_DOWNLOAD_DIR}                                                               && \
         unzip ${QIMSDK_QNP_SDK}                                                                 && \
@@ -328,7 +329,8 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
         cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSnpeHtpV73Stub.so                    \
             ${QIMSDK_INSTALL_DIR}/usr/lib/                                                      && \
         cp ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libSNPE.so                              \
-            ${QIMSDK_INSTALL_DIR}/usr/lib/;                                                        \
+            ${QIMSDK_INSTALL_DIR}/usr/lib/                                                      && \
+        rm -rf ${QIMSDK_DOWNLOAD_DIR}/qairt;                                                       \
     fi
 
 # gst-plugins-imsdk: fetch
@@ -396,7 +398,7 @@ ENV QIMSDK_DEB_DIR=${QIMSDK_BASE_DIR}/downloads/debs
 #  fast rpc runtime dependency:   libyaml-0-2:arm64
 RUN apt-get update                                                                              && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
-            adduser bash-completion nano libhiredis1.1.0 gstreamer1.0-tools wget                   \
+            adduser bash-completion nano libhiredis1.1.0 gstreamer1.0-tools                        \
             libgstrtspserver-1.0-0 libopencv-imgproc410 libxv1                                     \
             gstreamer1.0-plugins-good pulseaudio gstreamer1.0-plugins-base librdkafka1             \
             gstreamer1.0-plugins-ugly gir1.2-gst-1.0 libyaml-0-2                                && \

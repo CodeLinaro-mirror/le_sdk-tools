@@ -171,10 +171,11 @@ function qimsdk-cmake-install() {
 
         cmake --install . --prefix ${QIMSDK_INSTALL_DEBUG_DIR}/usr/                               |&
                 tee ${LOG_FILE_NAME_DBG}                                                        && \
-        cmake --install . --prefix ${INSTALL_PATH} --strip                                        |&
-                tee ${LOG_FILE_NAME}                                                              |\
-                grep -E 'Up-to-date:|Installing:|configuration:' | tail -n +2                     |\
-                cut -d ' ' -f 3 | xargs -i rsync -aR {} ${QIMSDK_INSTALL_DIR}/ -f"- *.h"
+        cmake --install . --prefix "${INSTALL_PATH}" --strip                                      |&
+                tee "${LOG_FILE_NAME}"                                                          && \
+        rsync -aR --whole-file                                                                     \
+                --files-from=<(grep -vE '\.(h|cmake|pc|inc|a)$' install_manifest.txt)              \
+                / "${QIMSDK_INSTALL_DIR}/"
     ) || {
         print-red "FAILED: qimsdk-cmake-install-${TARGET}: cmake install failed !!!"
         return -1
@@ -190,8 +191,6 @@ function qimsdk-cmake-install() {
 # Wrapper function to configure, compile, install & clean qimsdk debian/rules Target
 function qimsdk-debian-rules-build() {
     (
-        set -e
-
         # Cross architecture
         export DEB_HOST_ARCH=arm64
         export DEB_BUILD_OPTIONS="parallel=$(nproc)"
@@ -315,6 +314,9 @@ function qimsdk-cmake-clean-camera-service () {
 # CMake Build abseil-cpp
 qimsdk-cmake-build-abseil-cpp() {
     qimsdk-cmake-build ${QIMSDK_ABSEIL_CPP_DIR} /usr `
+            `-DBUILD_SHARED_LIBS=ON `
+            `-DABSL_BUILD_STATIC=OFF `
+            `-DABSL_ENABLE_INSTALL=ON `
             `-DABSL_USE_GOOGLETEST_HEAD=OFF `
             `-DCMAKE_SYSTEM_NAME=Linux `
             `-DCMAKE_SYSTEM_PROCESSOR=aarch64 `
