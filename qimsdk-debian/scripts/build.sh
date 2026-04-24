@@ -330,17 +330,17 @@ function qimsdk-cmake-clean-abseil-cpp() {
 }
 
 # CMake Build flatbuffers
-qimsdk-cmake-build-flatbuffers-v24-3-25() {
-    qimsdk-cmake-build ${QIMSDK_FLATBUFFERS_24_3_25_SRC_DIR} `
-            `${QIMSDK_FLATBUFFERS_24_3_25_INSTALL_DIR} `
+qimsdk-cmake-build-flatbuffers-v23-5-26() {
+    qimsdk-cmake-build ${QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR} `
+            `${QIMSDK_FLATBUFFERS_23_5_26_INSTALL_DIR} `
             `-DFLATBUFFERS_BUILD_TESTS=OFF `
             `-DFLATBUFFERS_BUILD_SHAREDLIB=OFF                                                  && \
         print-green "${FUNCNAME} completed successfully!"
 }
 
 # CMake Clean flatbuffers
-function qimsdk-cmake-clean-flatbuffers-v24-3-25() {
-    rm -rf ${QIMSDK_BUILD_DIR}/flatbuffersflatbuffers_24.3.25                                   && \
+function qimsdk-cmake-clean-flatbuffers-v23-5-26() {
+    rm -rf ${QIMSDK_BUILD_DIR}/flatbuffersflatbuffers_23.4.26                                   && \
             print-green "${FUNCNAME} completed successfully!"
 }
 
@@ -360,11 +360,9 @@ function qimsdk-cmake-build-tflite() {
                 `-DCPUINFO_SUPPORTED_PLATFORM=ON `
                 `-DCMAKE_SYSTEM_PROCESSOR=arm64 `
                 `-DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc `
-                `-DTFLITE_HOST_TOOLS_DIR=${QIMSDK_FLATBUFFERS_24_3_25_INSTALL_DIR}/bin `
                 `-DTF_MAJOR_VERSION=${QIMSDK_TF_LITE_MAJOR} `
                 `-DTF_MINOR_VERSION=${QIMSDK_TF_LITE_MINOR} `
                 `-DTF_PATCH_VERSION=${QIMSDK_TF_LITE_PATCH} `
-                `-DTF_VERSION_SUFFIX= `
                 `-DTFLITE_ENABLE_INSTALL=ON `
                 `-DTFLITE_ENABLE_LABEL_IMAGE=ON `
                 `-DTFLITE_ENABLE_BENCHMARK_MODEL=ON `
@@ -468,7 +466,7 @@ function qimsdk-incremental-build() {
             qimsdk-debian-rules-build-gst-plugins-bad                                           && \
             qimsdk-cmake-build-camera-service                                                   && \
             qimsdk-cmake-build-abseil-cpp                                                       && \
-            qimsdk-cmake-build-flatbuffers-v24-3-25                                             && \
+            qimsdk-cmake-build-flatbuffers-v23-5-26                                             && \
             qimsdk-cmake-build-tflite                                                           && \
             qimsdk-cmake-build-gst-plugins-imsdk                                                && \
         print-green "QIMSDK GStreamer targets built successfully !!!"
