@@ -538,7 +538,21 @@ function qimsdk-incremental-build-qti() {
 
     local RECIPE_PARSED_FLAGS="${RECIPE_PARSED_FLAGS_ARRAY[@]}"
 
+    # Build the plugins base in a separate directory to ensure usage of the installed headers
+    #   located in /usr/include during the plugin build process.
+    # In Yocto, the plugins base is also built first as a separate recipe.
+
+    # Sync code in new repo for base
+    mkdir -p ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss-base                                         && \
+        rsync -aP ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss/*                                          \
+                ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss-base/                                     && \
+
+    # Build only qti plugins base
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss-base /usr                             \
+            -DENABLE_GST_PLUGIN_BASE=ON                                                         && \
+
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-qti-oss                                       \
+            -DENABLE_GST_PLUGIN_BASE=ON                                                            \
             -DENABLE_GST_PLUGIN_QMMFSRC=ON                                                         \
             -DENABLE_GST_PLUGIN_VCOMPOSER=ON                                                       \
             -DENABLE_GST_PLUGIN_BATCH=ON                                                           \
@@ -571,6 +585,7 @@ function qimsdk-incremental-build-qti() {
             -DENABLE_GST_PLUGIN_MLMETAEXTRACTOR=ON                                                 \
             -DENABLE_GST_PLUGIN_MLPOSTPROCESS=ON                                                   \
             -DENABLE_GST_SAMPLE_APPS=ON                                                            \
+            -DENABLE_GST_SAMPLE_APPS_CAMERA=ON                                                     \
             -DENABLE_GST_PLUGIN_TOOLS=ON                                                           \
             -DENABLE_GST_TEST_FRAMEWORK=ON                                                         \
             -DENABLE_GST_PYTHON_EXAMPLES=ON                                                        \
@@ -579,12 +594,12 @@ function qimsdk-incremental-build-qti() {
             -DENABLE_GST_PLUGIN_CAMIMGREPROC=ON                                                    \
             -DENABLE_GST_PLUGIN_CAMREPROC=ON                                                       \
             ${RECIPE_PARSED_FLAGS}                                                              && \
-            print-green "${FUNCNAME} completed successfully!"
+        print-green "${FUNCNAME} completed successfully!"
 }
 
 # Clean gst-plugins-qti-oss
 function qimsdk-cmake-clean-qti() {
-    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-qti-oss
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-qti-oss ${QIMSDK_BUILD_DIR}/gst-plugins-qti-oss-base
 
     print-green "${FUNCNAME} completed successfully!"
 }
