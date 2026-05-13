@@ -13,6 +13,8 @@ RUN dpkg --add-architecture arm64
 #   debhelper crossbuild-essential-arm64 binutils-aarch64-linux-gnu pkgconf:arm64 libc6:arm64
 #   libgcc-s1:arm64 libstdc++6:arm64
 
+#  Python packages:               python-gi-dev python3.13-dev
+
 # build time dependencies, needed for gst-plugins-imsdk compilation:
 # gst-plugins-imsdk is not an apt package, so we need to install its build dependencies manually
 #   instead of doing it using 'apt-get build-dep'
@@ -36,17 +38,21 @@ RUN dpkg --add-architecture arm64
 # build time dependencies, needed for glimagesink compilation:
 #  libgraphene-1.0-dev:arm64, libdrm-dev:arm64
 
+# build time dependencies, needed for pyconfig.h generation:
+#   libgdbm-dev, systemtap-sdt-dev, libdb-dev:arm64
+
 # Installing required apt packages
 RUN apt-get update                                                                              && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
             fakeroot git tar unzip ssh rsync bash-completion jq cmake wget pipx xz-utils           \
             gobject-introspection flex bison locales-all ninja-build gpg curl devscripts           \
             debhelper libprotobuf-dev:arm64 protobuf-compiler:arm64 crossbuild-essential-arm64     \
-            binutils-aarch64-linux-gnu pkgconf:arm64 libc6:arm64 libgcc-s1:arm64 libstdc++6:arm64  \
+            binutils-aarch64-linux-gnu python-gi-dev python3.13-dev libgdbm-dev systemtap-sdt-dev  \
+            pkgconf:arm64 libc6:arm64 libgcc-s1:arm64 libstdc++6:arm64                             \
             dpkg-dev libyaml-dev:arm64 libbsd-dev:arm64 libeigen3-dev:arm64                        \
             libgstrtspserver-1.0-dev:arm64 libmosquitto-dev:arm64 libcairo-dev:arm64               \
             libjson-glib-dev:arm64 libhiredis-dev:arm64 libgstreamer-plugins-bad1.0-dev:arm64      \
-            libdrm-dev:arm64 libgraphene-1.0-dev:arm64 opencl-headers:arm64                     && \
+            libdrm-dev:arm64 libgraphene-1.0-dev:arm64 opencl-headers:arm64 libdb-dev:arm64     && \
     apt-get build-dep -a arm64 -y gst-plugins-base1.0 gst-plugins-good1.0 gst-plugins-bad1.0    && \
     apt -y upgrade                                                                              && \
     apt-get autoremove -y                                                                       && \
@@ -191,6 +197,27 @@ RUN QIMSDK_ABSEIL_CPP_TAG=d38452e1ee03523a208362186fd42248ff2609f6              
 
 # Add CMake redirects
 COPY cmake ${QIMSDK_DOWNLOAD_DIR}/cmake
+
+# Copy Gobject Introspect wrappers
+COPY --chmod=755 g-ir-scripts/ /usr/bin/
+
+# Install pyconfig without overwriting existing python packages
+#   the needed file is aarch64-linux-gnu/python3.13/pyconfig.h which is provided from the
+#   python3.13-dev:arm64 apt package. Installing this package leads to deleting necessary packages
+#   needed build time. The following RUN command solves the overwriting problem
+RUN cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
+        apt update && apt-get source python3.13                                                 && \
+        cd $(ls -d python3.13-* | head -n1)                                                     && \
+        mkdir build && cd build                                                                 && \
+        ../configure --enable-loadable-sqlite-extensions                                           \
+                --with-ssl-default-suites=openssl --without-ensurepip                              \
+                --with-system-expat --with-system-libmpdec=no                                      \
+                --with-wheel-pkg-dir=/usr/share/python-wheels/                                     \
+                --with-computed-gotos --enable-ipv6 --prefix=/usr                                  \
+                --libdir=/usr/lib/$DEB_HOST_MULTIARCH --with-dtrace                                \
+                --host=aarch64-linux-gnu --build=aarch64-linux-gnu                              && \
+        mkdir -p /usr/include/aarch64-linux-gnu/python3.13/                                     && \
+        mv pyconfig.h /usr/include/aarch64-linux-gnu/python3.13/
 
 # Initialize environment variables
 ENV QIMSDK_SRC_DIR=${QIMSDK_BASE_DIR}/src
