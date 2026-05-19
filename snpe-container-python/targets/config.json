@@ -1,6 +1,6 @@
 {
-    "SNPE_version":"2.41.0.251128",
-    "Base_Image": "ubuntu:24.04",
+    "SNPE_version":"2.45.0.260326",
+    "Base_Image": "debian:trixie-slim",
     "Target_platform": "klm",
 
     "Additional_tag_container": "",

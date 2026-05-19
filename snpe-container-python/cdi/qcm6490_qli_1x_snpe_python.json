@@ -1,0 +1,29 @@
+{
+  "cdiVersion": "0.6.0",
+  "kind": "qualcomm.com/device",
+  "devices": [
+    {
+      "name": "snpe_python",
+      "containerEdits": {
+        "deviceNodes": [
+          {
+            "path": "/dev/fastrpc-cdsp",
+            "type": "c"
+          },
+          {
+            "path": "/dev/fastrpc-cdsp-secure",
+            "type": "c"
+          },
+          {
+            "path": "/dev/kgsl-3d0",
+            "type": "c"
+          },
+          {
+            "path": "/dev/dma_heap/system",
+            "type": "c"
+          }
+        ]
+      }
+    }
+  ]
+}
