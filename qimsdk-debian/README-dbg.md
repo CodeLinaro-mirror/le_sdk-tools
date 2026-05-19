@@ -6,9 +6,12 @@
   * [Ubuntu Version](#Ubuntu_Version)
   * [Ubuntu Packages](#Ubuntu_Packages)
   * [How to increase Max user watches and max user instances on host system](#Max_user_watches)
+  * [Host System Swap Image allocation and creation](#Swap_Image_Creation)
   * [Docker Must Be Configured On The Host System (one time)](#Docker_Host_System)
   * [Add internal docker registry mirror. (optional)](#Add_internal_docker_registry_mirror)
   * [Proxy. (optional)](#Proxy)
+  * [Query and examine the Host System cgroup memory limits](#Cgroup_Memory_Limits)
+  * [Adjust the Host system VM settings (optional)](#Adjust_Host_VM_Settings)
 * [Docker Images](#Docker_Images)
   * [QIMSDK Debug Image](#QIMSDK_Debug_Image)
   * [QIMSDK Build Image](#QIMSDK_Build_Image)
@@ -17,6 +20,7 @@
   * [How to fill out Configuration JSON Files](#How_to_fill_out_Configuration_JSON_Files)
   * [Docker Host Side Helper Scripts](#Docker_Host_Side_Helper_Scripts)
   * [Docker Debug Container Side Helper Scripts](#Docker_Debug_Container_Side_Helper_Scripts)
+  * [Troubleshoot Docker Image OOM Build Errors](#Host_System_OOM_Debugging)
 * [Development Workflow](#Development_Workflow)
   * [Initial One Time Setup](#Initial_One_Time_Setup)
   * [Continuous Development After Initial Setup](#Continuous_Development_After_Initial_Setup)
@@ -37,6 +41,7 @@
   * [Load QIMSDK Deploy Image](#Load_QIMSDK_Deploy_Image)
   * [Run QIMSDK Deploy Container](#Run_QIMSDK_Deploy_Container)
   * [Execute QIMSDK Deploy Container](#Execute_QIMSDK_Deploy_Container)
+* [Documentation References](#Documentation_References)
 
 <div id="Prerequisites">
 
@@ -101,6 +106,43 @@ This is done to prevent "System limit for number of file watchers reached" error
 fs.inotify.max_user_instances=8192
 fs.inotify.max_user_watches=542288
 ```
+
+<div id="Swap_Image_Creation">
+
+### Host System Swap Image allocation and creation
+
+In order to build the Docker image files your host system is expected to have at least 64 GB of RAM and a swap image of at least half the available RAM plus some small meaningful reserve.
+
+For example, if you have 64 GB of RAM, the recommended swap image file size is at least 32 GB.
+
+If you set a reserve of 8 GB, the total RAM + swap + reserved memory size amounts to 104 GB in this case.
+
+#### Check whether you might have swap space enabled as follows:
+
+```bash
+sudo swapon --show
+```
+
+#### If the swap is missing or being too small, do create a new swap file as follows:
+
+```bash
+MEM_AVAIL=$(grep MemAvailable /proc/meminfo | awk '{printf "%.0f\n", $2/1024/1024}')
+let MEM_SWAP="$MEM_AVAIL / 2 + 8"
+sudo swapoff /swap.img
+sudo fallocate -l "${MEM_SWAP}G" /swap.img
+sudo chmod 600 /swap.img
+sudo mkswap /swap.img
+sudo swapon /swap.img
+edit /etc/default/grub
+	GRUB_CMDLINE_LINUX_DEFAULT="text cgroup_enable=memory swapaccount=1"
+sudo update-grub
+edit /etc/fstab and add the following line at the end of the file
+	/swap.img	none	swap	sw	0	0
+```
+
+Save and close all of the previously opened system files above, then reboot the system.
+
+Now check the size of the newly created and mounted swap image matches the above settings.
 
 <div id="Docker_Host_System">
 
@@ -250,6 +292,64 @@ docker ps -a
 docker start <container_name>
 ```
 
+<div id="Cgroup_Memory_Limits">
+
+### Query and examine the Host System cgroup memory limits
+
+#### Check there are not any active cgroup Linux host cpu and memory utilization restrictions in place.
+
+```bash
+sudo systemctl list-unit-files | grep -Ei docker
+sudo systemctl status docker.service
+cat /sys/fs/cgroup/system.slice/docker.service/
+cat /sys/fs/cgroup/system.slice/docker.service/memory.max
+cat /sys/fs/cgroup/system.slice/docker.service/memory.swap.max
+```
+
+Check the above docker.service cgroup memory configuration file entries have 'max' set as the value being read back.
+
+<div id="Adjust_Host_VM_Settings">
+
+### Adjust the Host system VM settings (optional)
+
+#### If your Host system is equipped with 64GB RAM or less, tweak your system VM page swap and dentry and inode cache reclaim behavior as follows:
+
+```bash
+edit the /etc/sysctl.conf file
+    vm.swappiness=10
+    vm.vfs_cache_pressure=400
+    vm.min_free_kbytes=262144
+```
+#### Argumentation:
+
+1. **vm.swappiness tuning**
+
+    - Higher values tend to command more aggressive application memory page swapping, while lower values favour keeping application pages in memory for as long as possible.
+
+    - The default vm.swappiness parameter value is 60 on recent Ubuntu/Debian OS flavours, which might not fit our Docker build environment well, especially on systems low on available RAM, hence the recommendation for a more relaxed setting of 10.
+
+2. **vm.vfs_cache_pressure tuning**
+
+    - Intermittent high VFS pressure as a result of the creation of many small temporarily used files and folders during package installation might cause the host system OS to start premature swapping of the memory pages, associated with these cached dentries and inodes to disk even though the amount of available RAM might still be sufficient for holding these in memory.
+
+    - The default value of the vfs_cache_pressure tunable tends to be 100 on recent Linux-kernel based operating systems with the kernel's dentry and inode cache reclaim rate being fair compared to the pagecache and swapcache reclaim rate.
+
+    - Decreasing the value instructs the kernel to prefer retaining the dentry and inode caches for long, while increasing the value tells the kernel to reclaim the dentry and inode caches sooner than later.
+
+    - Setting the vm.vfs_cache_pressure value to 400 might relax the dentry and inode cache managemnt by freeing the cached pages early and ensuring the system might not run out of memory faster during periods of high CPU multithreaded utilization and excessive memory load.
+
+3. **vm.min_free_kbytes tuning**
+
+    - In heavy multi-stage Docker build environments with lots of buildx threads spawned, the Host OS might have its available RAM memory exhausted quite fast.
+
+    - In order to allow for the OS to manage its own processes and have breathing room for housekeeping and more stable memory management, it is essesntial to instruct the OS to reserve a number of virtual memory free pages for each lowmem zone in the system.
+
+    - The amount of this mandatory VM free memory watermark is typically set by the vm.min_free_kbytes tunable.
+
+    - A value too low might make the system more prone to deadlocks under high CPU and memory utilization loads, while a value too high might cause premature and unwanted OOM service killings taking place.
+
+    - Therefore, in order to achieve a better free memory balancing under excessive system load, the proposed value adjustment of 262144 KB setting has been made.
+
 <div id="Docker_Images">
 
 ## Docker Images
@@ -390,6 +490,43 @@ These functions are available immediately inside development container:
  - qimsdk-dbg-save-artifacts-dbg - Save debug variant artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment
  - qimsdk-dbg-push-artifacts - Push release variant artifacts to device with specified id in configuration json file
  - qimsdk-dbg-push-artifacts-dbg - Push debug variant artifacts  to device with specified id in configuration json file
+
+<div id="Host_System_OOM_Debugging">
+
+### Troubleshoot Docker Image OOM Build errors
+
+#### Troubleshooting OOM and VFS high memory pressure Host System conditions:
+
+1. Collect and analyze docker.service journalctl logs
+
+```bash
+journalctl --user --unit=docker.service
+```
+
+2. Analyze the Host System syslog and scan for any OOM and VM page fault log traces:
+
+```bash
+sudo cat /var/log/syslog | grep -E "oom-killer|oom_kill_process|OOM killer|lowmem_reserve|Out of memory:|oom-kill:constraint|systemd-oomd.service|active_anon|hugepages_free|pages in swap cache|pages RAM"
+```
+
+3. Monitor the RAM and swap space allocation and utilization using your favourite tool during the Docker build file process, for example:
+
+```bash
+sudo apt install smem
+...
+while true;                                                             \
+do                                                                      \
+    echo "--- $(date '+%Y-%m-%d %H:%M:%S') ---" >> swap_usage_log.txt;  \
+    sudo smem -t -k -p -s swap >> swap_usage_log.txt;                   \
+    sleep 10;                                                           \
+done
+...
+Ctrl+C
+...
+cat swap_usage_log.txt | grep -E "^[ ]{2,}[0-9]{2,}[0-9MG \.]{1,}$(M|G)"
+```
+
+4. Attempt to reduce the maximum number of Docker builde threads during image compilation, if deemed necessary
 
 <div id="Development_Workflow">
 
@@ -807,3 +944,13 @@ docker exec -ti <desired-container-name> bash
 docker rmi $(docker images | grep "^<none>" | awk '{print $3}' )
 docker builder prune -a -f
 ```
+
+<div id="Documentation_References">
+
+## Documentation References
+
+### Useful pointers for further information:
+
+1. https://docs.docker.com/build/buildkit/configure/
+2. https://docs.docker.com/engine/daemon/troubleshoot/#kernel-cgroup-swap-limit-capabilities
+3. https://www.kernel.org/doc/html/v6.6/admin-guide/sysctl/vm.html
