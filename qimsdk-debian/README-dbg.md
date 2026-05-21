@@ -431,6 +431,7 @@ Config json files *(config.json)* must contain the following data:
  9. ***OPTIONAL*** - **camera_service_git_tag** - Specifies the commit ID or tag for the camera-service project. ***Note: If not provided, the latest (TIP) version will be used!***
  10. ***OPTIONAL*** - **IM_SDK_Source_git_tag** - Specifies the commit ID or tag for the IM SDK sources directory. ***Note: If not provided, the latest (TIP) version will be used!***
  11. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir is wanted to be mapped to the build container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
+ 12. ***OPTIONAL*** - **MAX_build_cpu_threads** - If having a resource-constrained Host System with low amount of RAM, setting a value, lower to \$(nproc) might help trigger the build with lower CPU utilization, hence lower memory pressure. The default value if left unset is \$(nproc).
 
 Target specific json files *(\<target-name\>.json)* must contain the following data:
  1. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform

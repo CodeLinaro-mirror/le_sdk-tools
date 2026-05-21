@@ -747,3 +747,58 @@ function qimsdk-expand-tilde() {
         INPUT_PATH="${INPUT_PATH/#\~/${HOME}}"
     }
 }
+
+# Argument unsigned 10-digit number checker.
+#   $1 - (mandatory) number argument to be checked
+function qimsdk-is-arg-number() {
+    local ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${ARG_COUNT_EXPECTED}                                           && \
+        print-red "${FUNCNAME[0]}: expects ${ARG_COUNT_EXPECTED} arguments, but got $#!"        && \
+        return -1
+
+    local NUMBER_ARG=${1}
+
+    ! [[ "${NUMBER_ARG}" =~ ^[0-9]{1,10}$ ]]                                                    && \
+        return -1
+
+    return 0
+}
+
+# Get maximum number of build threads from json
+#   $1 - (mandatory) path to target config json
+#   $2 - (output) give number of max build threads, if set
+function qimsdk-get-max-build-jobs() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_QIMSDK_MAX_BUILD_JOBS=${2}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ]                                                           && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    OUT_QIMSDK_MAX_BUILD_JOBS=$(echo ${JSON_CONTENT} |                                             \
+            jq '.MAX_build_cpu_threads' | tr -d '"')
+
+    [[ -n "${OUT_QIMSDK_MAX_BUILD_JOBS}" ]]                                                     && \
+                    qimsdk-is-arg-number "${OUT_QIMSDK_MAX_BUILD_JOBS}"                         && {
+        [[ "${OUT_QIMSDK_MAX_BUILD_JOBS}" -le 0 ]]                                              || \
+                [[ "${OUT_QIMSDK_MAX_BUILD_JOBS}" -gt $(nproc) ]]                               && {
+            print-red "Max build threads argument value set: ${OUT_QIMSDK_MAX_BUILD_JOBS}"
+            print-red "Max build threads argument value must be within: 0 - $(nproc)! Exit!"
+            return -1
+        }                                                                                       || {
+            OUT_QIMSDK_MAX_BUILD_JOBS="${OUT_QIMSDK_MAX_BUILD_JOBS#+}"
+        }
+    }                                                                                           || {
+        OUT_QIMSDK_MAX_BUILD_JOBS=$(nproc)
+    }
+
+    return 0
+}
