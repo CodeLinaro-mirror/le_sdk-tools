@@ -223,6 +223,42 @@ RUN cd ${QIMSDK_DOWNLOAD_DIR}                                                   
 ENV QIMSDK_SRC_DIR=${QIMSDK_BASE_DIR}/src
 ENV QIMSDK_PATH_TO_GST_META=${QIMSDK_SRC_DIR}/gst-qti-oss-patches
 
+# media: fetch and build camera metadata library
+RUN git clone --progress https://android.googlesource.com/platform/system/media.git                \
+        --single-branch --branch main ${QIMSDK_DOWNLOAD_DIR}/media                              && \
+    sed -i '\|ANDROID_API|d'                                                                       \
+        ${QIMSDK_DOWNLOAD_DIR}/media/private/camera/include/camera_metadata_hidden.h            && \
+    sed -i '\|#include <cutils/compiler\.h>|d'                                                     \
+        ${QIMSDK_DOWNLOAD_DIR}/media/private/camera/include/camera_metadata_hidden.h            && \
+    sed -i '\|#include <cutils/compiler\.h>|d'                                                     \
+        ${QIMSDK_DOWNLOAD_DIR}/media/camera/include/system/camera_metadata.h                    && \
+    sed -i '\|ANDROID_API|d'                                                                       \
+        ${QIMSDK_DOWNLOAD_DIR}/media/camera/include/system/camera_metadata.h                    && \
+    sed -i 's|#include <log/log.h>|#include <stddef.h>\n#define android_errorWriteLog(...)\n#define ALOGE(...)|' \
+        ${QIMSDK_DOWNLOAD_DIR}/media/camera/src/camera_metadata.c                               && \
+    cat > "${QIMSDK_DOWNLOAD_DIR}/media/CMakeLists.txt" <<'EOF'
+cmake_minimum_required(VERSION 3.16)
+
+project(camera_metadata)
+
+add_library(camera_metadata SHARED
+    camera/src/camera_metadata.c
+)
+
+target_include_directories(camera_metadata PRIVATE
+    private/camera/include
+    camera/include
+)
+
+set_target_properties(camera_metadata PROPERTIES
+    VERSION 0.1.0
+    SOVERSION 0
+    OUTPUT_NAME "camera_metadata"
+)
+
+install(TARGETS camera_metadata DESTINATION lib)
+EOF
+
 # Build qcom-libdmabufheap
 RUN cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
     cd $(ls -d qcom-libdmabufheap-* | head -n1)                                                 && \
