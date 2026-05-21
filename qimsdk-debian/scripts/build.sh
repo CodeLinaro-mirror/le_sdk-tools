@@ -12,6 +12,11 @@ function qimsdk-strip-trailing-slashes() {
 # get first subdir after SOURCE_PATH
 # Uses env vars: QIMSDK_SRC_DIR, QIMSDK_DOWNLOAD_DIR
 function qimsdk-get-project() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local SOURCE_PATH="${1}"
     local BASES=("${QIMSDK_SRC_DIR}" "${QIMSDK_DOWNLOAD_DIR}")
     local DIR BASE REST FIRST
@@ -48,6 +53,11 @@ function qimsdk-get-project() {
 #    ${2} - TARGET - CMake Target
 #    ${3..} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
 function qimsdk-cmake-configure() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local SOURCE_PATH=${1}
     local TARGET=${2}
 
@@ -108,6 +118,11 @@ function qimsdk-cmake-configure() {
 # Compile qimsdk CMake Target
 #    ${1} - TARGET - CMake Target
 function qimsdk-cmake-compile() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local TARGET=${1}
 
     [ ! -d ${QIMSDK_BUILD_DIR}/${TARGET} ]                                                      && {
@@ -144,6 +159,11 @@ function qimsdk-cmake-compile() {
 #    ${1} - TARGET - CMake Target
 #    ${2} - INSTALL_PATH - Path used for install prefix
 function qimsdk-cmake-install() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local TARGET=${1}
     local INSTALL_PATH=${2}
 
@@ -229,6 +249,11 @@ function qimsdk-debian-rules-build() {
 #    ${2} - INSTALL_PATH - Path used for install prefix
 #    ${3..} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
 function qimsdk-cmake-build() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local SOURCE_PATH=${1}
     local INSTALL_PATH=${2}
     local T=$(qimsdk-get-project ${SOURCE_PATH})
