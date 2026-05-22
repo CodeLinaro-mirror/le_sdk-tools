@@ -14,6 +14,7 @@
     * [How to add new QCOM GStreamer plugin](#How_to_add_new_QCOM_GStreamer_plugin)
     * [Running the qimsdk deploy container](#Running_the_container)
     * [How to use the qimsdk-debian container](#Using_the_container)
+    * [Adding custom user configurations to deploy container](#Adding_custom_user_configurations)
 
 <div id="Docker_images">
 
@@ -178,4 +179,60 @@ To execute a bash shell in container, run the following command:
 
 ```bash
 docker exec -ti qimsdk bash
+```
+
+<div id="Adding_custom_user_configurations">
+
+### Adding custom user configurations to deploy container
+
+If qimsdk-debian deploy container user wants to use extra devices or volumes, those can be added to the CDI file.
+One such example is when USB Camera is attached to device, and user would like to use it from inside deploy container:
+
+***These steps need to be run inside device shell***
+
+```bash
+# After attaching USB Camera, v4l devices /dev/video2 and /dev/video3 appear on platform
+$ ls -lah /dev/video*
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video0
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video1
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video2
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video3
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video32
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video33
+
+# Which exactly are the new v4l device nodes to appear can be easily verified by unplugging the USB
+#    Camera and running the command once again. Here we can see that they are /dev/video2 and /dev/video3:
+$ ls -lah /dev/video*
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video0
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video1
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video32
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video33
+
+# Add following lines to the /etc/cdi/qimsdk.json file in the deviceNodes section using an editor of choice:
+vi /etc/cdi/qimsdk.json
+```
+
+```json
+{
+    "deviceNodes": [
+    ...
+          },
+          {
+            "path": "/dev/video2",
+            "uid": 0,
+            "gid": 44
+          },
+          {
+            "path": "/dev/video3",
+            "uid": 0,
+            "gid": 44
+          },
+          {
+    ...
+```
+
+```bash
+# After that's done, the container needs to be removed and a new one needs to be run, if already running
+docker rm -f qimsdk
+docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env --device qualcomm.com/device=qimsdk -h qimsdk --name qimsdk <desired-image-name>
 ```
