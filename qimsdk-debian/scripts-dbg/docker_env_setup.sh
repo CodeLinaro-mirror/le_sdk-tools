@@ -11,6 +11,11 @@
 #   $5 - (mandatory) variable to take Gstreamer sources of SP
 #   $6 - (mandatory) variable to take QAIRT SDK version
 function qimsdk-docker-parse-json() {
+    local QIMSDK_ARG_COUNT_EXPECTED=6
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
     local -n OUT_QIMSDK_IMAGE_NAME=${3}
@@ -84,6 +89,11 @@ function qimsdk-docker-parse-json() {
 #   $6 - (mandatory) device ID
 #   $7 - (mandatory) QAIRT SDK version
 function qimsdk-docker-build-initialize() {
+    local QIMSDK_ARG_COUNT_EXPECTED=7
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
 
     local -n QIMSDK_CONTAINER_NAME_PTR=${2}
@@ -140,6 +150,11 @@ function qimsdk-docker-build-initialize() {
 # Qimsdk build qimsdk-debian deploy docker image
 #   $1 - (mandatory) image name
 function qimsdk-docker-build-qimsdk-debian-deploy-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local IMAGE_NAME=${1}
 
     local PATH_TO_QIMSDK_DEBIAN_DOCKERFILE=${QIMSDK_DOCKER_DIR}
@@ -182,7 +197,13 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
 
 # Qimsdk build qimsdk-debian docker image
 #   $1 - (mandatory) image name
+#   $2 - (mandatory) QAIRT SDK VERSION
 function qimsdk-docker-build-qimsdk-debian-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local IMAGE_NAME=${1}
     local QIMSDK_QAIRT_SDK_VERSION=${2}
 
@@ -225,6 +246,11 @@ function qimsdk-docker-build-qimsdk-debian-image() {
 # Build device docker image based on Dockerfile in ${QIMSDK_DOCKER_DIR} directory
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-build-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -254,6 +280,11 @@ function qimsdk-docker-build-image() {
 # Build dbg dev docker image based on Dockerfile in ${QIMSDK_DOCKER_DIR} directory
 #   $1 - (mandatory) path to target config json
 function qimsdk-dbg-docker-build-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -303,6 +334,11 @@ function qimsdk-dbg-docker-build-image() {
 # Update selected device image to the device
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-update-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -377,6 +413,11 @@ function qimsdk-docker-device-update-image() {
 # Save selected device image
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-save-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -475,6 +516,11 @@ function qimsdk-docker-device-save-image() {
 # Load selected device image
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-load-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -574,6 +620,11 @@ function qimsdk-docker-device-load-image() {
 # Run dbg dev container
 #   $1 - (mandatory) path to target config json
 function qimsdk-dbg-docker-run-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -647,6 +698,11 @@ function qimsdk-dbg-docker-run-container() {
 # Run selected device container
 #   $1 - (mandatory) path to target config json
 function qimsdk-device-docker-run-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -694,6 +750,11 @@ function qimsdk-device-docker-run-container() {
 # Run selected device container in cdi mode
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-run-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -787,6 +848,11 @@ function qimsdk-docker-device-run-container() {
 # Remove selected device container
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-rm-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -817,6 +883,11 @@ function qimsdk-docker-device-rm-container() {
 # Start selected device container
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-start-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -847,6 +918,11 @@ function qimsdk-docker-device-start-container() {
 # Stop selected device container
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-stop-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -878,6 +954,11 @@ function qimsdk-docker-device-stop-container() {
 #   $1 - (mandatory) path to target config json
 #   $2 - (optional) command to execute
 function qimsdk-docker-device-command() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local CMD=${2}
     local QIMSDK_CONTAINER_NAME
@@ -908,6 +989,11 @@ function qimsdk-docker-device-command() {
 # Start shell in the docker container on the device
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-shell() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -931,6 +1017,11 @@ function qimsdk-docker-device-shell() {
 # Docker device images clean up
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-images-cleanup() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_DEVICE_ID
 
@@ -976,6 +1067,11 @@ function qimsdk-docker-host-images-cleanup() {
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) artifacts variant - release or debug
 function qimsdk-dbg-load-artifacts-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local VARIANT=${2}
     local QIMSDK_CONTAINER_NAME
@@ -1045,6 +1141,11 @@ function qimsdk-dbg-load-artifacts-variant() {
 # Load release artifacts from Docker_image_path provided in config json file.
 #   $1 - (mandatory) path to target config json
 function qimsdk-dbg-load-artifacts() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     qimsdk-dbg-load-artifacts-variant ${PATH_TO_CONFIG_JSON} release
 }
@@ -1052,6 +1153,11 @@ function qimsdk-dbg-load-artifacts() {
 # Load debug artifacts from Docker_image_path provided in config json file.
 #   $1 - (mandatory) path to target config json
 function qimsdk-dbg-load-artifacts-dbg() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     qimsdk-dbg-load-artifacts-variant ${PATH_TO_CONFIG_JSON} debug
 }

@@ -6,6 +6,11 @@
 # Save artifacts to Docker_image_path provided in config json file.
 #   $1 - (mandatory) artifacts variant - release or debug
 function qimsdk-dbg-save-artifacts-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local VARIANT=${1}
     [ "${VARIANT}" == "release" ] || [ "${VARIANT}" == "debug" ] || {
         print-red "Failed to save ${VARIANT} packages !!!"
@@ -44,6 +49,11 @@ function qimsdk-dbg-save-artifacts-dbg() {
 # Push artifacts to device with id provided in config json file.
 #   $1 - (mandatory) artifacts variant - release or debug
 function qimsdk-dbg-push-artifacts-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local VARIANT=${1}
 
     (
