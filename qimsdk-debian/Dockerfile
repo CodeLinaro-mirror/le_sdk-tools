@@ -152,8 +152,8 @@ RUN GST_PLUGINS_BAD_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad*      
 
 # Clone Tensorflow Lite
 ENV QIMSDK_TF_LITE_MAJOR="2"
-ENV QIMSDK_TF_LITE_MINOR="20"
-ENV QIMSDK_TF_LITE_PATCH="0"
+ENV QIMSDK_TF_LITE_MINOR="16"
+ENV QIMSDK_TF_LITE_PATCH="2"
 ENV QIMSDK_TF_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/tensorflow
 RUN git config --global http.postBuffer 157286400                                               && \
     git clone --progress https://github.com/tensorflow/tensorflow.git --single-branch              \
@@ -161,20 +161,24 @@ RUN git config --global http.postBuffer 157286400                               
 
 # Clone meta-qcom-distro and apply tflite patches for it
 ENV QIMSDK_META_QCOM_DISTRO_DIR=${QIMSDK_DOWNLOAD_DIR}/meta-qcom-distro
+ENV QIMSDK_TFLITE_PATCHES_DIR=${QIMSDK_META_QCOM_DISTRO_DIR}/recipes-ml/tflite/files/tflite
 RUN git clone https://github.com/qualcomm-linux/meta-qcom-distro.git --single-branch --branch main \
             ${QIMSDK_META_QCOM_DISTRO_DIR}                                                      && \
-    git -C ${QIMSDK_TF_SRC_DIR} am ${QIMSDK_META_QCOM_DISTRO_DIR}/recipes-ml/tflite/files/tflite/0*
+    git -C ${QIMSDK_TF_SRC_DIR}                                                                    \
+            am ${QIMSDK_TFLITE_PATCHES_DIR}/0*                                                  && \
+    git -C ${QIMSDK_TF_SRC_DIR}                                                                    \
+            am ${QIMSDK_TFLITE_PATCHES_DIR}/${QIMSDK_TF_LITE_MAJOR}.${QIMSDK_TF_LITE_MINOR}/0*
 
 # Clone flatbuffers. Use the exact git tag as specified in tflite dependency
-ENV QIMSDK_FLATBUFFERS_24_3_25_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/flatbuffers_24.3.25
-ENV QIMSDK_FLATBUFFERS_24_3_25_INSTALL_DIR=${QIMSDK_HOST_TOOLS_DIR}/flatbuffers_24.3.25/usr
-RUN QIMSDK_FLATBUFFERS_24_3_25_TAG=$(cat ${QIMSDK_TF_SRC_DIR}/tensorflow/lite/tools/cmake/modules/flatbuffers.cmake | \
+ENV QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/flatbuffers_23.5.26
+ENV QIMSDK_FLATBUFFERS_23_5_26_INSTALL_DIR=${QIMSDK_HOST_TOOLS_DIR}/flatbuffers_23.5.26/usr
+RUN QIMSDK_FLATBUFFERS_23_5_26_TAG=$(cat ${QIMSDK_TF_SRC_DIR}/tensorflow/lite/tools/cmake/modules/flatbuffers.cmake | \
             grep GIT_TAG | rev | cut -d ' ' -f 1 | rev)                                         && \
     git clone --progress https://github.com/google/flatbuffers.git                                 \
-            --single-branch --branch master ${QIMSDK_FLATBUFFERS_24_3_25_SRC_DIR}               && \
-    git -C ${QIMSDK_FLATBUFFERS_24_3_25_SRC_DIR} checkout -b work ${QIMSDK_FLATBUFFERS_24_3_25_TAG}
+            --single-branch --branch master ${QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR}               && \
+    git -C ${QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR} checkout -b work ${QIMSDK_FLATBUFFERS_24_3_25_TAG}
 
-# Clone abseil-cpp. Use the git tag compatible with tflite 2.20 and lite rt 2.1.2
+# Clone abseil-cpp. Use the git tag compatible with tflite 2.16, tflite 2.20 and lite rt 2.1.2
 ENV QIMSDK_ABSEIL_CPP_DIR=${QIMSDK_DOWNLOAD_DIR}/abseil-cpp
 RUN QIMSDK_ABSEIL_CPP_TAG=d38452e1ee03523a208362186fd42248ff2609f6                              && \
     git clone --progress https://github.com/abseil/abseil-cpp.git                                  \
