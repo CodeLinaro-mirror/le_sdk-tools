@@ -6,6 +6,7 @@ RUN usermod -aG plugdev root
 
 # Set base directory
 ENV QIMSDK_BASE_DIR=/mnt/work
+ENV QIMSDK_REPO_DOWNLOAD_DIR=${QIMSDK_BASE_DIR}/download/repo
 ENV QIMSDK_TMP_DIR=${QIMSDK_BASE_DIR}/tmp
 RUN mkdir -p ${QIMSDK_TMP_DIR}
 
@@ -13,16 +14,16 @@ RUN mkdir -p ${QIMSDK_TMP_DIR}
 COPY targets ${QIMSDK_TMP_DIR}/targets
 
 # camera-service: Add (open-source camera-service repository (gst-plugins-imsdk dependency))
-COPY tmp/camera-service /mnt/work/download/repo/camera-service
+COPY tmp/camera-service ${QIMSDK_REPO_DOWNLOAD_DIR}/camera-service
 
-RUN echo "[url \"file:///mnt/work/download/repo/camera-service\"]                                  \
+RUN echo "[url \"file://${QIMSDK_REPO_DOWNLOAD_DIR}/camera-service\"]                              \
         insteadOf = https://github.com/qualcomm/camera-service.git"                                \
         >> /etc/gitconfig
 
 # gst-plugins-imsdk: Add
-COPY tmp/gst-plugins-imsdk /mnt/work/download/repo/gst-plugins-imsdk
+COPY tmp/gst-plugins-imsdk ${QIMSDK_REPO_DOWNLOAD_DIR}/gst-plugins-imsdk
 
-RUN echo "[url \"file:///mnt/work/download/repo/gst-plugins-imsdk\"] insteadOf =                   \
+RUN echo "[url \"file://${QIMSDK_REPO_DOWNLOAD_DIR}/gst-plugins-imsdk\"] insteadOf =               \
         https://github.com/qualcomm/gst-plugins-imsdk.git"                                         \
         >> /etc/gitconfig
 
