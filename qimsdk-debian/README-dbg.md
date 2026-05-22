@@ -486,6 +486,18 @@ qimsdk-docker-device-save-image <path-to-config-json>
 
 Load docker image and run the container on remote machine with device connected to it
 
+***NOTE: Ensure proper CDI json, which contains all of the needed platform mountings for the specific platform, is copied to /etc/cdi in device storage, before running the qimsdk container. CDI json for the specific hardware and platform is located in qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json. Because of the basic design principles of Docker, an .env file is also needed for the environment variables inside device container as well. .env file is located in qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env. It needs to be copied to /etc/docker/env in device storage.***
+
+For example, if working on qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json. The correct .env file would be qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+
+```bash
+### push corresponding CDI json to the device
+adb shell mkdir -p /etc/cdi/
+adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
+adb shell mkdir -p /etc/docker/env/
+adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
+```
+
 ```bash
 # Remote machine with device connected to it
 ############################################
@@ -520,6 +532,18 @@ qimsdk-device-prepare
 #### Continuous Development
 
 Build docker image, update image to the device, run device container
+
+***NOTE: Ensure proper CDI json, which contains all of the needed platform mountings for the specific platform, is copied to /etc/cdi in device storage, before running the qimsdk container. CDI json for the specific hardware and platform is located in qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json. Because of the basic design principles of Docker, an .env file is also needed for the environment variables inside device container as well. .env file is located in qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env. It needs to be copied to /etc/docker/env in device storage.***
+
+For example, if working on qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json. The correct .env file would be qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+
+```bash
+### push corresponding CDI json to the device
+adb shell mkdir -p /etc/cdi/
+adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
+adb shell mkdir -p /etc/docker/env/
+adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
+```
 
 ```bash
 # Build docker image
@@ -649,6 +673,18 @@ qimsdk-docker-device-rm-container <path-to-config-json>
 
 4. Run container
 
+***NOTE: Ensure proper CDI json, which contains all of the needed platform mountings for the specific platform, is copied to /etc/cdi in device storage, before running the qimsdk container. CDI json for the specific hardware and platform is located in qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json. Because of the basic design principles of Docker, an .env file is also needed for the environment variables inside device container as well. .env file is located in qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env. It needs to be copied to /etc/docker/env in device storage.***
+
+For example, if working on qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json. The correct .env file would be qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+
+```bash
+### push corresponding CDI json to the device
+adb shell mkdir -p /etc/cdi/
+adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
+adb shell mkdir -p /etc/docker/env/
+adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
+```
+
 ```bash
 # Run container
 qimsdk-docker-device-run-container <path-to-config-json>
@@ -732,17 +768,28 @@ docker load -i /tmp/qimsdk.tar
 <div id="Run_QIMSDK_Deploy_Container">
 
 ### Run QIMSDK Deploy Container
-  <h3 style="color:red">
-    <b>Create a shell file with the following content:</b>
-  </h3>
+
+***NOTE: Ensure proper CDI json, which contains all of the needed platform mountings for the specific platform, is copied to /etc/cdi in device storage, before running the qimsdk container. CDI json for the specific hardware and platform is located in qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json. Because of the basic design principles of Docker, an .env file is also needed for the environment variables inside device container as well. .env file is located in qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env. It needs to be copied to /etc/docker/env in device storage.***
+
+For example, if working on qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json. The correct .env file would be qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+
+```bash
+### push corresponding CDI json to the device
+adb shell mkdir -p /etc/cdi/
+adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
+adb shell mkdir -p /etc/docker/env/
+adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
+```
+
+<h3 style="color:red">
+  <b>Create a shell file with the following content:</b>
+</h3>
 
 ```bash
 ### adb shell
-docker run -it -d --net host                                                                       \
---device /dev/video0 --device /dev/video1 --device /dev/video2 --device /dev/video3                \
---device /dev/dri/card0 --device /dev/dri/renderD128 -v /run/user/1000:/run/user/1000              \
--v /etc/labels:/etc/labels -v /etc/media:/etc/media -v /etc/models:/etc/models                     \
--h qimsdk --name <desired-container-name> <generated-image-name>
+docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env                                 \
+    --device qualcomm.com/device=qimsdk -h qimsdk                                                  \
+    --name <desired-container-name> <generated-image-name>
 ```
 
 <div id="Execute_QIMSDK_Deploy_Container">
