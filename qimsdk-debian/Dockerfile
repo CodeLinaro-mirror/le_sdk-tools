@@ -364,6 +364,7 @@ RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                   
     cp -d ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/libfastcvdsp_stub.so.1                             \
             ${QIMSDK_INSTALL_LIB_DIR}/                                                          && \
     cp -d ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/libfastcvdsp_stub.so ${QIMSDK_INSTALL_LIB_DIR}/ && \
+    cp -r ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/include/fastcv /usr/include/                        && \
     rm -rf fastcv ${FASTCV_PACKAGE_NAME}_${FASTCV_VERSION}_${FASTCV_ARCH}.tar.gz
 
 # gst-qti-oss-patches: fetch

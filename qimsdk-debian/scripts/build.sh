@@ -449,47 +449,54 @@ function qimsdk-cmake-clean-tflite() {
 
 # Incremental build all gst-plugins-imsdk
 function qimsdk-cmake-build-gst-plugins-imsdk() {
-    local IS_QNP_ENABLED=$( [ -n "${QIMSDK_ARG_QNP_VERSION:-}" ] && echo ON || echo OFF )
+    (
+        local IS_QNP_ENABLED=$( [ -n "${QIMSDK_ARG_QNP_VERSION:-}" ] && echo ON || echo OFF )
 
-    # Build qti plugins
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-imsdk /usr `
-            `-DENABLE_GST_PLUGIN_BASE=ON `
-            `-DENABLE_GST_PLUGIN_VCOMPOSER=ON `
-            `-DENABLE_GST_PLUGIN_BATCH=ON `
-            `-DENABLE_GST_PLUGIN_METAMUX=ON `
-            `-DENABLE_GST_PLUGIN_SOCKET=ON `
-            `-DENABLE_GST_PLUGIN_VSPLIT=ON `
-            `-DENABLE_GST_PLUGIN_VTRANSFORM=ON `
-            `-DENABLE_GST_PLUGIN_VOVERLAY=ON `
-            `-DENABLE_GST_PLUGIN_RESTRICTED_ZONE=ON `
-            `-DENABLE_GST_PLUGIN_RTSPBIN=ON `
-            `-DENABLE_GST_PLUGIN_REDISSINK=ON `
-            `-DENABLE_GST_PLUGIN_VIDEOTEMPLATE=ON `
-            `-DENABLE_GST_PLUGIN_MLACONVERTER=ON `
-            `-DENABLE_GST_PLUGIN_MLACLASSIFICATION=ON `
-            `-DENABLE_GST_PLUGIN_MLDEMUX=ON `
-            `-DENABLE_GST_PLUGIN_MLVCONVERTER=ON `
-            `-DENABLE_GST_PLUGIN_MLVCLASSIFICATION=ON `
-            `-DENABLE_GST_PLUGIN_MLVSUPERRESOLUTION=ON `
-            `-DENABLE_GST_PLUGIN_MLVDETECTION=ON `
-            `-DENABLE_GST_PLUGIN_MLVPOSE=ON `
-            `-DENABLE_GST_PLUGIN_MLVSEGMENTATION=ON `
-            `-DENABLE_GST_PLUGIN_MLTFLITE=ON `
-            `-DENABLE_GST_PLUGIN_MLSNPE=${IS_QNP_ENABLED} `
-            `-DENABLE_GST_PLUGIN_MLQNN=${IS_QNP_ENABLED} `
-            `-DENABLE_GST_PLUGIN_MLMETAPARSER=ON `
-            `-DENABLE_GST_PLUGIN_METATRANSFORM=ON `
-            `-DENABLE_GST_PLUGIN_OBJTRACKER=ON `
-            `-DENABLE_GST_PLUGIN_MLMETAEXTRACTOR=ON `
-            `-DENABLE_GST_PLUGIN_MLPOSTPROCESS=ON `
-            `-DENABLE_GST_PLUGIN_MSGBROKER=ON `
-            `-DENABLE_GST_PLUGIN_QMMFSRC=ON `
-            `-DENABLE_GST_PLUGIN_SMARTVENCBIN=ON `
-            `-DENABLE_GST_PLUGIN_URIDECODEBIN=ON `
-            `-DENABLE_GST_SAMPLE_APPS=ON `
-            `-DENABLE_GST_SAMPLE_APPS_CAMERA=ON `
-            `-DENABLE_GST_PYTHON_EXAMPLES=ON                                                    && \
-        print-green "${FUNCNAME} completed successfully!"
+        # Set ${PYTHON_DIR} for the according python version for this shell
+        #     (needed for site-packages dir during build)
+        export PYTHON_DIR=python3.13
+
+        # Build qti plugins
+        qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-imsdk /usr `
+                `-DPYTHON_SITEPACKAGES_DIR=lib/${PYTHON_DIR}/site-packages `
+                `-DENABLE_GST_PLUGIN_BASE=ON `
+                `-DENABLE_GST_PLUGIN_VCOMPOSER=ON `
+                `-DENABLE_GST_PLUGIN_BATCH=ON `
+                `-DENABLE_GST_PLUGIN_METAMUX=ON `
+                `-DENABLE_GST_PLUGIN_SOCKET=ON `
+                `-DENABLE_GST_PLUGIN_VSPLIT=ON `
+                `-DENABLE_GST_PLUGIN_VTRANSFORM=ON `
+                `-DENABLE_GST_PLUGIN_VOVERLAY=ON `
+                `-DENABLE_GST_PLUGIN_RESTRICTED_ZONE=ON `
+                `-DENABLE_GST_PLUGIN_RTSPBIN=ON `
+                `-DENABLE_GST_PLUGIN_REDISSINK=ON `
+                `-DENABLE_GST_PLUGIN_VIDEOTEMPLATE=ON `
+                `-DENABLE_GST_PLUGIN_MLACONVERTER=ON `
+                `-DENABLE_GST_PLUGIN_MLACLASSIFICATION=ON `
+                `-DENABLE_GST_PLUGIN_MLDEMUX=ON `
+                `-DENABLE_GST_PLUGIN_MLVCONVERTER=ON `
+                `-DENABLE_GST_PLUGIN_MLVCLASSIFICATION=ON `
+                `-DENABLE_GST_PLUGIN_MLVSUPERRESOLUTION=ON `
+                `-DENABLE_GST_PLUGIN_MLVDETECTION=ON `
+                `-DENABLE_GST_PLUGIN_MLVPOSE=ON `
+                `-DENABLE_GST_PLUGIN_MLVSEGMENTATION=ON `
+                `-DENABLE_GST_PLUGIN_MLTFLITE=ON `
+                `-DENABLE_GST_PLUGIN_MLSNPE=${IS_QNP_ENABLED} `
+                `-DENABLE_GST_PLUGIN_MLQNN=${IS_QNP_ENABLED} `
+                `-DENABLE_GST_PLUGIN_MLMETAPARSER=ON `
+                `-DENABLE_GST_PLUGIN_METATRANSFORM=ON `
+                `-DENABLE_GST_PLUGIN_OBJTRACKER=ON `
+                `-DENABLE_GST_PLUGIN_MLMETAEXTRACTOR=ON `
+                `-DENABLE_GST_PLUGIN_MLPOSTPROCESS=ON `
+                `-DENABLE_GST_PLUGIN_MSGBROKER=ON `
+                `-DENABLE_GST_PLUGIN_QMMFSRC=ON `
+                `-DENABLE_GST_PLUGIN_SMARTVENCBIN=ON `
+                `-DENABLE_GST_PLUGIN_URIDECODEBIN=ON `
+                `-DENABLE_GST_SAMPLE_APPS=ON `
+                `-DENABLE_GST_SAMPLE_APPS_CAMERA=ON `
+                `-DENABLE_GST_PYTHON_EXAMPLES=ON                                                && \
+            print-green "${FUNCNAME} completed successfully!"
+    )
 }
 
 # Clean gst-plugins-imsdk
