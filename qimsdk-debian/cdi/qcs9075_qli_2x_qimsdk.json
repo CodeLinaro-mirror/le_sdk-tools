@@ -112,26 +112,6 @@
             "hostPath": "/usr/share/qcom/qcm6490/Thundercomm/RB3gen2/dsp/cdsp/fastrpc_shell_unsigned_3",
             "containerPath": "/usr/lib/dsp/cdsp/fastrpc_shell_unsigned_3",
             "options": ["rbind"]
-          },
-          {
-            "hostPath": "/usr/lib/libcamera_metadata_lemans.so.0",
-            "containerPath": "/usr/lib/libcamera_metadata_lemans.so.0",
-            "options": ["rbind", "rw"]
-          },
-          {
-            "hostPath": "/usr/lib/libcamera_metadata_lemans.so.0.1.0",
-            "containerPath": "/usr/lib/libcamera_metadata_lemans.so.0.1.0",
-            "options": ["rbind", "rw"]
-          },
-          {
-            "hostPath": "/usr/lib/libxml2.so.16",
-            "containerPath": "/usr/lib/libxml2.so.16",
-            "options": ["rbind", "rw"]
-          },
-          {
-            "hostPath": "/usr/lib/libxml2.so.16.1.2",
-            "containerPath": "/usr/lib/libxml2.so.16.1.2",
-            "options": ["rbind", "rw"]
           }
         ]
       }

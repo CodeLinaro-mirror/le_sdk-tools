@@ -332,6 +332,18 @@ function qimsdk-debian-rules-clean-gst-plugins-bad() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
+# CMake Build camera metadata
+qimsdk-cmake-build-camera-metadata() {
+    qimsdk-cmake-build ${QIMSDK_DOWNLOAD_DIR}/media /usr                                        && \
+        print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Clean camera metadata
+function qimsdk-cmake-clean-metadata() {
+    rm -rf ${QIMSDK_BUILD_DIR}/media                                                            && \
+        print-green "${FUNCNAME} completed successfully!"
+}
+
 # CMake Build camera-service
 function qimsdk-cmake-build-camera-service () {
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/camera-service /usr `
@@ -501,6 +513,7 @@ function qimsdk-incremental-build() {
     qimsdk-debian-rules-build-gst-plugins-base                                                  && \
             qimsdk-debian-rules-build-gst-plugins-good                                          && \
             qimsdk-debian-rules-build-gst-plugins-bad                                           && \
+            qimsdk-cmake-build-camera-metadata                                                  && \
             qimsdk-cmake-build-camera-service                                                   && \
             qimsdk-cmake-build-abseil-cpp                                                       && \
             qimsdk-cmake-build-flatbuffers-v23-5-26                                             && \
