@@ -237,6 +237,15 @@ function qimsdk-debian-rules-build() {
                 ${QIMSDK_DOWNLOAD_DIR}/libgstreamer-*.deb                                          \
                 ${QIMSDK_DOWNLOAD_DIR}/gir1.2-gst-*.deb || {
             echo "FAILED: qimsdk-debian-rules-build: dpkg installation failed!"
+            apt-get remove -y $(dpkg-deb -f ${QIMSDK_DOWNLOAD_DIR}/gstreamer1.0-*.deb Package)  || {
+                echo "$(dpkg-deb -f ${QIMSDK_DOWNLOAD_DIR}/gstreamer1.0-*.deb Package) remove error!"
+            }
+            apt-get remove -y $(dpkg-deb -f ${QIMSDK_DOWNLOAD_DIR}/libgstreamer-*.deb Package)  || {
+                echo "$(dpkg-deb -f ${QIMSDK_DOWNLOAD_DIR}/libgstreamer-*.deb Package) remove error!"
+            }
+            apt-get remove -y $(dpkg-deb -f ${QIMSDK_DOWNLOAD_DIR}/gir1.2-gst-*.deb Package)    || {
+                echo "$(dpkg-deb -f ${QIMSDK_DOWNLOAD_DIR}/gir1.2-gst-*.deb Package) remove error!"
+            }
             return 1
         }
 
