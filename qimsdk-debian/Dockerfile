@@ -465,7 +465,7 @@ ENV QIMSDK_DEB_DIR=${QIMSDK_BASE_DIR}/downloads/debs
 #  fast rpc runtime dependency:   libyaml-0-2:arm64
 RUN apt-get update                                                                              && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
-            adduser bash-completion nano libhiredis1.1.0 gstreamer1.0-tools                        \
+            adduser gosu bash-completion nano libhiredis1.1.0 gstreamer1.0-tools                   \
             libgstrtspserver-1.0-0 libopencv-imgproc410 libxv1                                     \
             gstreamer1.0-plugins-good pulseaudio gstreamer1.0-plugins-base librdkafka1             \
             gstreamer1.0-plugins-ugly gir1.2-gst-1.0 libyaml-0-2                                && \
@@ -516,17 +516,17 @@ COPY --from=qimsdk_build /mnt/work/downloads/debs ${QIMSDK_DEB_DIR}
 # Install deb packages to deploy image and remove the directory after install
 RUN dpkg -i ${QIMSDK_DEB_DIR}/* && rm -rf ${QIMSDK_DEB_DIR}
 
-# Change user to qimsdk
-USER qimsdk
-
 # Change workdir to user home
 WORKDIR /home/qimsdk
 
-# Add glimagesink exports
-ENV DISPLAY=:0
+# Add line to .bashrc to source .bash_aliases file on every shell execution
+RUN echo '[ -f ~/.bash_aliases ] && . ~/.bash_aliases\n' >> /root/.bashrc
 
-# Add gstreamer exports
-ENV GST_DEBUG_NO_COLOR=1
-ENV GST_DEBUG=2
-ENV GST_PLUGIN_SCANNER="/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner"
-ENV XDG_RUNTIME_DIR="/run/user/1000"
+# Copy entrypoint files which allow us to drop priveleges after resolving socket ownership
+COPY entrypoint.sh /bin/entrypoint.sh
+COPY .bash_aliases /root/.bash_aliases
+
+# Create an image where a detached container can run indefinitely
+ENTRYPOINT ["/bin/entrypoint.sh"]
+
+CMD ["/bin/bash"]
