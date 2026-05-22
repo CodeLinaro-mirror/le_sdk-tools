@@ -51,6 +51,11 @@ function qimsdk-setup-crosscompilation() {
 # git am wrapper function
 #   $1 - Path to patch file
 function qimsdk-apply-patch() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATCH_FILE=${1}
 
     # Legal notices are present in QTI specific .patch files, so they could gain legal approval
