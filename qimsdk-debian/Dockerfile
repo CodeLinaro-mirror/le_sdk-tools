@@ -266,7 +266,7 @@ RUN cd ${QIMSDK_DOWNLOAD_DIR}                                                   
 
 # Build fastrpc
 RUN cd "${QIMSDK_DOWNLOAD_DIR}"                                                                 && \
-    git clone --depth 1 https://github.com/quic/fastrpc.git                                     && \
+    git clone --depth 1 https://github.com/quic/fastrpc.git --branch v1.0.5                     && \
     cd fastrpc                                                                                  && \
     autoreconf -is                                                                              && \
     BUILD_ARCH="$(dpkg --print-architecture)"                                                   && \
@@ -500,6 +500,22 @@ RUN apt-get update                                                              
     apt-get clean                                                                               && \
     rm -rf /var/lib/apt/lists* /var/tmp/*                                                       && \
     rm -f /etc/profile.d/qcom-adreno-profile.sh /usr/lib/qcom-adreno-vars.sh
+
+# Bake fastrpc DSP path config for all supported devices into a safe path
+# that is never bind-mounted. The entrypoint copies it to
+# /usr/share/qcom/conf.d/ at runtime after the bind-mount is in place.
+RUN mkdir -p /etc/fastrpc                                                                       && \
+    {                                                                                              \
+      echo '# SPDX-License-Identifier: MIT';                                                       \
+      echo '# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.';                 \
+      echo 'machines:';                                                                            \
+      echo '  Qualcomm Technologies, Inc. Monaco Monza addons:';                                   \
+      echo '    DSP_LIBRARY_PATH: qcs8300/Qualcomm/QCS8300-RIDE/dsp';                              \
+      echo '  Qualcomm Technologies, Inc. Addons IQ 9075 EVK:';                                    \
+      echo '    DSP_LIBRARY_PATH: qcm6490/Thundercomm/RB3gen2/dsp';                                \
+      echo '  Qualcomm Technologies, Inc. IQ8 8275 Pro SKU EVK:';                                  \
+      echo '    DSP_LIBRARY_PATH: qcs8300/Qualcomm/QCS8300-RIDE/dsp';                              \
+    } > /etc/fastrpc/hexagon-dsp-binaries.yaml
 
 # Create USER and add to video group for accessing v4ls devices
 RUN addgroup qcom                                                                               && \

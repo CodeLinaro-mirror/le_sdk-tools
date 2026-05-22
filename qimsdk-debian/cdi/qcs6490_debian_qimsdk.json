@@ -92,6 +92,11 @@
             "hostPath": "/run/user/1000",
             "containerPath": "/run/user/1000",
             "options": ["rbind", "rw"]
+          },
+          {
+            "hostPath": "/sys/firmware/devicetree/base/model",
+            "containerPath": "/run/device-model",
+            "options": ["rbind"]
           }
         ]
       }
