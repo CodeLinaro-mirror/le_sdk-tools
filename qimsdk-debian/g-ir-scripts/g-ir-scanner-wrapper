@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# This prevents g-ir-scanner from writing cache data to user's HOME dir
+export GI_SCANNER_DISABLE_CACHE=1
+
+g-ir-scanner --lib-dirs-envvar=GIR_EXTRA_LIBS_PATH                                                 \
+    --namespace=GstQtiCommon                                                                       \
+    --nsversion=1.0                                                                                \
+    --use-binary-wrapper=/usr/bin/g-ir-scanner-qemuwrapper                                         \
+    --use-ldd-wrapper=/usr/bin/g-ir-scanner-lddwrapper                                             \
+    --add-include-path=/usr/share/gir-1.0                                                          \
+    --add-include-path=/usr/include/gstreamer-1.0                                                  \
+    --add-include-path=/usr/lib/x86_64-linux-gnu/gir-1.0 "$@"
