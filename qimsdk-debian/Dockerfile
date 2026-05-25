@@ -435,7 +435,8 @@ RUN cp ${QIMSDK_DOWNLOAD_DIR}/*base-1.0_* ${QIMSDK_DOWNLOAD_DIR}/*alsa_*        
        ${QIMSDK_DOWNLOAD_DIR}/*gtk3_* ${QIMSDK_DOWNLOAD_DIR}/*base_*                               \
        ${QIMSDK_DOWNLOAD_DIR}/*base-apps_* ${QIMSDK_DOWNLOAD_DIR}/*good_*                          \
        ${QIMSDK_DOWNLOAD_DIR}/*pulseaudio_* ${QIMSDK_DOWNLOAD_DIR}/*x_*                            \
-       ${QIMSDK_DOWNLOAD_DIR}/*base1.0-0_1*                                                        \
+       ${QIMSDK_DOWNLOAD_DIR}/*base1.0-0_1* ${QIMSDK_DOWNLOAD_DIR}/*bad_*                          \
+       ${QIMSDK_DOWNLOAD_DIR}/*bad1.0-0_1*                                                         \
        ${QIMSDK_DOWNLOAD_DIR}/qcom-libdmabufheap_*_arm64.deb                                       \
        ${QIMSDK_DOWNLOAD_DIR}/debs/
 
