@@ -7,6 +7,25 @@ RUN sed -Ei 's/^Types: deb$/Types: deb deb-src/'  /etc/apt/sources.list.d/debian
 # Add arm64 to dpkg
 RUN dpkg --add-architecture arm64
 
+# Enable Backports repo, grab mesa from there
+COPY <<EOF /etc/apt/sources.list.d/trixie-backports.sources
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: trixie-backports
+Components: main
+Enabled: yes
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+
+COPY <<EOF /etc/apt/preferences.d/debian-backports.pref
+# for binary packages built from these source packages, score the version from
+# Debian backports higher as to get hardware enabled or better hardware support
+
+Package: src:mesa:any
+Pin: release n=trixie-backports
+Pin-Priority: 900
+EOF
+
 # Packages installed for the native arch, needed to establish the debian/rules build system:
 #   fakeroot git tar unzip ssh rsync bash-completion jq cmake android-tools-adb wget pipx
 #   xz-utils gobject-introspection flex bison locales-all ninja-build gpg curl devscripts
@@ -449,6 +468,25 @@ FROM --platform=linux/arm64 debian:trixie-slim AS qimsdk_deploy_arm64
 ENV QIMSDK_BASE_DIR=/mnt/work
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 ENV QIMSDK_DEB_DIR=${QIMSDK_BASE_DIR}/downloads/debs
+
+# Enable Backports repo, grab mesa from there
+COPY <<EOF /etc/apt/sources.list.d/trixie-backports.sources
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: trixie-backports
+Components: main
+Enabled: yes
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+
+COPY <<EOF /etc/apt/preferences.d/debian-backports.pref
+# for binary packages built from these source packages, score the version from
+# Debian backports higher as to get hardware enabled or better hardware support
+
+Package: src:mesa:any
+Pin: release n=trixie-backports
+Pin-Priority: 900
+EOF
 
 # Installing dependencies, needed in order for gst plugins to load succesfully runtime:
 #  gstreamer base plugins:        gstreamer1.0-tools,
