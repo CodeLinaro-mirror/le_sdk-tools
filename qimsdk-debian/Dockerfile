@@ -350,13 +350,11 @@ RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                   
     cp -d ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/libfastcvdsp_stub.so ${QIMSDK_INSTALL_LIB_DIR}/ && \
     rm -rf fastcv ${FASTCV_PACKAGE_NAME}_${FASTCV_VERSION}_${FASTCV_ARCH}.tar.gz
 
-# camera-service: fetch
-RUN git clone --progress https://github.com/qualcomm/camera-service.git                            \
-        --single-branch --branch main ${QIMSDK_SRC_DIR}/camera-service
-
 # gst-qti-oss-patches: fetch
-RUN git clone --progress https://github.com/qualcomm/gst-qti-oss-patches.git --single-branch       \
-        --branch 1.26.2 ${QIMSDK_SRC_DIR}/gst-qti-oss-patches
+RUN GST_PLUGINS_BASE_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base*                       \
+            -maxdepth 1 -type d | head -1 | sed 's/.*-//')                                      && \
+    git clone --progress https://github.com/qualcomm/gst-qti-oss-patches.git --single-branch       \
+        --branch ${GST_PLUGINS_BASE_VERSION} ${QIMSDK_SRC_DIR}/gst-qti-oss-patches
 
 # qnp-sdk: fetch and copy the needed headers
 ARG QIMSDK_ARG_QNP_VERSION
@@ -427,6 +425,10 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
             -exec cp -t "${QIMSDK_INSTALL_LIB_DIR}/" {} +                                       && \
         rm -rf ${QIMSDK_DOWNLOAD_DIR}/qairt;                                                       \
     fi
+
+# camera-service: fetch
+RUN git clone --progress https://github.com/qualcomm/camera-service.git                            \
+        --single-branch --branch main ${QIMSDK_SRC_DIR}/camera-service
 
 # gst-plugins-imsdk: fetch
 RUN git clone --single-branch --branch main https://github.com/qualcomm/gst-plugins-imsdk.git      \

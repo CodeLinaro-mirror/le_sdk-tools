@@ -3,7 +3,7 @@
     "Additional_tag_image": "<Additional-tag-image>",
     "Docker_image_path": "<path-to-save-docker-images-and-artifacts>",
     "Target_device_ID" : "<adb-device-id>",
-    "QAIRT_SDK_version" : "<version, e.g. 2.39.0.250925>",
+    "QAIRT_SDK_version" : "<version, e.g. 2.46.0.260424>",
 
     "camera_service_Source_Dir" : "<path-to-camera-service-dir>",
     "IM_SDK_Source_Dir" : "<path-to-gst-plugins-imsdk-dir>",
