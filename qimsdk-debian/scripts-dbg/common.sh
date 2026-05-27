@@ -211,44 +211,6 @@ function qimsdk-get-device-id() {
     return 0
 }
 
-# Get Platform_Specific_Mappings from json
-#   $1 - (mandatory) path to target config json
-#   $2 - (mandatory) give Platform specific map as argument
-function qimsdk-get-platform-specific-mapping() {
-    local PATH_TO_CONFIG_JSON=${1}
-    local -n OUT_PLATFORM_SPECIFIC_MAP=${2}
-
-    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
-        print-red "Path to target configuration json must be provided as first argument !!!"
-        return -1
-    }
-
-    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
-
-    declare -a PLATFORM_SPECIFIC_MAPS_ARRAY
-
-    PLATFORM_SPECIFIC_MAPS_ARRAY=$(
-        echo ${JSON_CONTENT} | jq '.Platform_Specific_Mappings[]' | tr -d '"'
-    )
-
-    [ -z "${PLATFORM_SPECIFIC_MAPS_ARRAY}" ] && {
-        print-red "Platform_Specific_Mappings attribute in ${PATH_TO_CONFIG_JSON} is not set !!!"
-        return -1
-    }
-
-    declare -a PLATFORM_SPECIFIC_MAPS_ARRAY_TEMP=""
-
-    for SPECIFIC_MAP in ${PLATFORM_SPECIFIC_MAPS_ARRAY[@]}; do
-
-        PLATFORM_SPECIFIC_MAPS_ARRAY_TEMP+="--device ${SPECIFIC_MAP} "
-
-    done
-
-    OUT_PLATFORM_SPECIFIC_MAP=${PLATFORM_SPECIFIC_MAPS_ARRAY_TEMP}
-
-    return 0
-}
-
 # Get User_Specific_Mappings from json
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) give User specific map as argument
@@ -280,44 +242,6 @@ function qimsdk-get-user-specific-mapping() {
     } || {
         OUT_USER_SPECIFIC_MAP=""
     }
-
-    return 0
-}
-
-# Get Platform_Libraries_To_Mount from json
-#   $1 - (mandatory) path to target config json
-#   $2 - (mandatory) give Platform specific libraries to be mounted as argument
-function qimsdk-get-platform-libs-to-mount() {
-    local PATH_TO_CONFIG_JSON=${1}
-    local -n OUT_PLATFORM_SPECIFIC_LIBS=${2}
-
-    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
-        print-red "Path to target configuration json must be provided as first argument !!!"
-        return -1
-    }
-
-    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
-
-    declare -a PLATFORM_SPECIFIC_LIBS_ARRAY
-
-    PLATFORM_SPECIFIC_LIBS_ARRAY=$(
-        echo ${JSON_CONTENT} | jq '.Platform_Libraries_To_Mount[]' | tr -d '"'
-    )
-
-    [ -z "${PLATFORM_SPECIFIC_LIBS_ARRAY}" ] && {
-        print-red "Platform_Libraries_To_Mount attribute in ${PATH_TO_CONFIG_JSON} is not set !!!"
-        return -1
-    }
-
-    declare -a PLATFORM_SPECIFIC_LIBS_ARRAY_TEMP=""
-
-    for PLATFORM_LIB in ${PLATFORM_SPECIFIC_LIBS_ARRAY[@]}; do
-
-        PLATFORM_SPECIFIC_LIBS_ARRAY_TEMP+="-v ${PLATFORM_LIB}:${PLATFORM_LIB} "
-
-    done
-
-    OUT_PLATFORM_SPECIFIC_LIBS=${PLATFORM_SPECIFIC_LIBS_ARRAY_TEMP}
 
     return 0
 }
@@ -632,31 +556,36 @@ function qimsdk-get-map-for-dbg-container() {
         cat ${PATH_TO_CONFIG_JSON}
     )
 
+    local DOCKER_IMAGE_PATH="/mnt/work/dev_artifacts"
+    local HOST_DOCKER_IMAGE_PATH=""
+
+    qimsdk-get-docker-image-path ${PATH_TO_CONFIG_JSON} HOST_DOCKER_IMAGE_PATH
+
     local MAP_SOURCES_TO_DEV_CONTAINER=$(
         echo ${JSON_CONTENT} |  jq '.MAP_sources_to_dev_container' | tr -d '"'
     )
 
-    [ ! "${MAP_SOURCES_TO_DEV_CONTAINER}" == "TRUE" ]                                           && \
-    [ ! "${MAP_SOURCES_TO_DEV_CONTAINER}" == "ENABLE" ]                                         && \
-    [ ! "${MAP_SOURCES_TO_DEV_CONTAINER}" == "ENABLED" ]                                        && {
-        return 0
-    }
-
-    local GST_SRC_DIR=$(
-        echo ${JSON_CONTENT} |  jq '.IM_SDK_Source_Dir' | tr -d '"'
-    )
-
-    qimsdk-expand-tilde GST_SRC_DIR
-
-    [[ -z ${GST_SRC_DIR} ]]                                                                     && {
-        return 0
-    }
-
     declare -a DEV_MAP_ARR=""
 
-    [ -d ${GST_SRC_DIR} ] && {
-        DEV_MAP_ARR+="-v ${GST_SRC_DIR}:/mnt/work/src/gst-plugins-qti-oss "
+    [[ "${MAP_SOURCES_TO_DEV_CONTAINER}" =~ ^(TRUE|ENABLE|ENABLED)$ ]]                          && {
+
+        local GST_SRC_DIR=$(
+            echo ${JSON_CONTENT} |  jq '.IM_SDK_Source_Dir' | tr -d '"'
+        )
+
+        qimsdk-expand-tilde GST_SRC_DIR
+
+        [[ -z ${GST_SRC_DIR} ]]                                                                 && {
+            return 0
+        }
+
+        [ -d ${GST_SRC_DIR} ] && {
+            DEV_MAP_ARR+="-v ${GST_SRC_DIR}:/mnt/work/src/gst-plugins-imsdk "
+        }
+
     }
+
+    DEV_MAP_ARR+="-v ${HOST_DOCKER_IMAGE_PATH}:${DOCKER_IMAGE_PATH} "
 
     OUT_DEV_MAP=${DEV_MAP_ARR}
 

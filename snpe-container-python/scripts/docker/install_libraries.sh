@@ -15,6 +15,7 @@ function qml-install-libraries-snpe() {
     MAP_TARGET_TO_LIB["qrb5165"]="aarch64-oe-linux-gcc9.3"
     MAP_TARGET_TO_LIB["qcs9100"]="aarch64-oe-linux-gcc11.2"
     MAP_TARGET_TO_LIB["qcs8300"]="aarch64-oe-linux-gcc11.2"
+    MAP_TARGET_TO_LIB["klm"]="aarch64-oe-linux-gcc11.2"
 
     MAP_TARGET_TO_HEXAGON_LIB_VERSION["kalama"]="v73"
     MAP_TARGET_TO_HEXAGON_LIB_VERSION["qcm6490"]="v68"
@@ -22,37 +23,48 @@ function qml-install-libraries-snpe() {
     MAP_TARGET_TO_HEXAGON_LIB_VERSION["qcs9100"]="v73"
     MAP_TARGET_TO_HEXAGON_LIB_VERSION["qrb5165"]="v66"
     MAP_TARGET_TO_HEXAGON_LIB_VERSION["qcs8300"]="v75"
+    MAP_TARGET_TO_HEXAGON_LIB_VERSION["klm"]="klm"
 
-    TARGET_ACCELERATION_ENGINE_LIBRARY=${MAP_TARGET_TO_LIB[${QML_TARGET_PLATFORM}]}
+    TARGET_ACCELERATION_ENGINE_LIBRARY=${MAP_TARGET_TO_LIB[${QML_TARGET_PLATFORM,,}]}
     [ -z "${TARGET_ACCELERATION_ENGINE_LIBRARY}" ] && {
         echo "FAILED: Mapping target engine library unsuccessful for target ${QML_TARGET_PLATFORM} !!!"
         return -1
     }
 
-    TARGET_HEXAGON_LIBRARY_VERSION=${MAP_TARGET_TO_HEXAGON_LIB_VERSION[${QML_TARGET_PLATFORM}]}
-    [ -z "${TARGET_ACCELERATION_ENGINE_LIBRARY}" ] && {
+    TARGET_HEXAGON_LIBRARY_VERSION=${MAP_TARGET_TO_HEXAGON_LIB_VERSION[${QML_TARGET_PLATFORM,,}]}
+    [ -z "${TARGET_HEXAGON_LIBRARY_VERSION}" ] && {
         echo "FAILED: Mapping target library version unsuccessful for target ${QML_TARGET_PLATFORM} !!!"
         return -2
     }
 
     local rc=$?
     rc=$(curl -iL --write-out "%{http_code}\n" --output ${VER_PREFIX}${SDK_VER}.zip "https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/${SDK_VER}/${VER_PREFIX}${SDK_VER}.zip")
-    [ $rc -ne 200 ] && {
+    [ "$rc" -ne 200 ] && {
         echo "FAILED: to download SNPE SDK ${VER_PREFIX}${SDK_VER}"
         return -2
     }
 
     rc=$(unzip -q ${VER_PREFIX}${SDK_VER}.zip -d ${QML_BASE_DIR}/downloads/)
-    [ $rc -ne 200 ] && {
+    [ "$rc" -ne 200 ] && {
         echo "FAILED: to unzip ${VER_PREFIX}${SDK_VER}.zip"
         return $rc
     }
 
     local ACCELERATION_ENGINE_PATH="${QML_BASE_DIR}/downloads/qairt/${SDK_VER}"
 
-    cp ${ACCELERATION_ENGINE_PATH}/lib/${TARGET_ACCELERATION_ENGINE_LIBRARY}/* /deploy/snpe/usr/lib/
-    cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-${TARGET_HEXAGON_LIBRARY_VERSION}/unsigned/lib* /deploy/snpe/usr/lib/rfsa/adsp/
-    cp ${ACCELERATION_ENGINE_PATH}/bin/${TARGET_ACCELERATION_ENGINE_LIBRARY}/* /deploy/snpe/usr/bin/
+    find ${ACCELERATION_ENGINE_PATH}/lib/${TARGET_ACCELERATION_ENGINE_LIBRARY} \
+        -maxdepth 1 -type f -iname '*snpe*' \
+        -exec cp {} ${QML_INSTALL_DIR}/snpe/usr/lib/ \;
+
+    cp ${ACCELERATION_ENGINE_PATH}/bin/${TARGET_ACCELERATION_ENGINE_LIBRARY}/* ${QML_INSTALL_DIR}/snpe/usr/bin/
+
+    if [[ "${TARGET_HEXAGON_LIBRARY_VERSION}" == "klm" ]]; then
+        cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v68/unsigned/lib* ${QML_INSTALL_DIR}/snpe/usr/lib/rfsa/adsp/
+        cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v73/unsigned/lib* ${QML_INSTALL_DIR}/snpe/usr/lib/rfsa/adsp/
+        cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-v75/unsigned/lib* ${QML_INSTALL_DIR}/snpe/usr/lib/rfsa/adsp/
+    else
+        cp ${ACCELERATION_ENGINE_PATH}/lib/hexagon-${TARGET_HEXAGON_LIBRARY_VERSION}/unsigned/lib* ${QML_INSTALL_DIR}/snpe/usr/lib/rfsa/adsp/
+    fi
 
     return 0
 }
@@ -70,7 +82,7 @@ function qml-download-models-snpe() {
         echo "FAILED: to unzip models.zip"
         return $rc
     }
-    cp ${QML_BASE_DIR}/downloads/deeplabv3_resnet50.dlc /deploy/snpe/opt
+    cp ${QML_BASE_DIR}/downloads/deeplabv3_resnet50.dlc ${QML_INSTALL_DIR}/snpe/opt
 
     return 0
 }

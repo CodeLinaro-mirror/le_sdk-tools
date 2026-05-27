@@ -7,16 +7,16 @@
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) variable to take container name value
 #   $3 - (mandatory) variable to take image name value
-#   $4 - (mandatory) variable to take Gstreamer sources of SP
-#   $5 - (mandatory) variable to take Gstreamer meta of SP
-#   $6 - (mandatory) variable to take path to AIML project
+#   $4 - (mandatory) variable to take camera-service sources of SP
+#   $5 - (mandatory) variable to take Gstreamer sources of SP
+#   $6 - (mandatory) variable to take QAIRT SDK version
 function qimsdk-docker-parse-json() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
     local -n OUT_QIMSDK_IMAGE_NAME=${3}
-    local -n OUT_QIMSDK_GST_SOURCES=${4}
-    local -n OUT_QIMSDK_GST_META=${5}
-    local -n OUT_QIMSDK_PATH_TO_AIML=${6}
+    local -n OUT_QIMSDK_CAMERA_SERVICE_SOURCES=${4}
+    local -n OUT_QIMSDK_GST_SOURCES=${5}
+    local -n OUT_QIMSDK_QAIRT_SDK_VERSION=${6}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ]                                                           && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -45,6 +45,19 @@ function qimsdk-docker-parse-json() {
     ADDITIONAL_TAG_IMAGE="-${ADDITIONAL_TAG_IMAGE}"
     OUT_QIMSDK_IMAGE_NAME="qimsdk${ADDITIONAL_TAG_IMAGE}"
 
+    OUT_QIMSDK_CAMERA_SERVICE_SOURCES=$(echo ${JSON_CONTENT} | jq '.camera_service_Source_Dir'   | \
+            tr -d '"')
+    OUT_QIMSDK_CAMERA_SERVICE_SOURCES=${OUT_QIMSDK_CAMERA_SERVICE_SOURCES%/}
+
+    qimsdk-expand-tilde OUT_QIMSDK_CAMERA_SERVICE_SOURCES
+
+    [ -d "${OUT_QIMSDK_CAMERA_SERVICE_SOURCES}/.git" ]                                          || \
+            [ -d "${OUT_QIMSDK_CAMERA_SERVICE_SOURCES}/recorder" ]                              || {
+        print-red "Please provide path to camera-service directory in config json!!!"
+        print-red "Directory currently provided: ${OUT_QIMSDK_CAMERA_SERVICE_SOURCES}"
+        return -1
+    }
+
     OUT_QIMSDK_GST_SOURCES=$(echo ${JSON_CONTENT} | jq '.IM_SDK_Source_Dir' | tr -d '"')
     OUT_QIMSDK_GST_SOURCES=${OUT_QIMSDK_GST_SOURCES%/}
 
@@ -52,33 +65,12 @@ function qimsdk-docker-parse-json() {
 
     [ -d "${OUT_QIMSDK_GST_SOURCES}/.git" ]                                                     || \
             [ -d "${OUT_QIMSDK_GST_SOURCES}/gst-plugin-base" ]                                  || {
-        print-red "Please provide path to gst-plugins-qti-oss directory in config json!!!"
+        print-red "Please provide path to gst-plugins-imsdk directory in config json!!!"
         print-red "Directory currently provided: ${OUT_QIMSDK_GST_SOURCES}"
         return -1
     }
 
-    OUT_QIMSDK_GST_META=$(echo ${JSON_CONTENT} | jq '.IM_SDK_Meta_Dir' | tr -d '"')
-    OUT_QIMSDK_GST_META=${OUT_QIMSDK_GST_META%/}
-
-    qimsdk-expand-tilde OUT_QIMSDK_GST_META
-
-    [ -d "${OUT_QIMSDK_GST_META}/.git" ]                                                        || \
-            [ -d "${OUT_QIMSDK_GST_META}/recipes-gst/gstreamer" ]                               || {
-        print-red "Please provide path to meta-qti-gst directory in config json!!!"
-        print-red "Directory currently provided: ${IM_SDK_Meta_Dir}"
-        return -1
-    }
-
-    OUT_QIMSDK_PATH_TO_AIML=$(echo ${JSON_CONTENT} | jq '.Path_to_aiml_container' | tr -d '"')
-    OUT_QIMSDK_PATH_TO_AIML=${OUT_QIMSDK_PATH_TO_AIML%/}
-
-    qimsdk-expand-tilde OUT_QIMSDK_PATH_TO_AIML
-
-    [ -d "${OUT_QIMSDK_PATH_TO_AIML}" ]                                                         || {
-        print-red "Please provide path to aiml-container-test directory in config json!!!"
-        print-red "Directory currently provided: ${OUT_QIMSDK_PATH_TO_AIML}"
-        return -1
-    }
+    OUT_QIMSDK_QAIRT_SDK_VERSION=$(echo ${JSON_CONTENT} |  jq '.QAIRT_SDK_version' | tr -d '"')
 
     return 0
 }
@@ -90,8 +82,7 @@ function qimsdk-docker-parse-json() {
 #   $4 - (mandatory) temp folder
 #   $5 - (mandatory) docker image path
 #   $6 - (mandatory) device ID
-#   $7 - (mandatory) path to AIML project
-#   $8 - (mandatory) path to qimsdk-debian project
+#   $7 - (mandatory) QAIRT SDK version
 function qimsdk-docker-build-initialize() {
     local PATH_TO_CONFIG_JSON=${1}
 
@@ -100,17 +91,17 @@ function qimsdk-docker-build-initialize() {
     local -n QIMSDK_TMP_FOLDER_PTR=${4}
     local -n DOCKER_IMAGE_PATH_PTR=${5}
     local -n QIMSDK_DEVICE_ID_PTR=${6}
-    local -n QIMSDK_PATH_TO_AIML_PTR=${7}
+    local -n QIMSDK_QAIRT_SDK_VERSION_PTR=${7}
 
+    local QIMSDK_CAMERA_SERVICE_SOURCES
     local QIMSDK_GST_SOURCES
-    local QIMSDK_GST_META
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
             QIMSDK_CONTAINER_NAME_PTR                                                              \
             QIMSDK_IMAGE_NAME_PTR                                                                  \
+            QIMSDK_CAMERA_SERVICE_SOURCES                                                          \
             QIMSDK_GST_SOURCES                                                                     \
-            QIMSDK_GST_META                                                                        \
-            QIMSDK_PATH_TO_AIML_PTR                                                             || {
+            QIMSDK_QAIRT_SDK_VERSION_PTR                                                        || {
         print-red "FAILED: qimsdk-docker-parse-json !!!"
         return -1
     }
@@ -132,74 +123,18 @@ function qimsdk-docker-build-initialize() {
         return -1
     }
 
-    git -C ${QIMSDK_GST_SOURCES} branch | grep -q "imsdk.lnx.2.0.0"                             || {
-        print-red "ERROR: ${QIMSDK_GST_SOURCES} does not contain local branch: imsdk.lnx.2.0.0 !!!"
+    git -C ${QIMSDK_CAMERA_SERVICE_SOURCES} branch | grep -q "main"                             || {
+        print-red "ERROR: ${QIMSDK_CAMERA_SERVICE_SOURCES} does not contain local branch: main !!!"
         return -1
     }
 
-    git -C ${QIMSDK_GST_META} branch | grep -q "imsdk.lnx.2.0.0"                                || {
-        print-red "ERROR: ${QIMSDK_GST_META} does not contain local branch: imsdk.lnx.2.0.0 !!!"
+    git -C ${QIMSDK_GST_SOURCES} branch | grep -q "main"                                        || {
+        print-red "ERROR: ${QIMSDK_GST_SOURCES} does not contain local branch: main !!!"
         return -1
     }
 
-    rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-qti-oss               && \
-            rsync -aL ${QIMSDK_GST_META}/ ${QIMSDK_TMP_FOLDER_PTR}/meta-qti-gst
-}
-
-# Qimsdk build AIML deploy docker image
-#   $1 - (mandatory) path to AIML project
-#   $2 - (mandatory) image name
-function qimsdk-docker-build-aiml-image-deploy() {
-    local PATH_TO_AIML_DOCKERFILE=${1}
-    local IMAGE_NAME=${2}
-
-    [ ! -d ${PATH_TO_AIML_DOCKERFILE} ]                                                         && {
-        print-red "No such directory: ${PATH_TO_AIML_DOCKERFILE}!"
-        return -1
-    }
-
-    [ -z ${IMAGE_NAME} ]                                                                        && {
-        print-red "Image name is empty!"
-        return -1
-    }
-    (
-        cd ${PATH_TO_AIML_DOCKERFILE}
-
-        DOCKER_BUILDKIT=1 docker build                                                             \
-                --progress=plain --target deploy                                                   \
-                ${PATH_TO_AIML_DOCKERFILE} -t ${IMAGE_NAME}-deploy                              || {
-            print-red "Build AIML image failed !!!"
-            return -1
-        }
-    )
-}
-
-# Qimsdk build AIML docker image
-#   $1 - (mandatory) path to AIML project
-#   $2 - (mandatory) image name
-function qimsdk-docker-build-aiml-image() {
-    local PATH_TO_AIML_DOCKERFILE=${1}
-    local IMAGE_NAME=${2}
-
-    [ ! -d ${PATH_TO_AIML_DOCKERFILE} ]                                                         && {
-        print-red "No such directory: ${PATH_TO_AIML_DOCKERFILE}!"
-        return -1
-    }
-
-    [ -z ${IMAGE_NAME} ]                                                                        && {
-        print-red "Image name is empty!"
-        return -1
-    }
-    (
-        cd ${PATH_TO_AIML_DOCKERFILE}
-
-        DOCKER_BUILDKIT=1 docker build                                                             \
-                --progress=plain --target build                                                    \
-                ${PATH_TO_AIML_DOCKERFILE} -t ${IMAGE_NAME}-aiml                                || {
-            print-red "Build AIML image failed !!!"
-            return -1
-        }
-    )
+    rsync -aL ${QIMSDK_CAMERA_SERVICE_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/camera-service         && \
+            rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-imsdk
 }
 
 # Qimsdk build qimsdk-debian deploy docker image
@@ -225,68 +160,23 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
         local DOCKERFILE="${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE}/Dockerfile"
 
         # Modify Dockerfile to import artifacts from debug build container
-        sed -E                                                                                     \
-                "s|^(COPY[[:space:]]+)--from=qimsdk-build([[:space:]]+[$][{]QIMSDK_INSTALL_DIR[}]/usr[[:space:]]+/usr)|\1--from=$IMAGE_NAME-debian\2|" \
-                ${DOCKERFILE} > ${DOCKERFILE}.work_deploy_install                          || {
-            rm -f ${DOCKERFILE}.work
-            rm -f ${DOCKERFILE}.work_deploy_install
-            print-red "Modify Dockerfile to import artifacts from debug build container failed!"
-            return -1
-        }
-
-        # Modify Dockerfile to import prebuilt artifacts from debug build container
-        sed -E                                                                                     \
-                "s|^(COPY[[:space:]]+)--from=qimsdk-build([[:space:]]+[$][{]QIMSDK_PREBUILT_DIR[}]/usr[[:space:]]+/usr)|\1--from=$IMAGE_NAME-debian\2|" \
-                ${DOCKERFILE}.work_deploy_install > ${DOCKERFILE}.work_deploy_prebuilt          || {
-            rm -f ${DOCKERFILE}.work
-            rm -f ${DOCKERFILE}.work_deploy_install
-            rm -f ${DOCKERFILE}.work_deploy_prebuilt
-            print-red "Modify Dockerfile to import artifacts from debug build container failed!"
-            return -1
-        }
-
-        # Modify Dockerfile to import prebuilt deb artifacts from debug build container
-        sed -E                                                                                     \
-                "s|^(COPY[[:space:]]+)--from=qimsdk-build([[:space:]]+/mnt/work/downloads/debs[[:space:]]+[$][{]QIMSDK_DEB_DIR[}])|\1--from=$IMAGE_NAME-debian\2|" \
-                ${DOCKERFILE}.work_deploy_prebuilt > ${DOCKERFILE}.work_deploy_deb           || {
-            rm -f ${DOCKERFILE}.work
-            rm -f ${DOCKERFILE}.work_deploy_install
-            rm -f ${DOCKERFILE}.work_deploy_prebuilt
-            rm -f ${DOCKERFILE}.work_deploy_deb
-            print-red "Modify Dockerfile to import artifacts from debug build container failed!"
-            return -1
-        }
-
-        # Modify Dockerfile to import prebuilt artifacts from debug build container
-        sed -E "s|--from=deploy|--from=${IMAGE_NAME}-deploy|g"                                     \
-                ${DOCKERFILE}.work_deploy_deb > ${DOCKERFILE}.work_deploy_tflite           || {
-            rm -f ${DOCKERFILE}.work
-            rm -f ${DOCKERFILE}.work_deploy_install
-            rm -f ${DOCKERFILE}.work_deploy_prebuilt
-            rm -f ${DOCKERFILE}.work_deploy_deb
-            rm -f ${DOCKERFILE}.work_deploy_tflite
+        sed -E "s/--from=qimsdk_build/--from=${IMAGE_NAME}-debian/g"                               \
+                ${DOCKERFILE} > ${DOCKERFILE}.work_deploy                                       || {
+            rm -f ${DOCKERFILE}.work_deploy
             print-red "Modify Dockerfile to import artifacts from debug build container failed!"
             return -1
         }
 
         DOCKER_BUILDKIT=1 docker build                                                             \
-                --progress=plain --target qimsdk-deploy                                            \
-                --build-arg QIMSDK_ARG_IMAGE_NAME=${IMAGE_NAME}                                    \
+                --progress=plain --target qimsdk_deploy_arm64                                      \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian-deploy                 \
-                -f ${DOCKERFILE}.work_deploy_tflite                                             || {
-            rm -f ${DOCKERFILE}.work
-            rm -f ${DOCKERFILE}.work_deploy_install
-            rm -f ${DOCKERFILE}.work_deploy_prebuilt
-            rm -f ${DOCKERFILE}.work_deploy_tflite
+                -f ${DOCKERFILE}.work_deploy                                                    || {
+            rm -f ${DOCKERFILE}.work_deploy
             print-red "Build ${IMAGE_NAME}-debian-deploy image failed !!!"
             return -1
         }
 
-        rm -f ${DOCKERFILE}.work
-        rm -f ${DOCKERFILE}.work_deploy_install
-        rm -f ${DOCKERFILE}.work_deploy_prebuilt
-        rm -f ${DOCKERFILE}.work_deploy_deb
-        rm -f ${DOCKERFILE}.work_deploy_tflite
+        rm -f ${DOCKERFILE}.work_deploy
     )
 }
 
@@ -294,6 +184,7 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
 #   $1 - (mandatory) image name
 function qimsdk-docker-build-qimsdk-debian-image() {
     local IMAGE_NAME=${1}
+    local QIMSDK_QAIRT_SDK_VERSION=${2}
 
     local PATH_TO_QIMSDK_DEBIAN_DOCKERFILE=${QIMSDK_DOCKER_DIR}
 
@@ -314,11 +205,12 @@ function qimsdk-docker-build-qimsdk-debian-image() {
 
         # Modify Dockerfile to use debug container as base
         sed -E                                                                                     \
-            "s|^(FROM[[:space:]]+)build([[:space:]]+AS[[:space:]]+qimsdk-build)|\1$IMAGE_NAME\2|"  \
+            "s|^(FROM[[:space:]]+)debian:trixie-slim([[:space:]]+AS[[:space:]]+qimsdk_build)|\1${IMAGE_NAME}\2|"  \
             ${DOCKERFILE} > ${DOCKERFILE}.work
 
         DOCKER_BUILDKIT=1 docker build                                                             \
-                --progress=plain --target qimsdk-build                                             \
+                --build-arg QIMSDK_ARG_QNP_VERSION=${QIMSDK_QAIRT_SDK_VERSION}                     \
+                --progress=plain --target qimsdk_build                                             \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian                        \
                 -f ${DOCKERFILE}.work                                                           || {
             rm -f ${DOCKERFILE}.work
@@ -336,28 +228,11 @@ function qimsdk-docker-build-image() {
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
-    local DOCKER_IMAGE_PATH
-    local QIMSDK_DEVICE_ID
-    local QIMSDK_PATH_TO_AIML
 
-    local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
-    mkdir -p ${QIMSDK_TMP_FOLDER}
-
-    qimsdk-docker-build-initialize ${PATH_TO_CONFIG_JSON}                                          \
+    qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
-            QIMSDK_IMAGE_NAME                                                                      \
-            QIMSDK_TMP_FOLDER                                                                      \
-            DOCKER_IMAGE_PATH                                                                      \
-            QIMSDK_DEVICE_ID                                                                       \
-            QIMSDK_PATH_TO_AIML                                                                 || {
-        print-red "FAILED: qimsdk-docker-build-initialize !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER}
-        return -1
-    }
-
-    qimsdk-docker-build-aiml-image-deploy ${QIMSDK_PATH_TO_AIML} ${QIMSDK_IMAGE_NAME}           || {
-        print-red "FAILED: qimsdk-docker-build-aiml-image-deploy !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER}
+            QIMSDK_IMAGE_NAME                                                                   || {
+        print-red "FAILED: qimsdk-get-container-and-image-name !!!"
         return -1
     }
 
@@ -368,11 +243,8 @@ function qimsdk-docker-build-image() {
 
     qimsdk-docker-build-qimsdk-debian-deploy-image ${QIMSDK_IMAGE_NAME}                         || {
         print-red "FAILED: qimsdk-docker-build-qimsdk-debian-deploy-image !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER}
         return -1
     }
-
-    rm -rf ${QIMSDK_TMP_FOLDER}
 
     print-green "Build image completed successfully !!!"
 
@@ -387,7 +259,7 @@ function qimsdk-dbg-docker-build-image() {
     local QIMSDK_IMAGE_NAME
     local DOCKER_IMAGE_PATH
     local QIMSDK_DEVICE_ID
-    local QIMSDK_PATH_TO_AIML
+    local QIMSDK_QAIRT_SDK_VERSION
 
     local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
     mkdir -p ${QIMSDK_TMP_FOLDER}
@@ -398,14 +270,8 @@ function qimsdk-dbg-docker-build-image() {
             QIMSDK_TMP_FOLDER                                                                      \
             DOCKER_IMAGE_PATH                                                                      \
             QIMSDK_DEVICE_ID                                                                       \
-            QIMSDK_PATH_TO_AIML                                                                 || {
+            QIMSDK_QAIRT_SDK_VERSION                                                            || {
         print-red "FAILED: qimsdk-docker-build-initialize !!!"
-        rm -rf ${QIMSDK_TMP_FOLDER}
-        return -1
-    }
-
-    qimsdk-docker-build-aiml-image ${QIMSDK_PATH_TO_AIML} ${QIMSDK_IMAGE_NAME}                  || {
-        print-red "FAILED: qimsdk-docker-build-aiml-image !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -1
     }
@@ -414,7 +280,6 @@ function qimsdk-dbg-docker-build-image() {
             --build-arg QIMSDK_ARG_DOCKER_IMAGE_PATH=${DOCKER_IMAGE_PATH}                          \
             --build-arg QIMSDK_ARG_DEVICE_ID=${QIMSDK_DEVICE_ID}                                   \
             --build-arg QIMSDK_ARG_CONTAINER_NAME=${QIMSDK_CONTAINER_NAME}                         \
-            --build-arg QIMSDK_ARG_IMAGE_NAME=${QIMSDK_IMAGE_NAME}                                 \
             --progress=plain --target qimsdk_dbg_image -f Dockerfile.dbg                           \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}                                        || {
         print-red "Build image failed !!!"
@@ -422,7 +287,7 @@ function qimsdk-dbg-docker-build-image() {
         return -1
     }
 
-    qimsdk-docker-build-qimsdk-debian-image ${QIMSDK_IMAGE_NAME}                                || {
+    qimsdk-docker-build-qimsdk-debian-image ${QIMSDK_IMAGE_NAME} ${QIMSDK_QAIRT_SDK_VERSION}    || {
         print-red "FAILED: qimsdk-docker-build-qimsdk-debian-image !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -1
@@ -530,7 +395,7 @@ function qimsdk-docker-device-save-image() {
     }
 
     [[ "${DOCKER_IMAGE_PATH}" != *":"* ]] && [ ! -d "${DOCKER_IMAGE_PATH}" ]                    && {
-            mkdir -p ${DOCKER_IMAGE_PATH}                                                       || {
+        mkdir -p ${DOCKER_IMAGE_PATH}                                                           || {
             print-red "FAILED: mkdir -p ${DOCKER_IMAGE_PATH} !!!"
             return -1
         }
@@ -560,10 +425,10 @@ function qimsdk-docker-device-save-image() {
         return -1
     }
 
-    local PLATFORMS=("qcs2210")
+    for DEVICE_JSON in ${QIMSDK_DOCKER_DIR}/targets/target_*.json; do
 
-    for SUFFIX_NAME in ${PLATFORMS[@]}; do
-        local DEVICE_JSON="${QIMSDK_DOCKER_DIR}/targets/${SUFFIX_NAME}.json"
+        local SUFFIX_NAME="$(basename "${DEVICE_JSON%.json}")"
+        SUFFIX_NAME="${SUFFIX_NAME#target_}"
 
         qimsdk-generate-docker-run-cmd ${DEVICE_JSON}                                              \
                 ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                                        \
@@ -679,7 +544,6 @@ function qimsdk-docker-device-load-image() {
                     /tmp/data/docker_images !!!"
 
             qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
-
             return -1
         }
 
@@ -726,20 +590,12 @@ function qimsdk-dbg-docker-run-container() {
     qimsdk-get-map-for-dbg-container ${PATH_TO_CONFIG_JSON}                                        \
             DEVELOPMENT_MAP
 
-    local ARTIFACTS_DIR
-
-    qimsdk-get-docker-image-path ${PATH_TO_CONFIG_JSON} ARTIFACTS_DIR                           || {
-        print-red "FAILED: qimsdk-get-docker-image-path !!!"
-        return -1
-    }
-
     local USB_DEVICE=""
     [ -d /dev/bus/usbd ] && USB_DEVICE="--device /dev/bus/usb"
 
     docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME}_dbg                                   \
             --name ${QIMSDK_CONTAINER_NAME}_dbg                                                    \
             ${USB_DEVICE} ${DEVELOPMENT_MAP}                                                       \
-            -v ${ARTIFACTS_DIR}:${ARTIFACTS_DIR}                                                   \
             ${QIMSDK_IMAGE_NAME}-debian bash                                                    || {
         print-red "Run dbg container failed !!!"
         return -1
@@ -856,8 +712,6 @@ function qimsdk-docker-device-run-container() {
     }
 
     (
-        local PLATFORMS=("qcs2210")
-
         export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
 
         local MACHINE=$(adb shell "cat /sys/devices/soc0/machine" | tr -d '\r')                 || {
@@ -878,8 +732,10 @@ function qimsdk-docker-device-run-container() {
 
         local TMP_RUN_CMD_DIR=$(mktemp -d)
 
-        for SUFFIX_NAME in ${PLATFORMS[@]}; do
-            local DEVICE_JSON="${QIMSDK_DOCKER_DIR}/targets/${SUFFIX_NAME}.json"
+        for DEVICE_JSON in ${QIMSDK_DOCKER_DIR}/targets/target_*.json; do
+
+            local SUFFIX_NAME="$(basename "${DEVICE_JSON%.json}")"
+            SUFFIX_NAME="${SUFFIX_NAME#target_}"
 
             qimsdk-generate-docker-run-cmd ${DEVICE_JSON}                                          \
                     ${TMP_RUN_CMD_DIR}/docker_run_${SUFFIX_NAME}.sh                                \
@@ -1143,7 +999,7 @@ function qimsdk-dbg-load-artifacts-variant() {
     }
 
     [[ "${DOCKER_IMAGE_PATH}" != *":"* ]] && [ ! -d "${DOCKER_IMAGE_PATH}" ]                    && {
-            mkdir -p ${DOCKER_IMAGE_PATH}                                                       || {
+        mkdir -p ${DOCKER_IMAGE_PATH}                                                           || {
             print-red "FAILED: mkdir -p ${DOCKER_IMAGE_PATH} !!!"
             return -1
         }
@@ -1164,9 +1020,9 @@ function qimsdk-dbg-load-artifacts-variant() {
         rsync -aP ${DOCKER_IMAGE_PATH}/qimsdk_dev_artifacts_${VARIANT}.tar .                    && \
                 qimsdk-device-command "mkdir -p /tmp/qti/development" ${QIMSDK_DEVICE_ID}       && \
                 adb push qimsdk_dev_artifacts_${VARIANT}.tar /tmp/qti/development/              && \
-                qimsdk-device-command "cd /tmp/qti/development                                  && \
-                        tar -xf /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar        && \
-                        docker cp usr ${QIMSDK_CONTAINER_NAME}:/" ${QIMSDK_DEVICE_ID}           && \
+                qimsdk-device-command "cd /tmp/qti/development && `
+                        `tar -xf /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar && `
+                        `docker cp usr ${QIMSDK_CONTAINER_NAME}:/" ${QIMSDK_DEVICE_ID}          && \
                 qimsdk-device-command "rm -rf /tmp/qti/development/usr"                            \
                         ${QIMSDK_DEVICE_ID}                                                     || {
             print-red "Artifacts load failed !!!"

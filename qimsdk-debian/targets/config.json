@@ -3,11 +3,10 @@
     "Additional_tag_image": "<Additional-tag-image>",
     "Docker_image_path": "<path-to-save-docker-images-and-artifacts>",
     "Target_device_ID" : "<adb-device-id>",
+    "QAIRT_SDK_version" : "<version, e.g. 2.39.0.250925>",
 
-    "IM_SDK_Source_Dir" : "<path-to-gst-plugins-qti-oss-dir>",
-    "IM_SDK_Meta_Dir" : "<path-to-meta-qti-gst>",
-
-    "Path_to_aiml_container" : "<path-to-folder-containing-base-dockerfile>",
+    "camera_service_Source_Dir" : "<path-to-camera-service-dir>",
+    "IM_SDK_Source_Dir" : "<path-to-gst-plugins-imsdk-dir>",
 
     "MAP_sources_to_dev_container" : "FALSE"
 }
