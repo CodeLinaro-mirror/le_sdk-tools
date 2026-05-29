@@ -378,6 +378,7 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
         mkdir -p ${QIMSDK_ADSP_DIR}                                                             && \
         cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v68/unsigned/* ${QIMSDK_ADSP_DIR}/                    && \
         cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v73/unsigned/* ${QIMSDK_ADSP_DIR}/                    && \
+        cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v75/unsigned/* ${QIMSDK_ADSP_DIR}/                    && \
         find "${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2"                                     \
             -maxdepth 1 -type f                                                                    \
             \(                                                                                     \
@@ -405,6 +406,8 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
                 -name 'libQnnHtpV68Stub.so' -o                                                     \
                 -name 'libQnnHtpV73CalculatorStub.so' -o                                           \
                 -name 'libQnnHtpV73Stub.so' -o                                                     \
+                -name 'libQnnHtpV75CalculatorStub.so' -o                                           \
+                -name 'libQnnHtpV75Stub.so' -o                                                     \
                 -name 'libQnnIr.so' -o                                                             \
                 -name 'libQnnJsonProfilingReader.so' -o                                            \
                 -name 'libQnnModelDlc.so' -o                                                       \
@@ -417,6 +420,8 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
                 -name 'libSnpeHtpV68Stub.so' -o                                                    \
                 -name 'libSnpeHtpV73CalculatorStub.so' -o                                          \
                 -name 'libSnpeHtpV73Stub.so' -o                                                    \
+                -name 'libSnpeHtpV75CalculatorStub.so' -o                                          \
+                -name 'libSnpeHtpV75Stub.so' -o                                                    \
                 -name 'libSNPE.so'                                                                 \
             \)                                                                                     \
             -exec cp -t "${QIMSDK_INSTALL_LIB_DIR}/" {} +                                       && \
