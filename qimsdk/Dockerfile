@@ -208,8 +208,7 @@ RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                   
         ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnSaver.so                             \
         ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnSystem.so                            \
         ${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2/libQnnTFLiteDelegate.so                    \
-        ${QIMSDK_INSTALL_DIR}/usr/lib/.                                                         && \
-    rm -rf ${QIMSDK_DOWNLOAD_DIR}/qairt
+        ${QIMSDK_INSTALL_DIR}/usr/lib/.
 
 # wayland-protocols: fetch and prepare git repo
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
@@ -380,6 +379,18 @@ ENV QIMSDK_GSTD_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/gstd-1.x
 RUN git clone https://github.com/RidgeRun/gstd-1.x.git ${QIMSDK_GSTD_SRC_DIR}                   && \
     cd ${QIMSDK_GSTD_SRC_DIR}                                                                   && \
     git checkout a011affa67f240cbc7aaff5b00fdfd6124bdaece
+
+# Clone onnx.
+ENV QIMSDK_ONNX_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/onnx
+ENV QIMSDK_ONNX_SRC_VERSION=v1.20.1
+RUN git clone --progress https://github.com/onnx/onnx --recurse-submodules                         \
+    --single-branch --branch ${QIMSDK_ONNX_SRC_VERSION} ${QIMSDK_ONNX_SRC_DIR}
+
+# Clone onnxruntime.
+ENV QIMSDK_ONNXRUNTIME_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/onnxruntime
+ENV QIMSDK_ONNXRUNTIME_SRC_VERSION=v1.24.1
+RUN git clone --progress https://github.com/microsoft/onnxruntime --recurse-submodules             \
+    --single-branch --branch ${QIMSDK_ONNXRUNTIME_SRC_VERSION} ${QIMSDK_ONNXRUNTIME_SRC_DIR}
 
 # Add bash aliases file
 COPY .bash_aliases /root/.bash_aliases
