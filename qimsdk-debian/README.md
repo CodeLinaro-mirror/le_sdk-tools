@@ -118,9 +118,29 @@ Handles patching, library propagation, and dependency management for GStreamer p
 Building qimsdk_deploy_arm64: minimal set of runtime binaries needed to execute gst use-cases are available in this image.
 
 ```bash
-docker build --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.46.0.260424> --target qimsdk_deploy_arm64 -t <desired-image-name> .
+docker build \
+  --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.46.0.260424> \
+  --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=<camera-service-commit-id> \
+  --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=<gstreamer-plugins-commit-id> \
+  --target qimsdk_deploy_arm64 \
+  -t <desired-image-name> .
 ```
-In the docker build command above, provide the version of QAIRT SDK that you want to install, e.g. *--build-arg QIMSDK_ARG_QNP_VERSION=2.46.0.260424*. If this argument is not provided, the QNN and SNPE plugins will be disabled in the image.
+#### Example with concrete values
+```bash
+docker build \
+  --build-arg QIMSDK_ARG_QNP_VERSION=2.46.0.260424 \
+  --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=abc123def456 \
+  --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=789xyz456uvw \
+  --target qimsdk_deploy_arm64 \
+  -t my-qimsdk-image .
+```
+#### Notes
+
+- QIMSDK_ARG_QNP_VERSION: Controls the QAIRT SDK version. If omitted, QNN and SNPE plugins will be disabled.
+- QIMSDK_ARG_CAMERA_SERVICE_TAG: Should match the exact commit ID or tag of the camera-service repository.
+- QIMSDK_ARG_GST_PLUGINS_TAG: Should point to the desired commit ID or tag for the IM SDK (GStreamer plugins) sources.
+
+This ensures all components are pinned to reproducible versions during the image build.
 
 <div id="How_to_add_new_QCOM_GStreamer_plugin">
 

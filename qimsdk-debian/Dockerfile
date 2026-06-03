@@ -427,12 +427,18 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
     fi
 
 # camera-service: fetch
+ARG QIMSDK_ARG_CAMERA_SERVICE_TAG
 RUN git clone --progress https://github.com/qualcomm/camera-service.git                            \
-        --single-branch --branch main ${QIMSDK_SRC_DIR}/camera-service
+        --single-branch --branch main ${QIMSDK_SRC_DIR}/camera-service                          && \
+        [ -z "${QIMSDK_ARG_CAMERA_SERVICE_TAG}" ]                                               || \
+        git -C ${QIMSDK_SRC_DIR}/camera-service checkout -b work ${QIMSDK_ARG_CAMERA_SERVICE_TAG}
 
 # gst-plugins-imsdk: fetch
+ARG QIMSDK_ARG_GST_PLUGINS_TAG
 RUN git clone --single-branch --branch main https://github.com/qualcomm/gst-plugins-imsdk.git      \
-        ${QIMSDK_SRC_DIR}/gst-plugins-imsdk
+        ${QIMSDK_SRC_DIR}/gst-plugins-imsdk                                                     && \
+        [ -z "${QIMSDK_ARG_GST_PLUGINS_TAG}" ]                                                  || \
+        git -C ${QIMSDK_SRC_DIR}/gst-plugins-imsdk checkout -b work ${QIMSDK_ARG_GST_PLUGINS_TAG}
 
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts/
