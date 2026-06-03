@@ -213,7 +213,8 @@ function qimsdk-debian-rules-build() {
     (
         # Cross architecture
         export DEB_HOST_ARCH=arm64
-        export DEB_BUILD_OPTIONS="parallel=$(nproc)"
+        # Skip tests: Docker build lacks GPU for GL tests and QEMU affects audio timing
+        export DEB_BUILD_OPTIONS="parallel=$(nproc) nocheck"
 
         # GCC/G++ cross toolchain (optional but helps many builds)
         export CC=aarch64-linux-gnu-gcc
