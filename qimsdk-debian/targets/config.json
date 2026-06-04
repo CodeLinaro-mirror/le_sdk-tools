@@ -8,5 +8,8 @@
     "camera_service_Source_Dir" : "<path-to-camera-service-dir>",
     "IM_SDK_Source_Dir" : "<path-to-gst-plugins-imsdk-dir>",
 
+    "camera_service_git_tag" : "<optional-git-tag-for-camera-service>",
+    "IM_SDK_Source_git_tag" : "<optional-git-tag-for-gst-plugins-imsdk>",
+
     "MAP_sources_to_dev_container" : "FALSE"
 }

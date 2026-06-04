@@ -427,7 +427,9 @@ Config json files *(config.json)* must contain the following data:
  5. ***OPTIONAL*** -  **QAIRT_SDK_version** - Version of the Qualcomm AI Runtime SDK to be used in the container. If field is left open - QAIRT functionalities will be disabled.
  6. ***MANDATORY*** - **camera_service_Source_Dir** - PATH to camera-service sources directory, which contains open-source repo needed to enable camera functionality.
  7. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-imsdk directory! Code checked out on local branch main will be built. Ensure desired code is checked out on main branch before proceeding with debug variant QIMSDK build!***
- 8. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir is wanted to be mapped to the build container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
+ 8. ***OPTIONAL*** - **camera_service_git_tag** - Specifies the commit ID or tag for the camera-service project. ***Note: If not provided, the latest (TIP) version will be used!***
+ 9. ***OPTIONAL*** - **IM_SDK_Source_git_tag** - Specifies the commit ID or tag for the IM SDK sources directory. ***Note: If not provided, the latest (TIP) version will be used!***
+ 10. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir is wanted to be mapped to the build container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
 
 Target specific json files *(\<target-name\>.json)* must contain the following data:
  1. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform

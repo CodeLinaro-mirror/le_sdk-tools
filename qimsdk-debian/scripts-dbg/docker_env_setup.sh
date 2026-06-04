@@ -199,13 +199,15 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
 #   $1 - (mandatory) image name
 #   $2 - (mandatory) QAIRT SDK VERSION
 function qimsdk-docker-build-qimsdk-debian-image() {
-    local QIMSDK_ARG_COUNT_EXPECTED=2
+    local QIMSDK_ARG_COUNT_EXPECTED=1
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
 
     local IMAGE_NAME=${1}
     local QIMSDK_QAIRT_SDK_VERSION=${2}
+    local QIMSDK_CAMERA_SERVICE_TAG
+    local QIMSDK_GST_PLUGINS_TAG
 
     local PATH_TO_QIMSDK_DEBIAN_DOCKERFILE=${QIMSDK_DOCKER_DIR}
 
@@ -229,8 +231,16 @@ function qimsdk-docker-build-qimsdk-debian-image() {
             "s|^(FROM[[:space:]]+)debian:trixie-slim([[:space:]]+AS[[:space:]]+qimsdk_build)|\1${IMAGE_NAME}\2|"  \
             ${DOCKERFILE} > ${DOCKERFILE}.work
 
+        qimsdk-get-components-tag ${PATH_TO_CONFIG_JSON} QIMSDK_CAMERA_SERVICE_TAG                 \
+                QIMSDK_GST_PLUGINS_TAG                                                          || {
+        print-red "FAILED: qimsdk-get-components-tag !!!"
+        return -1
+    }
+
         DOCKER_BUILDKIT=1 docker build                                                             \
                 --build-arg QIMSDK_ARG_QNP_VERSION=${QIMSDK_QAIRT_SDK_VERSION}                     \
+                --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=${QIMSDK_CAMERA_SERVICE_TAG}             \
+                --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=${QIMSDK_GST_PLUGINS_TAG}                   \
                 --progress=plain --target qimsdk_build                                             \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian                        \
                 -f ${DOCKERFILE}.work                                                           || {

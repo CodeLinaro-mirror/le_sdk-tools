@@ -225,6 +225,38 @@ function qimsdk-get-docker-image-path() {
     return 0
 }
 
+# Get qimsdk components commit ID or tag
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) give camera service commit ID or tag as argument
+#   $3 - (mandatory) give gst plugins commit ID or tag as argument
+function qimsdk-get-components-tag() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_QIMSDK_CAMERA_SERVICE_TAG=${2}
+    local -n OUT_QIMSDK_GST_PLUGINS_TAG=${3}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    OUT_QIMSDK_CAMERA_SERVICE_TAG=$(
+        jq -er '.camera_service_git_tag // ""' <<< "${JSON_CONTENT}" 2>/dev/null || echo ""
+    )
+
+    OUT_QIMSDK_GST_PLUGINS_TAG=$(
+        jq -er '.IM_SDK_Source_git_tag // ""' <<< "${JSON_CONTENT}" 2>/dev/null || echo ""
+    )
+
+    return 0
+}
+
 # Get Device ID from json
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) give Device ID as argument
