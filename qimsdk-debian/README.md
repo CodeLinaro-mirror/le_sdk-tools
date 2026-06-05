@@ -5,6 +5,7 @@
 * [QIMSDK Docker Images](#Docker_images)
     * [qimsdk_build](#qimsdk_build)
     * [qimsdk_deploy_arm64](#qimsdk_deploy)
+    * [qimsdk_deploy_py_arm64](#qimsdk_deploy_py)
 * [Scripts](#Scripts)
     * [build.sh](#build.sh)
     * [env_setup.sh](#env_setup.sh)
@@ -25,7 +26,7 @@
 
 ## QIMSDK Docker Images
 
-Two QIMSDK Docker images are provided:
+Three possible QIMSDK Docker images are provided:
 
 - Build Image (qimsdk_build):
   - Based on Debian Trixie
@@ -37,6 +38,12 @@ Two QIMSDK Docker images are provided:
   - Specifically for ARM64 architecture
   - Contains only the necessary runtime components for target devices
 This separation allows for efficient development on the host system while ensuring proper deployment to ARM64-based target devices.
+
+- Python Deploy Image (qimsdk_deploy_py_arm64):
+  - Based on qimsdk_deploy_arm64
+  - Specifically for ARM64 architecture
+  - Contains only the necessary runtime components for target devices
+  - Includes Python support for gst python apps execution
 
 <div id="qimsdk_build">
 
@@ -72,6 +79,14 @@ This separation allows for efficient development on the host system while ensuri
     6. Copy deb packages to device image
     7. Install deb packages to deploy image and remove the directory after install
     8. Add environment variables
+
+<div id="qimsdk_deploy_py">
+
+### qimsdk_deploy_py_arm64 (based on arm64 architecture)
+
+    1. Start from qimsdk_deploy_arm64 image
+    2. Install needed apt dependencies
+    3. Install needed pip dependencies
 
 <div id="Scripts">
 
@@ -125,7 +140,7 @@ Building the qimsdk_deploy_arm64 image: minimal set of runtime binaries needed t
 
 ```bash
 docker build \
-  --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.46.0.260424> \
+  --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.47.0.260601> \
   --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=<camera-service-commit-id> \
   --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=<gstreamer-plugins-commit-id> \
   --build-arg QIMSDK_ARG_MAX_JOBS=<optional_max_cpu_threads> \
@@ -133,14 +148,27 @@ docker build \
   -t <desired-image-name> .
 ```
 #### An example with concrete values:
+
 ```bash
 docker build \
-  --build-arg QIMSDK_ARG_QNP_VERSION=2.46.0.260424 \
+  --build-arg QIMSDK_ARG_QNP_VERSION=2.47.0.260601 \
   --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=abc123def456 \
   --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=789xyz456uvw \
   --target qimsdk_deploy_arm64 \
   -t my-qimsdk-image .
 ```
+
+#### If user would like to build deploy image with gst python apps support:
+
+```bash
+docker build \
+  --build-arg QIMSDK_ARG_QNP_VERSION=2.47.0.260601 \
+  --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=abc123def456 \
+  --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=789xyz456uvw \
+  --target qimsdk_deploy_py_arm64 \
+  -t my-qimsdk-image-py .
+```
+
 #### Notes:
 
 - QIMSDK_ARG_QNP_VERSION: Controls the QAIRT SDK version. If omitted, QNN and SNPE plugins will be disabled.
