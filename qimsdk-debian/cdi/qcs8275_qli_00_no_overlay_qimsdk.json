@@ -52,7 +52,7 @@
             "path": "/dev/fastrpc-cdsp",
             "fileMode": 0660,
             "uid": 0,
-            "gid": 44
+            "gid": 1000
           }
         ],
         "mounts": [
