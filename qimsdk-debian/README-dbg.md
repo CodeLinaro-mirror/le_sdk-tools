@@ -977,6 +977,18 @@ adb shell mkdir -p /etc/docker/env/
 adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
 ```
 
+#### Sample file directory setup requirements
+The following directories must be created under the user’s home directory to store test files:
+
+```bash
+mkdir ${HOME}/media
+mkdir ${HOME}/models
+mkdir ${HOME}/labels
+mkdir ${HOME}/configs
+```
+
+All directories must be assigned **permission mode 666** to ensure they are accessible and usable by the container environment.
+
 <h3 style="color:red">
   <b>Create a shell file with the following content:</b>
 </h3>
