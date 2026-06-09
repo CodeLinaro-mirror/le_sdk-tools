@@ -259,8 +259,6 @@ function qimsdk-get-device-id() {
         return -1
     }
 
-    print-green "${FUNCNAME[0]}: OUT_TARGET_DEVICE_ID is: ${OUT_TARGET_DEVICE_ID}"
-
     return 0
 }
 
@@ -638,6 +636,54 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
     )
 }
 
+# Qimsdk build qimsdk-debian deploy docker image with python use-case support
+#   $1 - (mandatory) image name
+function qimsdk-docker-build-qimsdk-debian-deploy-py-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local IMAGE_NAME=${1}
+
+    local PATH_TO_QIMSDK_DEBIAN_DOCKERFILE=${QIMSDK_DOCKER_DIR}
+
+    [ ! -d ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} ]                                                && {
+        print-red "No such directory: ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE}!"
+        return -1
+    }
+
+    [ -z ${IMAGE_NAME} ]                                                                        && {
+        print-red "Image name is empty!"
+        return -1
+    }
+
+    (
+        cd ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} || return -1
+
+        local DOCKERFILE="${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE}/Dockerfile"
+
+        # Modify Dockerfile to import artifacts from debug build container
+        sed -E "s/--from=qimsdk_build/--from=${IMAGE_NAME}-debian/g"                               \
+                ${DOCKERFILE} > ${DOCKERFILE}.work_deploy_py                                    || {
+            rm -f ${DOCKERFILE}.work_deploy_py
+            print-red "Modify Dockerfile to import artifacts from debug build container failed!"
+            return -1
+        }
+
+        DOCKER_BUILDKIT=1 docker build                                                             \
+                --progress=plain --target qimsdk_deploy_py_arm64                                   \
+                ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian-deploy-py              \
+                -f ${DOCKERFILE}.work_deploy_py                                                 || {
+            rm -f ${DOCKERFILE}.work_deploy_py
+            print-red "Build ${IMAGE_NAME}-debian-deploy-py image failed !!!"
+            return -1
+        }
+
+        rm -f ${DOCKERFILE}.work_deploy_py
+    )
+}
+
 # Qimsdk build qimsdk-debian docker image
 #   $1 - (mandatory) image name
 #   $2 - (mandatory) QAIRT SDK VERSION
@@ -709,15 +755,22 @@ function qimsdk-docker-build-qimsdk-debian-image() {
 
 # Build device docker image based on Dockerfile in ${QIMSDK_DOCKER_DIR} directory
 #   $1 - (mandatory) path to target config json
-function qimsdk-docker-build-image() {
-    local QIMSDK_ARG_COUNT_EXPECTED=1
+#   $2 - (mandatory) container type: native | python
+function qimsdk-docker-build-image-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
+    local CONTAINER_TYPE=${2}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
+
+    [ "${CONTAINER_TYPE}" == "native" ] || [ "${CONTAINER_TYPE}" == "python" ]                  || {
+        print-red "Wrong container type provided: supported options: native, python !!!"
+        return -1
+    }
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -736,9 +789,41 @@ function qimsdk-docker-build-image() {
         return -1
     }
 
+    [ "${CONTAINER_TYPE}" == "python" ]                                                         && {
+        qimsdk-docker-build-qimsdk-debian-deploy-py-image ${QIMSDK_IMAGE_NAME}                  || {
+            print-red "FAILED: qimsdk-docker-build-qimsdk-debian-deploy-py-image !!!"
+            return -1
+        }
+    }
+
     print-green "Build image completed successfully !!!"
 
     return 0
+}
+
+# Build device docker image based on Dockerfile in ${QIMSDK_DOCKER_DIR} directory
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-build-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-build-image-variant ${PATH_TO_CONFIG_JSON} native
+}
+
+# Build device docker image, including the python-enabled deploy image, based on Dockerfile
+# in ${QIMSDK_DOCKER_DIR} directory
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-build-image-py() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-build-image-variant ${PATH_TO_CONFIG_JSON} python
 }
 
 # Build dbg dev docker image based on Dockerfile in ${QIMSDK_DOCKER_DIR} directory
@@ -802,16 +887,27 @@ function qimsdk-dbg-docker-build-image() {
 
 # Update selected device image to the device
 #   $1 - (mandatory) path to target config json
-function qimsdk-docker-device-update-image() {
-    local QIMSDK_ARG_COUNT_EXPECTED=1
+#   $2 - (mandatory) container type: native | python
+function qimsdk-docker-device-update-image-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
+    local CONTAINER_TYPE=${2}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_DEVICE_ID
+    local DEVICE_IMAGES_PATH="/tmp/data/docker_images"
+
+    [ "${CONTAINER_TYPE}" == "native" ] || [ "${CONTAINER_TYPE}" == "python" ]                  || {
+        print-red "Wrong container type provided: supported options: native, python !!!"
+        return -1
+    }
+
+    local SUFFIX_NAME=""
+    [ "${CONTAINER_TYPE}" == "python" ] && SUFFIX_NAME="-py"
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -825,10 +921,10 @@ function qimsdk-docker-device-update-image() {
         return -1
     }
 
-    local FILE_NAME="${QIMSDK_IMAGE_NAME}.tar"
+    local FILE_NAME="${QIMSDK_IMAGE_NAME}${SUFFIX_NAME}.tar"
 
-    docker save ${QIMSDK_IMAGE_NAME}-debian-deploy:latest -o ${FILE_NAME}                       || {
-        print-red "Device load image failed: docker save failed !!!"
+    docker save ${QIMSDK_IMAGE_NAME}-debian-deploy${SUFFIX_NAME}:latest -o ${FILE_NAME}         || {
+        print-red "Device update${SUFFIX_NAME} image failed: docker save failed !!!"
         rm ${FILE_NAME}
         return -1
     }
@@ -841,15 +937,15 @@ function qimsdk-docker-device-update-image() {
             return -1
         }
 
-        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "mkdir -p /tmp/data/docker_images"          || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "mkdir -p ${DEVICE_IMAGES_PATH}"            || {
             print-red "FAILED: qimsdk-device-command !!!"
             rm ${FILE_NAME}
 
             return -1
         }
 
-        qimsdk-cmd "${QIMSDK_DEVICE_ID}" push ${FILE_NAME} /tmp/data/docker_images              || {
-            print-red "FAILED: push ${FILE_NAME} /tmp/data/docker_images !!!"
+        qimsdk-cmd "${QIMSDK_DEVICE_ID}" push ${FILE_NAME} ${DEVICE_IMAGES_PATH}                || {
+            print-red "FAILED: push ${FILE_NAME} ${DEVICE_IMAGES_PATH} !!!"
             rm ${FILE_NAME}
 
             return -1
@@ -858,37 +954,71 @@ function qimsdk-docker-device-update-image() {
         rm ${FILE_NAME}
 
         qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                \
-                "docker load -i /tmp/data/docker_images/${FILE_NAME}"                           || {
-            print-red "Device load image failed: docker load failed !!!"
+                "docker load -i ${DEVICE_IMAGES_PATH}/${FILE_NAME}"                             || {
+            print-red "Device update${SUFFIX_NAME} image failed: docker load failed !!!"
             return -1
         }
 
-        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm /tmp/data/docker_images/${FILE_NAME}"   || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm ${DEVICE_IMAGES_PATH}/${FILE_NAME}"     || {
             print-red "Device failed to remove ${FILE_NAME} !!!"
             return -1
         }
     )                                                                                           || {
-        print-red "FAILED: Device update image !!!"
+        print-red "FAILED: Device update${SUFFIX_NAME} image !!!"
         return -1
     }
 
-    print-green "Device update image successful !!!"
+    print-green "Device update${SUFFIX_NAME} image successful !!!"
 
     return 0
 }
 
-# Save selected device image
+# Update selected device image to the device
 #   $1 - (mandatory) path to target config json
-function qimsdk-docker-device-save-image() {
+function qimsdk-docker-device-update-image() {
     local QIMSDK_ARG_COUNT_EXPECTED=1
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-update-image-variant ${PATH_TO_CONFIG_JSON} native
+}
+
+# Update selected py device image to the device
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-device-update-py-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-update-image-variant ${PATH_TO_CONFIG_JSON} python
+}
+
+# Save selected device image
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) container type: native | python
+function qimsdk-docker-device-save-image-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local CONTAINER_TYPE=${2}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local DOCKER_IMAGE_PATH
+
+    [ "${CONTAINER_TYPE}" == "native" ] || [ "${CONTAINER_TYPE}" == "python" ]                  || {
+        print-red "Wrong container type provided: supported options: native, python !!!"
+        return -1
+    }
+
+    local SUFFIX_NAME=""
+    [ "${CONTAINER_TYPE}" == "python" ] && SUFFIX_NAME="-py"
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -909,7 +1039,7 @@ function qimsdk-docker-device-save-image() {
         }
     }
 
-    local FILE_NAME="${QIMSDK_IMAGE_NAME}.tar"
+    local FILE_NAME="${QIMSDK_IMAGE_NAME}${SUFFIX_NAME}.tar"
 
     local COMMON_PATH=""
 
@@ -917,10 +1047,16 @@ function qimsdk-docker-device-save-image() {
         COMMON_PATH=${DOCKER_IMAGE_PATH}
     }                                                                                           || {
         COMMON_PATH=$(mktemp -d)
+
+        [ ! -d ${COMMON_PATH} ]                                                                 && {
+            print-red "Failed to create docker image tmp path!"
+            return -1
+        }
     }
 
-    docker save ${QIMSDK_IMAGE_NAME}-debian-deploy:latest -o ${COMMON_PATH}/${FILE_NAME}        || {
-        print-red "Device save image failed: docker save failed !!!"
+    docker save ${QIMSDK_IMAGE_NAME}-debian-deploy${SUFFIX_NAME}:latest                            \
+            -o ${COMMON_PATH}/${FILE_NAME}                                                      || {
+        print-red "Device save${SUFFIX_NAME} image failed: docker save failed !!!"
         rm -f ${COMMON_PATH}/${FILE_NAME}
 
         return -1
@@ -933,54 +1069,89 @@ function qimsdk-docker-device-save-image() {
         return -1
     }
 
-    qimsdk-generate-docker-run-cmd ${COMMON_PATH}/docker_run.sh                                    \
-            ${QIMSDK_CONTAINER_NAME}                                                               \
-            ${QIMSDK_IMAGE_NAME}-debian-deploy                                                  || {
-        print-red "Generate ${COMMON_PATH}/docker_run.sh file failed !!!"
-        rm -f ${COMMON_PATH}/docker_run.sh
+    qimsdk-generate-docker-run-cmd ${COMMON_PATH}/docker_run${SUFFIX_NAME}.sh                      \
+            ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME}                                                 \
+            ${QIMSDK_IMAGE_NAME}-debian-deploy${SUFFIX_NAME}                                    || {
+        print-red "Generate ${COMMON_PATH}/docker_run${SUFFIX_NAME}.sh file failed !!!"
+        rm -f ${COMMON_PATH}/docker_run${SUFFIX_NAME}.sh
         return -1
     }
 
-    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run.sh                                   \
+    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run${SUFFIX_NAME}.sh                     \
             ${DOCKER_IMAGE_PATH}                                                                || {
         print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-        rm -f ${COMMON_PATH}/docker_run.sh
+        rm -f ${COMMON_PATH}/docker_run${SUFFIX_NAME}.sh
         return -1
     }
 
-    qimsdk-generate-docker-compose-yaml ${COMMON_PATH}/docker-compose.yml                          \
-            ${QIMSDK_CONTAINER_NAME}                                                               \
-            ${QIMSDK_IMAGE_NAME}-debian-deploy                                                  || {
+    qimsdk-generate-docker-compose-yaml ${COMMON_PATH}/docker-compose${SUFFIX_NAME}.yml            \
+            ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME}                                                 \
+            ${QIMSDK_IMAGE_NAME}-debian-deploy${SUFFIX_NAME}                                    || {
         print-red "Generate qimsdk docker compose CDI file failed !!!"
-        rm -f ${COMMON_PATH}/docker-compose.yml
+        rm -f ${COMMON_PATH}/docker-compose${SUFFIX_NAME}.yml
         return -1
     }
 
-    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-compose.yml                              \
+    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-compose${SUFFIX_NAME}.yml                \
             ${DOCKER_IMAGE_PATH}                                                                || {
         print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-        rm -f ${COMMON_PATH}/docker-compose.yml
+        rm -f ${COMMON_PATH}/docker-compose${SUFFIX_NAME}.yml
         return -1
     }
 
-    print-green "Device save image successful !!!"
+    print-green "Device save${SUFFIX_NAME} image successful !!!"
 
     return 0
 }
 
-# Load selected device image
+# Save selected device image
 #   $1 - (mandatory) path to target config json
-function qimsdk-docker-device-load-image() {
+function qimsdk-docker-device-save-image() {
     local QIMSDK_ARG_COUNT_EXPECTED=1
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-save-image-variant ${PATH_TO_CONFIG_JSON} native
+}
+
+# Save selected py device image
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-device-save-py-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-save-image-variant ${PATH_TO_CONFIG_JSON} python
+}
+
+# Load selected device image
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) container type: native | python
+function qimsdk-docker-device-load-image-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local CONTAINER_TYPE=${2}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local DOCKER_IMAGE_PATH
     local QIMSDK_DEVICE_ID
+    local DEVICE_IMAGES_PATH="/tmp/data/docker_images"
+
+    [ "${CONTAINER_TYPE}" == "native" ] || [ "${CONTAINER_TYPE}" == "python" ]                  || {
+        print-red "Wrong container type provided: supported options: native, python !!!"
+        return -1
+    }
+
+    local SUFFIX_NAME=""
+    [ "${CONTAINER_TYPE}" == "python" ] && SUFFIX_NAME="-py"
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -1006,12 +1177,17 @@ function qimsdk-docker-device-load-image() {
         return -1
     }
 
-    local FILE_NAME="${QIMSDK_IMAGE_NAME}.tar"
+    local FILE_NAME="${QIMSDK_IMAGE_NAME}${SUFFIX_NAME}.tar"
 
     local LOCAL_DOCKER_IMAGE="${DOCKER_IMAGE_PATH}/${FILE_NAME}"
 
     [ ! -d ${DOCKER_IMAGE_PATH} ]                                                               && {
         local TMP_DOCKER_IMAGE_PATH=$(mktemp -d)
+
+        [ ! -d ${TMP_DOCKER_IMAGE_PATH} ]                                                       && {
+            print-red "Failed to create docker image tmp dir!"
+            return -1
+        }
 
         rsync -aP ${DOCKER_IMAGE_PATH}/${FILE_NAME} ${TMP_DOCKER_IMAGE_PATH}/${FILE_NAME}       || {
             print-red "FAILED: rsync -aP ${DOCKER_IMAGE_PATH}/${FILE_NAME}                         \
@@ -1031,16 +1207,16 @@ function qimsdk-docker-device-load-image() {
             return -1
         }
 
-        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "mkdir -p /tmp/data/docker_images"          || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "mkdir -p ${DEVICE_IMAGES_PATH}"            || {
             print-red "FAILED: qimsdk-device-command !!!"
             qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
             return -1
         }
 
-        qimsdk-cmd "${QIMSDK_DEVICE_ID}" push ${LOCAL_DOCKER_IMAGE} /tmp/data/docker_images     || {
+        qimsdk-cmd "${QIMSDK_DEVICE_ID}" push ${LOCAL_DOCKER_IMAGE} ${DEVICE_IMAGES_PATH}       || {
             print-red "FAILED: push ${LOCAL_DOCKER_IMAGE}                                          \
-                    /tmp/data/docker_images !!!"
+                    ${DEVICE_IMAGES_PATH} !!!"
 
             qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
             return -1
@@ -1049,25 +1225,49 @@ function qimsdk-docker-device-load-image() {
         qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
         qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                \
-                "docker load -i /tmp/data/docker_images/${FILE_NAME}"                           || {
-            print-red "Device load image failed: docker load failed !!!"
+                "docker load -i ${DEVICE_IMAGES_PATH}/${FILE_NAME}"                             || {
+            print-red "Device load${SUFFIX_NAME} image failed: docker load failed !!!"
             return -1
         }
 
-        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm /tmp/data/docker_images/${FILE_NAME}"   || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm ${DEVICE_IMAGES_PATH}/${FILE_NAME}"     || {
             print-red "Device failed to remove ${FILE_NAME} !!!"
             return -1
         }
 
         return 0
     )                                                                                           || {
-        print-red "FAILED: Device load image !!!"
+        print-red "FAILED: Device load${SUFFIX_NAME} image !!!"
         return -1
     }
 
-    print-green "Device load image successful !!!"
+    print-green "Device load${SUFFIX_NAME} image successful !!!"
 
     return 0
+}
+
+# Load selected device image
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-device-load-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-load-image-variant ${PATH_TO_CONFIG_JSON} native
+}
+
+# Load selected py device image
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-device-load-py-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-load-image-variant ${PATH_TO_CONFIG_JSON} python
 }
 
 # Run dbg dev container
@@ -1164,15 +1364,25 @@ function qimsdk-dbg-docker-run-container() {
 
 # Run selected device container
 #   $1 - (mandatory) path to target config json
-function qimsdk-device-docker-run-container() {
-    local QIMSDK_ARG_COUNT_EXPECTED=1
+#   $2 - (mandatory) container type: native | python
+function qimsdk-device-docker-run-container-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
+    local CONTAINER_TYPE=${2}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
+
+    [ "${CONTAINER_TYPE}" == "native" ] || [ "${CONTAINER_TYPE}" == "python" ]                  || {
+        print-red "Wrong container type provided: supported options: native, python !!!"
+        return -1
+    }
+
+    local SUFFIX_NAME=""
+    [ "${CONTAINER_TYPE}" == "python" ] && SUFFIX_NAME="-py"
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -1182,13 +1392,14 @@ function qimsdk-device-docker-run-container() {
     }
 
     docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME}                                       \
-            --name ${QIMSDK_CONTAINER_NAME} ${QIMSDK_IMAGE_NAME}-debian-deploy bash             || {
-        print-red "Run device container failed on pc emulator !!!"
+            --name ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME}                                          \
+            ${QIMSDK_IMAGE_NAME}-debian-deploy${SUFFIX_NAME} bash                               || {
+        print-red "Run${SUFFIX_NAME} device container failed on pc emulator !!!"
         return -1
     }
 
     # Propagate ssh and gitconfig to container
-    docker exec --user root ${QIMSDK_CONTAINER_NAME} mkdir /root/.ssh                           || {
+    docker exec --user root ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME} mkdir /root/.ssh             || {
         print-red "docker mkdir ~/.ssh failed !!!"
         return -1
     }
@@ -1198,34 +1409,69 @@ function qimsdk-device-docker-run-container() {
         for f in ~/.ssh/*; do
             local BASE_NAME=`basename $f`
             test "${f}" = ~/.ssh/known_hosts && continue
-            docker cp ${f} ${QIMSDK_CONTAINER_NAME}:/root/.ssh/${BASE_NAME}                     || {
+            docker cp ${f} ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME}:/root/.ssh/${BASE_NAME}       || {
                 print-red "Propagating .ssh/ to docker failed !!!"
                 return -1
             }
         done
-        docker exec --user root ${QIMSDK_CONTAINER_NAME} chown -R root:root /root/.ssh          || {
+        docker exec --user root ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME}                             \
+                chown -R root:root /root/.ssh                                                   || {
             print-red "Propagating .ssh/ to docker failed !!!"
             return -1
         }
     fi
 
-    print-green "Run device container successful on pc emulator !!!"
+    print-green "Run${SUFFIX_NAME} device container successful on pc emulator !!!"
 
     return 0
 }
 
-# Run selected device container in cdi mode
+# Run selected device container
 #   $1 - (mandatory) path to target config json
-function qimsdk-docker-device-run-container() {
+function qimsdk-device-docker-run-container() {
     local QIMSDK_ARG_COUNT_EXPECTED=1
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-device-docker-run-container-variant ${PATH_TO_CONFIG_JSON} native
+}
+
+# Run selected py device container
+#   $1 - (mandatory) path to target config json
+function qimsdk-device-docker-run-py-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-device-docker-run-container-variant ${PATH_TO_CONFIG_JSON} python
+}
+
+# Run selected device container in cdi mode
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) container type: native | python
+function qimsdk-docker-device-run-container-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local CONTAINER_TYPE=${2}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_DEVICE_ID
+
+    [ "${CONTAINER_TYPE}" == "native" ] || [ "${CONTAINER_TYPE}" == "python" ]                  || {
+        print-red "Wrong container type provided: supported options: native, python !!!"
+        return -1
+    }
+
+    local SUFFIX_NAME=""
+    [ "${CONTAINER_TYPE}" == "python" ] && SUFFIX_NAME="-py"
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -1258,30 +1504,101 @@ function qimsdk-docker-device-run-container() {
 
         local TMP_RUN_CMD_DIR=$(mktemp -d)
 
-        qimsdk-generate-docker-run-cmd ${TMP_RUN_CMD_DIR}/docker_run.sh                            \
-                ${QIMSDK_CONTAINER_NAME}                                                           \
-                ${QIMSDK_IMAGE_NAME}-debian-deploy                                              || {
-            print-red "Generate ${TMP_RUN_CMD_DIR}/docker_run.sh file failed !!!"
+        qimsdk-generate-docker-run-cmd ${TMP_RUN_CMD_DIR}/docker_run${SUFFIX_NAME}.sh              \
+                ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME}                                             \
+                ${QIMSDK_IMAGE_NAME}-debian-deploy${SUFFIX_NAME}                                || {
+            print-red "Generate ${TMP_RUN_CMD_DIR}/docker_run${SUFFIX_NAME}.sh file failed !!!"
             rm -rf ${TMP_RUN_CMD_DIR}
             return -1
         }
 
-        qimsdk-cmd "${QIMSDK_DEVICE_ID}" push ${TMP_RUN_CMD_DIR}/docker_run.sh /tmp/            && \
-        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "source /tmp/docker_run.sh"                 || {
+        qimsdk-cmd "${QIMSDK_DEVICE_ID}" push ${TMP_RUN_CMD_DIR}/docker_run${SUFFIX_NAME}.sh       \
+                /tmp/                                                                           && \
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "source /tmp/docker_run${SUFFIX_NAME}.sh"   || {
             rm -rf ${TMP_RUN_CMD_DIR}
-            qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm -rf /tmp/docker_run.sh"
-            echo "qimsdk-docker-device-run-container failed !!!"
+            qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm -rf /tmp/docker_run${SUFFIX_NAME}.sh"
+            echo "${FUNCNAME[0]} failed !!!"
             return -1
         }
 
         rm -rf ${TMP_RUN_CMD_DIR}
-        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm -rf /tmp/docker_run.sh"
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm -rf /tmp/docker_run${SUFFIX_NAME}.sh"
     )                                                                                           || {
-        print-red "Device run container failed !!!"
+        print-red "Device run${SUFFIX_NAME} container failed !!!"
         return -1
     }
 
-    print-green "Device run container successful !!!"
+    print-green "Device run${SUFFIX_NAME} container successful !!!"
+
+    return 0
+}
+
+# Run selected device container in cdi mode
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-device-run-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-run-container-variant ${PATH_TO_CONFIG_JSON} native
+}
+
+# Run selected py device container in cdi mode
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-device-run-py-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-run-container-variant ${PATH_TO_CONFIG_JSON} python
+}
+
+# Remove selected device container
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) container type: native | python
+function qimsdk-docker-device-rm-container-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local CONTAINER_TYPE=${2}
+    local QIMSDK_CONTAINER_NAME
+    local QIMSDK_IMAGE_NAME
+    local QIMSDK_DEVICE_ID
+
+    [ "${CONTAINER_TYPE}" == "native" ] || [ "${CONTAINER_TYPE}" == "python" ]                  || {
+        print-red "Wrong container type provided: supported options: native, python !!!"
+        return -1
+    }
+
+    local SUFFIX_NAME=""
+    [ "${CONTAINER_TYPE}" == "python" ] && SUFFIX_NAME="-py"
+
+    qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
+            QIMSDK_CONTAINER_NAME                                                                  \
+            QIMSDK_IMAGE_NAME                                                                   || {
+        print-red "FAILED: qimsdk-get-container-and-image-name !!!"
+        return -1
+    }
+
+    qimsdk-get-device-id ${PATH_TO_CONFIG_JSON} QIMSDK_DEVICE_ID                                || {
+        print-red "FAILED: qimsdk-get-device-id  !!!"
+        return -1
+    }
+
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                    \
+            "docker rm ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME}"                                  || {
+        print-red "Device rm${SUFFIX_NAME} container failed !!!"
+        return -1
+    }
+
+    print-green "Device rm${SUFFIX_NAME} container successful !!!"
 
     return 0
 }
@@ -1295,9 +1612,43 @@ function qimsdk-docker-device-rm-container() {
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-rm-container-variant ${PATH_TO_CONFIG_JSON} native
+}
+
+# Remove selected py device container
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-device-rm-py-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-rm-container-variant ${PATH_TO_CONFIG_JSON} python
+}
+
+# Start selected device container
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) container type: native | python
+function qimsdk-docker-device-start-container-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local CONTAINER_TYPE=${2}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_DEVICE_ID
+
+    [ "${CONTAINER_TYPE}" == "native" ] || [ "${CONTAINER_TYPE}" == "python" ]                  || {
+        print-red "Wrong container type provided: supported options: native, python !!!"
+        return -1
+    }
+
+    local SUFFIX_NAME=""
+    [ "${CONTAINER_TYPE}" == "python" ] && SUFFIX_NAME="-py"
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -1311,12 +1662,13 @@ function qimsdk-docker-device-rm-container() {
         return -1
     }
 
-    qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker rm ${QIMSDK_CONTAINER_NAME}"            || {
-        print-red "Device rm container failed !!!"
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                    \
+            "docker start ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME}"                               || {
+        print-red "Device start${SUFFIX_NAME} container failed !!!"
         return -1
     }
 
-    print-green "Device rm container successful !!!"
+    print-green "Device start${SUFFIX_NAME} container successful !!!"
 
     return 0
 }
@@ -1330,9 +1682,43 @@ function qimsdk-docker-device-start-container() {
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-start-container-variant ${PATH_TO_CONFIG_JSON} native
+}
+
+# Start selected py device container
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-device-start-py-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-start-container-variant ${PATH_TO_CONFIG_JSON} python
+}
+
+# Stop selected device container
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) container type: native | python
+function qimsdk-docker-device-stop-container-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local CONTAINER_TYPE=${2}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_DEVICE_ID
+
+    [ "${CONTAINER_TYPE}" == "native" ] || [ "${CONTAINER_TYPE}" == "python" ]                  || {
+        print-red "Wrong container type provided: supported options: native, python !!!"
+        return -1
+    }
+
+    local SUFFIX_NAME=""
+    [ "${CONTAINER_TYPE}" == "python" ] && SUFFIX_NAME="-py"
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -1346,12 +1732,13 @@ function qimsdk-docker-device-start-container() {
         return -1
     }
 
-    qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker start ${QIMSDK_CONTAINER_NAME}"         || {
-        print-red "Device start container failed !!!"
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                    \
+            "docker stop ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME}"                                || {
+        print-red "Device stop${SUFFIX_NAME} container failed !!!"
         return -1
     }
 
-    print-green "Device start container successful !!!"
+    print-green "Device stop${SUFFIX_NAME} container successful !!!"
 
     return 0
 }
@@ -1365,9 +1752,45 @@ function qimsdk-docker-device-stop-container() {
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-stop-container-variant ${PATH_TO_CONFIG_JSON} native
+}
+
+# Stop selected py device container
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-device-stop-py-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-stop-container-variant ${PATH_TO_CONFIG_JSON} python
+}
+
+# Execute CMD in device container
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) command to execute
+#   $3 - (mandatory) container type: native | python
+function qimsdk-docker-device-command-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=3
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local CMD=${2}
+    local CONTAINER_TYPE=${3}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_DEVICE_ID
+
+    [ "${CONTAINER_TYPE}" == "native" ] || [ "${CONTAINER_TYPE}" == "python" ]                  || {
+        print-red "Wrong container type provided: supported options: native, python !!!"
+        return -1
+    }
+
+    local SUFFIX_NAME=""
+    [ "${CONTAINER_TYPE}" == "python" ] && SUFFIX_NAME="-py"
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -1381,12 +1804,11 @@ function qimsdk-docker-device-stop-container() {
         return -1
     }
 
-    qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker stop ${QIMSDK_CONTAINER_NAME}"          || {
-        print-red "Device stop container failed !!!"
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                    \
+            "docker exec ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME} bash -c ${CMD}"                 || {
+        print-red "FAILED: qimsdk-device-command !!!"
         return -1
     }
-
-    print-green "Device stop container successful !!!"
 
     return 0
 }
@@ -1402,43 +1824,45 @@ function qimsdk-docker-device-command() {
 
     local PATH_TO_CONFIG_JSON=${1}
     local CMD=${2}
-    local QIMSDK_CONTAINER_NAME
-    local QIMSDK_IMAGE_NAME
-    local QIMSDK_DEVICE_ID
-
-    qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
-            QIMSDK_CONTAINER_NAME                                                                  \
-            QIMSDK_IMAGE_NAME                                                                   || {
-        print-red "FAILED: qimsdk-get-container-and-image-name !!!"
-        return -1
-    }
-
-    qimsdk-get-device-id ${PATH_TO_CONFIG_JSON} QIMSDK_DEVICE_ID                                || {
-        print-red "FAILED: qimsdk-get-device-id  !!!"
-        return -1
-    }
-
-    qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                    \
-            "docker exec ${QIMSDK_CONTAINER_NAME} bash -c ${CMD}"                               || {
-        print-red "FAILED: qimsdk-device-command !!!"
-        return -1
-    }
-
-    return 0
+    qimsdk-docker-device-command-variant ${PATH_TO_CONFIG_JSON} ${CMD} native
 }
 
-# Start shell in the docker container on the device
+# Execute CMD in py device container
 #   $1 - (mandatory) path to target config json
-function qimsdk-docker-device-shell() {
-    local QIMSDK_ARG_COUNT_EXPECTED=1
+#   $2 - (optional) command to execute
+function qimsdk-docker-device-py-command() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
+    local CMD=${2}
+    qimsdk-docker-device-command-variant ${PATH_TO_CONFIG_JSON} ${CMD} python
+}
+
+# Start shell in the docker container on the device
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) container type: native | python
+function qimsdk-docker-device-shell-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local CONTAINER_TYPE=${2}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_DEVICE_ID
+
+    [ "${CONTAINER_TYPE}" == "native" ] || [ "${CONTAINER_TYPE}" == "python" ]                  || {
+        print-red "Wrong container type provided: supported options: native, python !!!"
+        return -1
+    }
+
+    local SUFFIX_NAME=""
+    [ "${CONTAINER_TYPE}" == "python" ] && SUFFIX_NAME="-py"
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
@@ -1459,7 +1883,8 @@ function qimsdk-docker-device-shell() {
     }
 
     if [ "${TRANSPORT}" = "adb" ]; then
-        adb -s ${QIMSDK_DEVICE_ID} shell -t "docker exec -it ${QIMSDK_CONTAINER_NAME} bash"
+        adb -s ${QIMSDK_DEVICE_ID} shell -t                                                        \
+                "docker exec -it ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME} bash"
     else
         # Connect using the bare device ID as the ssh target and let the host's
         # ~/.ssh/config govern the user, hostname and identity (passwordless,
@@ -1467,8 +1892,32 @@ function qimsdk-docker-device-shell() {
         local -a SSH_OPTS
         qimsdk-ssh-opts SSH_OPTS
         ssh -t "${SSH_OPTS[@]}" "${QIMSDK_DEVICE_ID}"                                              \
-                "docker exec -it ${QIMSDK_CONTAINER_NAME} bash"
+                "docker exec -it ${QIMSDK_CONTAINER_NAME}${SUFFIX_NAME} bash"
     fi
+}
+
+# Start shell in the docker container on the device
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-device-shell() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-shell-variant ${PATH_TO_CONFIG_JSON} native
+}
+
+# Start shell in the py docker container on the device
+#   $1 - (mandatory) path to target config json
+function qimsdk-docker-device-py-shell() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-docker-device-shell-variant ${PATH_TO_CONFIG_JSON} python
 }
 
 # Docker device images clean up
@@ -1524,13 +1973,14 @@ function qimsdk-docker-host-images-cleanup() {
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) artifacts variant - release or debug
 function qimsdk-dbg-load-artifacts-variant() {
-    local QIMSDK_ARG_COUNT_EXPECTED=2
+    local QIMSDK_ARG_COUNT_EXPECTED=3
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
     local VARIANT=${2}
+    local CONTAINER_TYPE=${3}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local QIMSDK_DEVICE_ID
@@ -1542,9 +1992,17 @@ function qimsdk-dbg-load-artifacts-variant() {
         return -1
     }
 
+    [  "${CONTAINER_TYPE}" == "native" ] || [ "${CONTAINER_TYPE}" == "python" ]                 || {
+        print-red "Failed to load ${CONTAINER_TYPE} packages !!!"
+        print-red "Wrong container type provided: supported options: native, python !!!"
+        return -1
+    }
+
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME
+
+    [ "${CONTAINER_TYPE}" == "python" ] && QIMSDK_CONTAINER_NAME="${QIMSDK_CONTAINER_NAME}-py"
 
     qimsdk-get-docker-image-path ${PATH_TO_CONFIG_JSON} DOCKER_IMAGE_PATH                       || {
         print-red "FAILED: qimsdk-get-docker-image-path !!!"
@@ -1605,7 +2063,19 @@ function qimsdk-dbg-load-artifacts() {
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
-    qimsdk-dbg-load-artifacts-variant ${PATH_TO_CONFIG_JSON} release
+    qimsdk-dbg-load-artifacts-variant ${PATH_TO_CONFIG_JSON} release native
+}
+
+# Load release artifacts from Docker_image_path provided in config json file.
+#   $1 - (mandatory) path to target config json
+function qimsdk-dbg-load-artifacts-py() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-dbg-load-artifacts-variant ${PATH_TO_CONFIG_JSON} release python
 }
 
 # Load debug artifacts from Docker_image_path provided in config json file.
@@ -1617,7 +2087,19 @@ function qimsdk-dbg-load-artifacts-dbg() {
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
-    qimsdk-dbg-load-artifacts-variant ${PATH_TO_CONFIG_JSON} debug
+    qimsdk-dbg-load-artifacts-variant ${PATH_TO_CONFIG_JSON} debug native
+}
+
+# Load debug artifacts from Docker_image_path provided in config json file.
+#   $1 - (mandatory) path to target config json
+function qimsdk-dbg-load-artifacts-dbg-py() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    qimsdk-dbg-load-artifacts-variant ${PATH_TO_CONFIG_JSON} debug python
 }
 
 # Abosulute path to the Docker source directory
@@ -1653,6 +2135,29 @@ echo "    Docker device images clean up"
 print-red "qimsdk-docker-host-images-cleanup"
 echo "    Docker host images clean up"
 echo        "==================="
+print-yellow "Device Docker Commands for container with python support"
+echo        "==================="
+print-green "qimsdk-docker-build-image-py                                     <path-to-config-json>"
+echo "    Build device Docker image with python support"
+print-blue "qimsdk-docker-device-update-py-image                              <path-to-config-json>"
+echo "    Update selected device image to the device"
+print-blue "qimsdk-docker-device-save-py-image                                <path-to-config-json>"
+echo "    Save selected device image, compose file and run command"
+print-blue "qimsdk-docker-device-load-py-image                                <path-to-config-json>"
+echo "    Loads device image on the device"
+print-blue "qimsdk-docker-device-run-py-container                             <path-to-config-json>"
+echo "    Run device container in mode"
+print-blue "qimsdk-docker-device-rm-py-container                              <path-to-config-json>"
+echo "    Remove device container"
+print-blue "qimsdk-docker-device-start-py-container                           <path-to-config-json>"
+echo "    Start device container"
+print-blue "qimsdk-docker-device-stop-py-container                            <path-to-config-json>"
+echo "    Stop device container"
+print-blue "qimsdk-docker-device-py-command                             <path-to-config-json> <CMD>"
+echo "    Execute CMD in device container"
+print-blue "qimsdk-docker-device-py-shell                                     <path-to-config-json>"
+echo "    Start shell in the docker container on the device"
+echo        "==================="
 print-yellow "Debug dev Docker Commands"
 echo        "==================="
 print-green "qimsdk-dbg-docker-build-image                                    <path-to-config-json>"
@@ -1669,3 +2174,7 @@ print-blue "qimsdk-dbg-load-artifacts                                         <p
 echo "    Load artifacts from Docker_image_path provided in config json file."
 print-blue "qimsdk-dbg-load-artifacts-dbg                                     <path-to-config-json>"
 echo "    Load debug artifacts from Docker_image_path provided in config json file."
+print-blue "qimsdk-dbg-load-artifacts-py                                      <path-to-config-json>"
+echo "    Load artifacts from Docker_image_path provided in config json file to py container."
+print-blue "qimsdk-dbg-load-artifacts-dbg-py                                  <path-to-config-json>"
+echo "    Load debug artifacts from Docker_image_path provided in config json file to py container."

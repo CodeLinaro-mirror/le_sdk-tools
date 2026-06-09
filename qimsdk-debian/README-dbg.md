@@ -17,6 +17,7 @@
   * [QIMSDK Debug Image](#QIMSDK_Debug_Image)
   * [QIMSDK Build Image](#QIMSDK_Build_Image)
   * [QIMSDK Deploy Image](#QIMSDK_Deploy_Image)
+  * [QIMSDK Deploy Python Image](#QIMSDK_Deploy_Py_Image)
 * [Debug Variant - Host Side Helper Scripts And Configuration](#Host_Side_Helper_Scripts)
   * [How to fill out Configuration JSON Files](#How_to_fill_out_Configuration_JSON_Files)
   * [Docker Host Side Helper Scripts](#Docker_Host_Side_Helper_Scripts)
@@ -498,7 +499,8 @@ Two QIMSDK docker images are built. One for development machine. One for device 
 - They are based on debian trixie images
 - The first image - [QIMSDK Build Image](#QIMSDK_Build_Image) is used to build the IMSDK components and fetch and build any buildtime dependencies and to generate the final IMSDK packages.
 - The second image - [QIMSDK Deploy Image](#QIMSDK_Deploy_Image) contains the final IMSDK package for the target device. It contains only the required runtime libraries and binaries needed for IMSDK use-cases.
-- A third [QIMSDK Debug Image](#QIMSDK_Debug_Image) is only used when working in an environment which requires continuous development. This is done in order to enable the ability to select what code is compiled, instead of just compiling the tips of the mainline branches of the according projects
+- The third image - [QIMSDK Deploy Python Image](#QIMSDK_Deploy_Py_Image) uses the QIMSDK Deploy Image as a base and installs all dependencies needed to support gst python use-cases.
+- A fourth [QIMSDK Debug Image](#QIMSDK_Debug_Image) is only used when working in an environment which requires continuous development. This is done in order to enable the ability to select what code is compiled, instead of just compiling the tips of the mainline branches of the according projects
 
 <div id="QIMSDK_Debug_Image">
 
@@ -541,6 +543,13 @@ Two QIMSDK docker images are built. One for development machine. One for device 
 6. Copy deb packages to device image
 7. Install deb packages to deploy image and remove the directory after install
 8. Add environment variables
+
+<div id="QIMSDK_Deploy_Py_Image">
+
+### QIMSDK Deploy Python Image (based on target arm64 architecture)
+1. Start from qimsdk_deploy_arm64 image
+2. Install needed apt dependencies
+3. Install needed pip dependencies
 
 <div id="Host_Side_Helper_Scripts">
 
@@ -612,6 +621,19 @@ The developer generally needs to build the deploy image, load it to the device a
 
 > **Note:** Please note that the `qimsdk-docker-device-run-container` function here assumes the `QIMSDK_USER_CONTENTS_ROOT` environment variable is set to: /etc and the target to container mapping implies /etc as the model root directory.
 
+Different commands are used in order to get QIMSDK deploy image and container with gst python support.
+
+- qimsdk-docker-build-image-py            <path-to-config-json> - Build device Docker image with python support
+- qimsdk-docker-device-update-py-image    <path-to-config-json> - Update selected py device image to the device
+- qimsdk-docker-device-save-py-image      <path-to-config-json> - Save selected py device image, compose file and run command
+- qimsdk-docker-device-load-py-image      <path-to-config-json> - Loads py device image on the device
+- qimsdk-docker-device-run-py-container   <path-to-config-json> - Run py device container in mode
+- qimsdk-docker-device-rm-py-container    <path-to-config-json> - Remove py device container
+- qimsdk-docker-device-start-py-container <path-to-config-json> - Start py device container
+- qimsdk-docker-device-stop-py-container  <path-to-config-json> - Stop py device container
+- qimsdk-docker-device-py-command         <path-to-config-json> <CMD> - Execute CMD in py device container
+- qimsdk-docker-device-py-shell           <path-to-config-json> - Start shell in the py docker container on the device
+
 <div id="Docker_Debug_Container_Side_Helper_Scripts">
 
 ### Docker Debug Container Side Helper Scripts
@@ -628,6 +650,10 @@ source scripts-dbgs/docker_env_setup.sh
  - qimsdk-dbg-docker-run-container     \<path-to-config-json> - Run Debug container where developer can continuously edit and compile gst code provided in config json
  - qimsdk-dbg-load-artifacts           \<path-to-config-json> - Load artifacts from specified Docker_image_path in configuration json file and install them to the device. They are installed in a shared directory between device and device container
  - qimsdk-dbg-load-artifacts-dbg       \<path-to-config-json> - Load debug artifacts from specified Docker_image_path in configuration json file and install them to the device. They are installed in a shared directory between device and device container
+
+And in order to load the artifacts into the python deploy container:
+ - qimsdk-dbg-load-artifacts-py        \<path-to-config-json> - Load artifacts from specified Docker_image_path in configuration json file and install them to the device. They are installed in a shared directory between device and device container
+ - qimsdk-dbg-load-artifacts-dbg-py    \<path-to-config-json> - Load debug artifacts from specified Docker_image_path in configuration json file and install them to the device. They are installed in a shared directory between device and device container
 
 These functions are available immediately inside development container:
 
@@ -714,6 +740,12 @@ qimsdk-device-prepare <target_device_id>
 
 ```bash
 qimsdk-docker-build-image <path-to-config-json>
+```
+
+#### If user wishes to compile Device Docker Image with Python support
+
+```bash
+qimsdk-docker-build-image-py <path-to-config-json>
 ```
 
 #### Update Compiled Image To The Locally Connected Device
@@ -1014,6 +1046,12 @@ The following steps can be followed to use QIMSDK device image on a target, conn
 qimsdk-docker-build-image <path-to-config-json>
 ```
 
+2. If user wishes to build QIMSDK device image with python support enabled:
+
+```bash
+qimsdk-docker-build-image-py <path-to-config-json>
+```
+
 3. Save qimsdk device image to Docker_image_path listed in json
 
 ```bash
@@ -1228,6 +1266,17 @@ This approach eliminates the need for intermediate debug images and does not req
       --progress=plain --target qimsdk_deploy_arm64 <path/to/Dockerfile/directory> -t <generated-image-name>
   ```
   </ul>
+
+If user wishes to build QIMSDK device image with python support enabled:
+
+```bash
+docker build \
+  --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.47.0.260601> \
+  --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=<camera-service-commit-id> \
+  --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=<gstreamer-plugins-commit-id> \
+  --target qimsdk_deploy_py_arm64 \
+  -t <desired-image-name> .
+```
 
 Once QIMSDK Deploy Image has been built, the following needs to be done to setup the environment on the device:
 

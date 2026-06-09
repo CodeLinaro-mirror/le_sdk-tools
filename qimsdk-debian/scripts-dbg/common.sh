@@ -448,7 +448,6 @@ function qimsdk-is-adb-serial() {
         return 1
     }
     qimsdk-is-ipv4 "${CANDIDATE}"                                                               && {
-        print-red "${FUNCNAME[0]}: provided adb serial argument value matches an IPv4 address string!"
         return 1
     }
     [[ "${CANDIDATE}" =~ [[:space:]] ]]                                                         && {
