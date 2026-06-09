@@ -20,6 +20,26 @@
         ],
         "deviceNodes": [
           {
+            "hostPath": "/root/media",
+            "containerPath": "/home/qimsdk/media",
+            "options": ["rbind", "rw"]
+          },
+          {
+            "hostPath": "/root/models",
+            "containerPath": "/home/qimsdk/models",
+            "options": ["rbind", "rw"]
+          },
+          {
+            "hostPath": "/root/labels",
+            "containerPath": "/home/qimsdk/labels",
+            "options": ["rbind", "rw"]
+          },
+          {
+             "hostPath": "/root/configs",
+             "containerPath": "/home/qimsdk/configs",
+             "options": ["rbind", "rw"]
+          },
+          {
             "path": "/dev/video0",
             "uid": 0,
             "gid": 44

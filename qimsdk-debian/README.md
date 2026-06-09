@@ -183,6 +183,18 @@ The CDI file needed for the specific hardware platform needs to be copied to /et
 .env files are located in: qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env;
 The .env file needed for the specific hardware platform needs to be copied to /etc/docker/env/ directory in device storage. (Create directory if it does not exist)
 
+#### Sample file directory setup requirements
+The following directories must be created under the user’s home directory to store test files:
+
+```bash
+mkdir ${HOME}/media
+mkdir ${HOME}/models
+mkdir ${HOME}/labels
+mkdir ${HOME}/configs
+```
+
+All directories must be assigned **permission mode 666** to ensure they are accessible and usable by the container environment.
+
 Command to run the qimsdk device deploy container:
 
 ```bash

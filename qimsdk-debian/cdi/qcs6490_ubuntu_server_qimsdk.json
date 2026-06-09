@@ -69,6 +69,26 @@
         ],
         "mounts": [
           {
+            "hostPath": "/home/ubuntu/media",
+            "containerPath": "/home/qimsdk/media",
+            "options": ["rbind", "rw"]
+          },
+          {
+            "hostPath": "/home/ubuntu/models",
+            "containerPath": "/home/qimsdk/models",
+            "options": ["rbind", "rw"]
+          },
+          {
+            "hostPath": "/home/ubuntu/labels",
+            "containerPath": "/home/qimsdk/labels",
+            "options": ["rbind", "rw"]
+          },
+          {
+             "hostPath": "/home/ubuntu/configs",
+             "containerPath": "/home/qimsdk/configs",
+             "options": ["rbind", "rw"]
+          },
+          {
             "hostPath": "/etc/media",
             "containerPath": "/etc/media",
             "options": ["rbind", "rw"]
