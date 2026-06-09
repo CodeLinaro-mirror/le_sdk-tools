@@ -96,6 +96,7 @@ ENV QIMSDK_ADSP_DIR=${QIMSDK_INSTALL_LIB_DIR}/rfsa/adsp
 ENV QIMSDK_KODIAK_CDSP_DIR=${QIMSDK_INSTALL_DIR}/usr/share/qcom/qcm6490/Thundercomm/RB3gen2/dsp/cdsp
 ENV QIMSDK_LEMANS_CDSP_DIR=${QIMSDK_INSTALL_DIR}/usr/share/qcom/sa8775p/Qualcomm/SA8775P-RIDE/dsp/cdsp
 ENV QIMSDK_MONACO_CDSP_DIR=${QIMSDK_INSTALL_DIR}/usr/share/qcom/qcs8300/Qualcomm/QCS8300-RIDE/dsp/cdsp
+ENV QIMSDK_TALOS_CDSP_DIR=${QIMSDK_INSTALL_DIR}/usr/share/qcom/qcs615/Qualcomm/QCS615-RIDE/dsp/cdsp
 RUN mkdir -p ${QIMSDK_INSTALL_LIB_DIR}
 
 # Add qimsdk debug install directory
@@ -338,7 +339,10 @@ RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                   
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
     mkdir -p ${QIMSDK_DOWNLOAD_DIR}/fastcv                                                      && \
     tar xvf ${FASTCV_PACKAGE_NAME}_${FASTCV_VERSION}_${FASTCV_ARCH}.tar.gz -C fastcv            && \
-    mkdir -p ${QIMSDK_KODIAK_CDSP_DIR} ${QIMSDK_LEMANS_CDSP_DIR} ${QIMSDK_MONACO_CDSP_DIR}      && \
+    mkdir -p ${QIMSDK_TALOS_CDSP_DIR} ${QIMSDK_KODIAK_CDSP_DIR}                                    \
+             ${QIMSDK_LEMANS_CDSP_DIR} ${QIMSDK_MONACO_CDSP_DIR}                                && \
+    cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/dsp/cdsp/cv/v65/TALOS_MOOREA/*.so                     \
+            ${QIMSDK_TALOS_CDSP_DIR}/                                                           && \
     cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/dsp/cdsp/cv/v68/KODIAK/*.so ${QIMSDK_KODIAK_CDSP_DIR}/ && \
     cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/dsp/cdsp/cv/v73/LEMANS/*.so ${QIMSDK_LEMANS_CDSP_DIR}/ && \
     cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/dsp/cdsp/cv/v75/MONACO/*.so ${QIMSDK_MONACO_CDSP_DIR}/ && \
@@ -374,6 +378,7 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
         cp -r ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QNN/*             \
             /usr/include/.                                                                      && \
         mkdir -p ${QIMSDK_ADSP_DIR}                                                             && \
+        cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v66/unsigned/* ${QIMSDK_ADSP_DIR}/                    && \
         cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v68/unsigned/* ${QIMSDK_ADSP_DIR}/                    && \
         cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v73/unsigned/* ${QIMSDK_ADSP_DIR}/                    && \
         cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v75/unsigned/* ${QIMSDK_ADSP_DIR}/                    && \
@@ -400,6 +405,8 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
                 -name 'libQnnHtpPrepare.so' -o                                                     \
                 -name 'libQnnHtpProfilingReader.so' -o                                             \
                 -name 'libQnnHtp.so' -o                                                            \
+                -name 'libQnnDspV66Stub.so' -o                                                     \
+                -name 'libQnnDspV66CalculatorStub.so' -o                                           \
                 -name 'libQnnHtpV68CalculatorStub.so' -o                                           \
                 -name 'libQnnHtpV68Stub.so' -o                                                     \
                 -name 'libQnnHtpV73CalculatorStub.so' -o                                           \
@@ -414,6 +421,7 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
                 -name 'libQnnTFLiteDelegate.so' -o                                                 \
                 -name 'libSnpeHta.so' -o                                                           \
                 -name 'libSnpeHtpPrepare.so' -o                                                    \
+                -name 'libSnpeDspV66Stub.so' -o                                                    \
                 -name 'libSnpeHtpV68CalculatorStub.so' -o                                          \
                 -name 'libSnpeHtpV68Stub.so' -o                                                    \
                 -name 'libSnpeHtpV73CalculatorStub.so' -o                                          \
