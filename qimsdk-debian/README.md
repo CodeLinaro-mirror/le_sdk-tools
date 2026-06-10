@@ -15,6 +15,8 @@
     * [Running the qimsdk deploy container](#Running_the_container)
     * [How to use the qimsdk-debian container](#Using_the_container)
     * [Adding custom user configurations to deploy container](#Adding_custom_user_configurations)
+* [Important notes](#Important_notes)
+    * [qimsdk-debian deploy container root user limitation](#Root_user_limitation)
 
 <div id="Docker_images">
 
@@ -268,3 +270,40 @@ vi /etc/cdi/qimsdk.json
 docker rm -f qimsdk
 docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env --device qualcomm.com/device=qimsdk -h qimsdk --name qimsdk <desired-image-name>
 ```
+
+<div id="Important_notes">
+
+## Important notes
+
+<div id="Root_user_limitation">
+
+### qimsdk-debian deploy container root user limitation
+
+- The qimsdk-debian device Docker container image is meant to be run only with the **qimsdk** user ID.
+- The qimsdk-debian device Docker container **qimsdk** user is not part of the **sudo group** by design, hence lacking permissions to install any new packages, or make any root file system modifications for security concerns.
+- In order to temporarily allow for the qimsdk-debian device Docker container to run with **root** user ID and root permissions, please refer to the following steps below:
+    - edit the **qimsdk-debian/.bash_aliases** file with commenting out the following text lines as follows:
+      ```bash
+      # [ "$(id -u)" = "0" ] && exec gosu qimsdk bash
+      ```
+    - save and rebuild the Docker image as usual, e.g.:
+      ```bash
+      docker build \
+      --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.46.0.260424> \
+      --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=<camera-service-commit-id> \
+      --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=<gstreamer-plugins-commit-id> \
+      --target qimsdk_deploy_arm64 \
+      -t <desired-image-name> .
+      ```
+    - finally, run the container as root:
+      ```bash
+      docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env --device qualcomm.com/device=qimsdk -h qimsdk --user root --name qimsdk <desired-image-name>
+      ```
+    - validate you are logged in as root inside the container, e.g.:
+      ```bash
+      export DOCKER_ID=$(docker ps -aq)
+      docker exec -it ${DOCKER_ID} bash
+      whoami
+      ```
+    - to restore the original qimsdk non-root user enforced state, please edit the /root/.bash_aliases file within the existing container and uncomment the edits made. This would allow users to retain any locally made container modifications instead of rebuilding a new container and losing their state.
+    - please keep in mind that once the original qimsdk user configuration has been restored, users cannot go back to the root user state without removing the existing container instance and recreating a new one, as already outlined.
