@@ -122,8 +122,8 @@
             "options": ["rbind", "rw"]
           },
           {
-            "hostPath": "/usr/share/qcom/qcm6490/Thundercomm/RB3gen2/dsp/cdsp/fastrpc_shell_unsigned_3",
-            "containerPath": "/usr/lib/dsp/cdsp/fastrpc_shell_unsigned_3",
+            "hostPath": "/usr/share/qcom/qcm6490/Thundercomm/RB3gen2/dsp",
+            "containerPath": "/usr/lib/dsp",
             "options": ["rbind"]
           },
           {
