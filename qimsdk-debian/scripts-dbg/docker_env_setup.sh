@@ -366,9 +366,6 @@ function qimsdk-dbg-docker-build-image() {
     }
 
     DOCKER_BUILDKIT=1 docker build                                                                 \
-            --build-arg QIMSDK_ARG_DOCKER_IMAGE_PATH=${DOCKER_IMAGE_PATH}                          \
-            --build-arg QIMSDK_ARG_DEVICE_ID=${QIMSDK_DEVICE_ID}                                   \
-            --build-arg QIMSDK_ARG_CONTAINER_NAME=${QIMSDK_CONTAINER_NAME}                         \
             --build-arg QIMSDK_ARG_MAX_JOBS=${QIMSDK_MAX_BUILD_JOBS}                               \
             --progress=plain --target qimsdk_dbg_image -f Dockerfile.dbg                           \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}                                        || {
@@ -686,13 +683,25 @@ function qimsdk-dbg-docker-run-container() {
         return -1
 
     local PATH_TO_CONFIG_JSON=${1}
+    local DOCKER_IMAGE_PATH
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
+    local QIMSDK_DEVICE_ID
+
+    qimsdk-get-docker-image-path ${PATH_TO_CONFIG_JSON} DOCKER_IMAGE_PATH                       || {
+        print-red "FAILED: qimsdk-get-docker-image-path !!!"
+        return -1
+    }
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME                                                                   || {
         print-red "FAILED: qimsdk-get-container-and-image-name !!!"
+        return -1
+    }
+
+    qimsdk-get-device-id ${PATH_TO_CONFIG_JSON} QIMSDK_DEVICE_ID                                || {
+        print-red "FAILED: qimsdk-get-device-id  !!!"
         return -1
     }
 
@@ -705,6 +714,9 @@ function qimsdk-dbg-docker-run-container() {
     [ -d /dev/bus/usbd ] && USB_DEVICE="--device /dev/bus/usb"
 
     docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME}_dbg                                   \
+            --env QIMSDK_DOCKER_IMAGE_PATH=${DOCKER_IMAGE_PATH}                                    \
+            --env QIMSDK_DEVICE_ID=${QIMSDK_DEVICE_ID}                                             \
+            --env QIMSDK_CONTAINER_NAME=${QIMSDK_CONTAINER_NAME}                                   \
             --name ${QIMSDK_CONTAINER_NAME}_dbg                                                    \
             ${USB_DEVICE} ${DEVELOPMENT_MAP}                                                       \
             ${QIMSDK_IMAGE_NAME}-debian bash                                                    || {
