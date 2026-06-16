@@ -134,7 +134,6 @@ function qimsdk-cmake-compile() {
 
     (
         qimsdk-setup-crosscompilation
-
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
@@ -144,7 +143,7 @@ function qimsdk-cmake-compile() {
         ln -fs ${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}_${DATE}.log                              \
                 ${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}.log
 
-        cmake --build . -j                                                                        |&
+        cmake --build . -j${CMAKE_BUILD_PARALLEL_LEVEL:-$(nproc)}                                 |&
                 tee "${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}_${DATE}.log"
     ) || {
         print-red "FAILED: qimsdk-cmake-compile-${TARGET}: cmake compile failed !!!"
@@ -213,8 +212,10 @@ function qimsdk-debian-rules-build() {
     (
         # Cross architecture
         export DEB_HOST_ARCH=arm64
+        # Ensure users respect the optional QIMSDK_MAX_JOBS cpu jobs limitation
+        export CMAKE_BUILD_PARALLEL_LEVEL=${QIMSDK_MAX_JOBS:-$(nproc)}
         # Skip tests: Docker build lacks GPU for GL tests and QEMU affects audio timing
-        export DEB_BUILD_OPTIONS="parallel=$(nproc) nocheck"
+        export DEB_BUILD_OPTIONS="parallel=${CMAKE_BUILD_PARALLEL_LEVEL:-$(nproc)} nocheck"
 
         # GCC/G++ cross toolchain (optional but helps many builds)
         export CC=aarch64-linux-gnu-gcc
@@ -307,7 +308,7 @@ qimsdk-debian-rules-build-gst-plugins-bad() {
 function qimsdk-debian-rules-clean-gst-plugins-base() {
     (
         cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-${GST_PLUGINS_BASE_VERSION}
-        DEB_BUILD_OPTIONS=parallel=$(nproc) debian/rules clean
+        DEB_BUILD_OPTIONS=parallel=${QIMSDK_MAX_JOBS:-$(nproc)} debian/rules clean
     )
 
     print-green "${FUNCNAME} completed successfully!"
@@ -317,7 +318,7 @@ function qimsdk-debian-rules-clean-gst-plugins-base() {
 function qimsdk-debian-rules-clean-gst-plugins-good() {
     (
         cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-${GST_PLUGINS_GOOD_VERSION}
-        DEB_BUILD_OPTIONS=parallel=$(nproc) debian/rules clean
+        DEB_BUILD_OPTIONS=parallel=${QIMSDK_MAX_JOBS:-$(nproc)} debian/rules clean
     )
 
     print-green "${FUNCNAME} completed successfully!"
@@ -327,14 +328,14 @@ function qimsdk-debian-rules-clean-gst-plugins-good() {
 function qimsdk-debian-rules-clean-gst-plugins-bad() {
     (
         cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}
-        DEB_BUILD_OPTIONS=parallel=$(nproc) debian/rules clean
+        DEB_BUILD_OPTIONS=parallel=${QIMSDK_MAX_JOBS:-$(nproc)} debian/rules clean
     )
 
     print-green "${FUNCNAME} completed successfully!"
 }
 
 # CMake Build camera metadata
-qimsdk-cmake-build-camera-metadata() {
+function qimsdk-cmake-build-camera-metadata() {
     qimsdk-cmake-build ${QIMSDK_DOWNLOAD_DIR}/media /usr                                        && \
         print-green "${FUNCNAME} completed successfully!"
 }
@@ -379,7 +380,7 @@ function qimsdk-cmake-clean-abseil-cpp() {
 }
 
 # CMake Build flatbuffers
-qimsdk-cmake-build-flatbuffers-v23-5-26() {
+function qimsdk-cmake-build-flatbuffers-v23-5-26() {
     qimsdk-cmake-build ${QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR} `
             `${QIMSDK_FLATBUFFERS_23_5_26_INSTALL_DIR} `
             `-DFLATBUFFERS_BUILD_TESTS=OFF `

@@ -46,6 +46,8 @@ function qimsdk-setup-crosscompilation() {
     export LD_LIBRARY_PATH="/usr/aarch64-linux-gnu/lib/:/usr/lib/aarch64-linux-gnu/"
     export LIBRARY_PATH="/usr/aarch64-linux-gnu/lib/:/usr/lib/aarch64-linux-gnu/"
     export PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig"
+    # Ensure users respect the optional QIMSDK_MAX_JOBS cpu jobs limitation
+    export CMAKE_BUILD_PARALLEL_LEVEL=${QIMSDK_MAX_JOBS:-$(nproc)}
 }
 
 # git am wrapper function

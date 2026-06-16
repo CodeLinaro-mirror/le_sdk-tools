@@ -128,6 +128,7 @@ docker build \
   --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.46.0.260424> \
   --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=<camera-service-commit-id> \
   --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=<gstreamer-plugins-commit-id> \
+  --build-arg QIMSDK_ARG_MAX_JOBS=<optional_max_cpu_threads> \
   --target qimsdk_deploy_arm64 \
   -t <desired-image-name> .
 ```
@@ -145,6 +146,7 @@ docker build \
 - QIMSDK_ARG_QNP_VERSION: Controls the QAIRT SDK version. If omitted, QNN and SNPE plugins will be disabled.
 - QIMSDK_ARG_CAMERA_SERVICE_TAG: Should match the exact commit ID or tag of the camera-service repository.
 - QIMSDK_ARG_GST_PLUGINS_TAG: Should point to the desired commit ID or tag for the IM SDK (GStreamer plugins) sources.
+- QIMSDK_ARG_MAX_JOBS: Optional: Should specify the maximum number of CPU threads to be used for building, if desired. Valid values: 1 - $(nproc).
 
 This ensures all components are pinned to reproducible versions during the image build.
 
