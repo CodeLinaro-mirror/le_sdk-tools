@@ -23,15 +23,15 @@
           },
           {
             "path": "/dev/fastrpc-cdsp",
-            "fileMode": 432,
+            "fileMode": 0660,
             "uid": 0,
-            "gid": 44
+            "gid": 1000
           },
           {
             "path": "/dev/fastrpc-cdsp1",
-            "fileMode": 432,
+            "fileMode": 0660,
             "uid": 0,
-            "gid": 44
+            "gid": 1000
           }
         ],
         "mounts": [

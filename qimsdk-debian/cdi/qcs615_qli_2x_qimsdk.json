@@ -61,7 +61,7 @@
           },
           {
             "path": "/dev/fastrpc-cdsp",
-            "fileMode": 432,
+            "fileMode": 0660,
             "uid": 0,
             "gid": 1000
           }

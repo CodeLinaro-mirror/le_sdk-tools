@@ -152,6 +152,7 @@ RUN if [ -z "$TFLITE_ARG_QNP_VERSION" ]; then                                   
         cp -r ${TFLITE_DOWNLOAD_DIR}/qairt/${TFLITE_ARG_QNP_SDK_VERSION}/include/QNN/*             \
             /usr/include/.                                                                      && \
         mkdir -p ${TFLITE_ADSP_DIR}                                                             && \
+        cp ${TFLITE_QNN_LIB_PATH}/hexagon-v66/unsigned/* ${TFLITE_ADSP_DIR}/                    && \
         cp ${TFLITE_QNN_LIB_PATH}/hexagon-v68/unsigned/* ${TFLITE_ADSP_DIR}/                    && \
         cp ${TFLITE_QNN_LIB_PATH}/hexagon-v73/unsigned/* ${TFLITE_ADSP_DIR}/                    && \
         cp ${TFLITE_QNN_LIB_PATH}/hexagon-v75/unsigned/* ${TFLITE_ADSP_DIR}/                    && \
@@ -177,6 +178,8 @@ RUN if [ -z "$TFLITE_ARG_QNP_VERSION" ]; then                                   
                 -name 'libQnnHtpPrepare.so' -o                                                     \
                 -name 'libQnnHtpProfilingReader.so' -o                                             \
                 -name 'libQnnHtp.so' -o                                                            \
+                -name 'libQnnDspV66Stub.so' -o                                                     \
+                -name 'libQnnDspV66CalculatorStub.so' -o                                           \
                 -name 'libQnnHtpV68CalculatorStub.so' -o                                           \
                 -name 'libQnnHtpV68Stub.so' -o                                                     \
                 -name 'libQnnHtpV73CalculatorStub.so' -o                                           \

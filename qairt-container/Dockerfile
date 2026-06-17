@@ -81,6 +81,7 @@ RUN if [ -z "$QAIRT_SDK_VERSION" ]; then                                        
                 ${QAIRT_INSTALL_DIR}/usr/include/.                                              && \
         cp -r ${QAIRT_DOWNLOAD_DIR}/qairt/${QAIRT_SDK_VERSION}/include/QNN/*                       \
                 ${QAIRT_INSTALL_DIR}/usr/include/.                                              && \
+        cp ${QAIRT_SDK_LIB_PATH}/hexagon-v66/unsigned/* ${QAIRT_ADSP_DIR}                       && \
         cp ${QAIRT_SDK_LIB_PATH}/hexagon-v68/unsigned/* ${QAIRT_ADSP_DIR}                       && \
         cp ${QAIRT_SDK_LIB_PATH}/hexagon-v73/unsigned/* ${QAIRT_ADSP_DIR}                       && \
         cp ${QAIRT_SDK_LIB_PATH}/hexagon-v75/unsigned/* ${QAIRT_ADSP_DIR}                       && \
