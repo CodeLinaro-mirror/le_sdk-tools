@@ -498,6 +498,7 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
             `-DVHDR_MODES_ENABLE=ON `
             `-DENABLE_GST_PLUGIN_QMMFSRC=ON `
             `-DENABLE_GST_PLUGIN_SMARTVENCBIN=ON `
+            `-DENABLE_GST_PLUGIN_URIDECODEBIN=ON `
             `-DENABLE_GST_SAMPLE_APPS=ON `
             `-DENABLE_GST_SAMPLE_APPS_CAMERA=ON                                                 && \
         print-green "${FUNCNAME} completed successfully!"
