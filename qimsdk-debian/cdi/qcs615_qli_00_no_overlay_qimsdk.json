@@ -29,16 +29,6 @@
             "gid": 44
           },
           {
-            "path": "/dev/video10",
-            "uid": 0,
-            "gid": 44
-          },
-          {
-            "path": "/dev/video11",
-            "uid": 0,
-            "gid": 44
-          },
-          {
             "path": "/dev/dri/card0",
             "uid": 0,
             "gid": 44

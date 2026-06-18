@@ -197,7 +197,45 @@ mkdir ${HOME}/configs
 
 All directories must be assigned **permission mode 666** to ensure they are accessible and usable by the container environment.
 
-Command to run the qimsdk device deploy container:
+#### Talos (QCS615) Video node configuration
+An additional step is required for Talos (qcs615) to configure the video node, as it uses an upstream video driver. This upstream driver can assign any device node between /dev/video0 and /dev/video28.
+
+***Run the following command to list the video devices:***
+
+```bash
+v4l2-ctl --list-devices
+```
+***Example:***
+
+```bash
+Qualcomm Venus video decoder (plat:aa00000.video-codec:dec):
+    /dev/video2
+
+Qualcomm Venus video encoder (plat:aa00000.video-codec:enc):
+    /dev/video3
+```
+
+Identify the relevant device nodes and add them to the cdi.json file that has been deployed to the target system.
+
+```json
+    "deviceNodes": [
+    ...
+          },
+          {
+            "path": "/dev/video2",
+            "uid": 0,
+            "gid": 44
+          },
+          {
+            "path": "/dev/video3",
+            "uid": 0,
+            "gid": 44
+          },
+          {
+    ...
+```
+
+#### Command to run the qimsdk device deploy container
 
 ```bash
 adb push qimsdk-debian/cdi/<hardware>-<platform>-qimsdk.json /etc/cdi/qimsdk.json
