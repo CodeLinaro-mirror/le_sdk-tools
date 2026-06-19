@@ -35,7 +35,7 @@ WORKDIR "${QAIRT_BASE_DIR}"
 
 # Build fastrpc
 RUN cd "${QAIRT_DOWNLOAD_DIR}"                                                                  && \
-    git clone --depth 1 https://github.com/quic/fastrpc.git --branch v1.0.5                     && \
+    git clone --depth 1 https://github.com/quic/fastrpc.git --branch v1.0.6                     && \
     cd fastrpc                                                                                  && \
     autoreconf -is                                                                              && \
     BUILD_ARCH="$(dpkg --print-architecture)"                                                   && \
