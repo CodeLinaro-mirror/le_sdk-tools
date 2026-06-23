@@ -1,18 +1,18 @@
 {
-  "cdiVersion": "1.1.0",
+  "cdiVersion": "1.0.0",
   "kind": "qualcomm.com/device",
   "devices": [
     {
       "name": "tflite",
       "containerEdits": {
         "env": [
-          "VK_DRIVER_FILES=/usr/share/vulkan/icd.d/adrenovk.json",
+          "VK_DRIVER_FILES=/usr/share/vulkan/icd.d/freedreno_icd.json",
           "OCL_ICD_FILENAMES=/usr/lib/aarch64-linux-gnu/libOpenCL_adreno.so.1",
-          "__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_adreno.json"
+          "__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json"
         ],
         "deviceNodes": [
           {
-            "path": "/dev/kgsl-3d0",
+            "path": "/dev/dma_heap/qcom,system",
             "fileMode": 0660,
             "uid": 0,
             "gid": 1000
@@ -38,7 +38,7 @@
         ],
         "mounts": [
           {
-            "hostPath": "/root/media",
+            "hostPath": "/home/ubuntu/media",
             "containerPath": "/home/tflite/media",
             "options": [
               "rbind",
@@ -46,7 +46,7 @@
             ]
           },
           {
-            "hostPath": "/root/models",
+            "hostPath": "/home/ubuntu/models",
             "containerPath": "/home/tflite/models",
             "options": [
               "rbind",
@@ -54,7 +54,7 @@
             ]
           },
           {
-            "hostPath": "/root/labels",
+            "hostPath": "/home/ubuntu/labels",
             "containerPath": "/home/tflite/labels",
             "options": [
               "rbind",
@@ -86,8 +86,8 @@
             ]
           },
           {
-            "hostPath": "/usr/share/qcom/qcm6490/Thundercomm/RB3gen2/dsp",
-            "containerPath": "/usr/lib/dsp",
+            "hostPath": "/usr/lib/dsp/cdsp",
+            "containerPath": "/usr/lib/dsp/cdsp",
             "options": [
               "rbind",
               "rw"

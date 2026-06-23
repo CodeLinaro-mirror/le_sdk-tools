@@ -1,5 +1,5 @@
 {
-  "cdiVersion": "1.1.0",
+  "cdiVersion": "1.0.0",
   "kind": "qualcomm.com/device",
   "devices": [
     {
@@ -13,6 +13,12 @@
         "deviceNodes": [
           {
             "path": "/dev/kgsl-3d0",
+            "fileMode": 0660,
+            "uid": 0,
+            "gid": 1000
+          },
+          {
+            "path": "/dev/dma_heap/qcom,system",
             "fileMode": 0660,
             "uid": 0,
             "gid": 1000
@@ -38,7 +44,7 @@
         ],
         "mounts": [
           {
-            "hostPath": "/root/media",
+            "hostPath": "/home/ubuntu/media",
             "containerPath": "/home/tflite/media",
             "options": [
               "rbind",
@@ -46,7 +52,7 @@
             ]
           },
           {
-            "hostPath": "/root/models",
+            "hostPath": "/home/ubuntu/models",
             "containerPath": "/home/tflite/models",
             "options": [
               "rbind",
@@ -54,7 +60,7 @@
             ]
           },
           {
-            "hostPath": "/root/labels",
+            "hostPath": "/home/ubuntu/labels",
             "containerPath": "/home/tflite/labels",
             "options": [
               "rbind",
@@ -86,8 +92,8 @@
             ]
           },
           {
-            "hostPath": "/usr/share/qcom/qcm6490/Thundercomm/RB3gen2/dsp",
-            "containerPath": "/usr/lib/dsp",
+            "hostPath": "/usr/lib/dsp/cdsp",
+            "containerPath": "/usr/lib/dsp/cdsp",
             "options": [
               "rbind",
               "rw"
