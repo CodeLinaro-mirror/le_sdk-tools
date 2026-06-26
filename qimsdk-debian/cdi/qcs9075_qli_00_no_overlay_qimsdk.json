@@ -19,52 +19,38 @@
         ],
         "deviceNodes": [
           {
-            "hostPath": "/root/media",
-            "containerPath": "/home/qimsdk/media",
-            "options": ["rbind", "rw"]
-          },
-          {
-            "hostPath": "/root/models",
-            "containerPath": "/home/qimsdk/models",
-            "options": ["rbind", "rw"]
-          },
-          {
-            "hostPath": "/root/labels",
-            "containerPath": "/home/qimsdk/labels",
-            "options": ["rbind", "rw"]
-          },
-          {
-             "hostPath": "/root/configs",
-             "containerPath": "/home/qimsdk/configs",
-             "options": ["rbind", "rw"]
-          },
-          {
             "path": "/dev/video32",
+            "fileMode": 0660,
             "uid": 0,
             "gid": 44
           },
           {
             "path": "/dev/video33",
+            "fileMode": 0660,
             "uid": 0,
             "gid": 44
           },
           {
             "path": "/dev/dri/card0",
+            "fileMode": 0660,
             "uid": 0,
             "gid": 44
           },
           {
             "path": "/dev/dri/renderD128",
+            "fileMode": 0660,
             "uid": 0,
             "gid": 1000
           },
           {
             "path": "/dev/kgsl-3d0",
+            "fileMode": 0660,
             "uid": 0,
             "gid": 1000
           },
           {
             "path": "/dev/dma_heap/system",
+            "fileMode": 0660,
             "uid": 0,
             "gid": 1000
           },
@@ -75,7 +61,19 @@
             "gid": 1000
           },
           {
+            "path": "/dev/fastrpc-cdsp-secure",
+            "fileMode": 0660,
+            "uid": 0,
+            "gid": 1000
+          },
+          {
             "path": "/dev/fastrpc-cdsp1",
+            "fileMode": 0660,
+            "uid": 0,
+            "gid": 1000
+          },
+          {
+            "path": "/dev/fastrpc-cdsp1-secure",
             "fileMode": 0660,
             "uid": 0,
             "gid": 1000
@@ -83,59 +81,100 @@
         ],
         "mounts": [
           {
+            "hostPath": "/root/media",
+            "containerPath": "/home/qimsdk/media",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/root/models",
+            "containerPath": "/home/qimsdk/models",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/root/labels",
+            "containerPath": "/home/qimsdk/labels",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/root/configs",
+            "containerPath": "/home/qimsdk/configs",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
             "hostPath": "/etc/media",
             "containerPath": "/etc/media",
-            "options": ["rbind", "rw"]
+            "options": [
+              "rbind",
+              "rw"
+            ]
           },
           {
             "hostPath": "/etc/models",
             "containerPath": "/etc/models",
-            "options": ["rbind", "rw"]
+            "options": [
+              "rbind",
+              "rw"
+            ]
           },
           {
             "hostPath": "/etc/labels",
             "containerPath": "/etc/labels",
-            "options": ["rbind", "rw"]
+            "options": [
+              "rbind",
+              "rw"
+            ]
           },
           {
-             "hostPath": "/etc/configs",
-             "containerPath": "/etc/configs",
-             "options": ["rbind", "rw"]
-          },
-          {
-            "hostPath": "/run/user/1000/pipewire-0",
-            "containerPath": "/run/user/1000/pipewire-0",
-            "options": ["rbind", "rw"]
-          },
-          {
-            "hostPath": "/run/user/1000/pulse",
-            "containerPath": "/run/user/1000/pulse",
-            "options": ["rbind", "rw"]
-          },
-          {
-            "hostPath": "/run/user/1000/wayland-1",
-            "containerPath": "/run/user/1000/wayland-1",
-            "options": ["rbind", "rw"]
+            "hostPath": "/etc/configs",
+            "containerPath": "/etc/configs",
+            "options": [
+              "rbind",
+              "rw"
+            ]
           },
           {
             "hostPath": "/run/wayland-0",
             "containerPath": "/run/wayland-0",
-            "options": ["rbind", "rw"]
+            "options": [
+              "rbind",
+              "rw"
+            ]
           },
           {
             "hostPath": "/run/pulse/native",
             "containerPath": "/run/pulse/native",
-            "options": ["rbind", "rw"]
+            "options": [
+              "rbind",
+              "rw"
+            ]
           },
           {
             "hostPath": "/usr/share/qcom/sa8775p/Qualcomm/SA8775P-RIDE/dsp",
             "containerPath": "/usr/lib/dsp",
-            "options": ["rbind"]
+            "options": [
+              "rbind",
+              "rw"
+            ]
           },
           {
             "hostPath": "/sys/firmware/devicetree/base/model",
             "containerPath": "/run/device-model",
-            "options": ["rbind"]
+            "options": [
+              "rbind",
+              "rw"
+            ]
           }
         ]
       }
