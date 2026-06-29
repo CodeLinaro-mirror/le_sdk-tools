@@ -128,7 +128,7 @@ COPY --from=python_builder /usr/local /opt/python
 ENV VIRTUAL_ENV=/opt/venv
 RUN /opt/python/bin/python3 -m venv ${VIRTUAL_ENV}                                              && \
     . ${VIRTUAL_ENV}/bin/activate                                                               && \
-    pip3 install --no-cache-dir numpy>=1.24.4
+    pip3 install --no-cache-dir numpy>=1.24.4 opencv-python-headless>=4.10.0.84 pillow>=10.4.0
 
 # Set virtual environment as default
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
