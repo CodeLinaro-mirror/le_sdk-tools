@@ -92,7 +92,7 @@ function qml-docker-build-image() {
         --build-arg QML_ARG_BASE_DIR=${QML_ARG_BASE_DIR}                                           \
         --build-arg QML_ARG_SDK_VERSION=${QML_SDK_VERSION}                                         \
         --build-arg QML_ARG_TARGET_PLATFORM=${QML_TARGET_PLATFORM}                                 \
-        --progress=plain --target qml_arm64 ${QML_DOCKER_DIR} -t ${QML_IMAGE_NAME}
+        --progress=plain --target QML ${QML_DOCKER_DIR} -t ${QML_IMAGE_NAME}
 
     rc=$?
     [ $rc -ne 0 ] && {
@@ -386,7 +386,24 @@ function qml-docker-device-run-container() {
         return $rc
     }
 
-    qml-device-command "docker run -it --device qualcomm.com/device=snpe_python \
+    qml-device-command "docker run -it -d --device=/dev/fastrpc-cdsp-secure \
+            --device /dev/kgsl-3d0 --device /dev/dma_heap/system --device /dev/dma_heap/qcom,system  \
+            -v /usr/lib/libCB.so:/usr/lib/libCB.so                                                 \
+            -v /usr/lib/libOpenCL.so:/usr/lib/libOpenCL.so                                         \
+            -v /usr/lib/libOpenCL_adreno.so:/usr/lib/libOpenCL_adreno.so                           \
+            -v /usr/lib/libbase.so.0:/usr/lib/libbase.so.0                                         \
+            -v /usr/lib/libcdsprpc.so:/usr/lib/libcdsprpc.so                                       \
+            -v /usr/lib/libcutils.so.0:/usr/lib/libcutils.so.0                                     \
+            -v /usr/lib/libdmabufheap.so.0:/usr/lib/libdmabufheap.so.0                             \
+            -v /usr/lib/libglib-2.0.so.0:/usr/lib/libglib-2.0.so.0                                 \
+            -v /usr/lib/libgsl.so:/usr/lib/libgsl.so                                               \
+            -v /usr/lib/libgthread-2.0.so.0:/usr/lib/libgthread-2.0.so.0                           \
+            -v /usr/lib/libion.so.0:/usr/lib/libion.so.0                                           \
+            -v /usr/lib/libllvm-qcom.so:/usr/lib/libllvm-qcom.so                                   \
+            -v /usr/lib/liblog.so.0:/usr/lib/liblog.so.0                                           \
+            -v /usr/lib/libpcre.so.1:/usr/lib/libpcre.so.1                                         \
+            -v /usr/lib/libsync.so.0:/usr/lib/libsync.so.0                                         \
+            -v /usr/lib/libvmmem.so.0:/usr/lib/libvmmem.so.0                                       \
             -h ${QML_CONTAINER_NAME} --name ${QML_CONTAINER_NAME} ${QML_IMAGE_NAME}" ${QML_DEVICE_ID}
 
     rc=$?
