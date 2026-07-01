@@ -9,9 +9,10 @@
 #   $3 - (mandatory) variable to take image name value
 #   $4 - (mandatory) variable to take camera-service sources of SP
 #   $5 - (mandatory) variable to take Gstreamer sources of SP
-#   $6 - (mandatory) variable to take QAIRT SDK version
+#   $6 - (mandatory) variable to take solutions-microservices sources of SP
+#   $7 - (mandatory) variable to take QAIRT SDK version
 function qimsdk-docker-parse-json() {
-    local QIMSDK_ARG_COUNT_EXPECTED=6
+    local QIMSDK_ARG_COUNT_EXPECTED=7
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
@@ -21,7 +22,8 @@ function qimsdk-docker-parse-json() {
     local -n OUT_QIMSDK_IMAGE_NAME=${3}
     local -n OUT_QIMSDK_CAMERA_SERVICE_SOURCES=${4}
     local -n OUT_QIMSDK_GST_SOURCES=${5}
-    local -n OUT_QIMSDK_QAIRT_SDK_VERSION=${6}
+    local -n OUT_MICROSERVICES_SOURCES=${6}
+    local -n OUT_QIMSDK_QAIRT_SDK_VERSION=${7}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ]                                                           && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -75,6 +77,19 @@ function qimsdk-docker-parse-json() {
         return -1
     }
 
+    OUT_MICROSERVICES_SOURCES=$(echo ${JSON_CONTENT} |                                             \
+            jq '.solutions_microservices_Source_dir' | tr -d '"')
+    OUT_MICROSERVICES_SOURCES=${OUT_MICROSERVICES_SOURCES%/}
+
+    qimsdk-expand-tilde OUT_MICROSERVICES_SOURCES
+
+    [ -d "${OUT_MICROSERVICES_SOURCES}/.git" ]                                                  || \
+            [ -d "${OUT_MICROSERVICES_SOURCES}/microservices" ]                                 || {
+        print-red "Please provide path to solutions-microservices directory in config json!!!"
+        print-red "Directory currently provided: ${OUT_MICROSERVICES_SOURCES}"
+        return -1
+    }
+
     OUT_QIMSDK_QAIRT_SDK_VERSION=$(echo ${JSON_CONTENT} |  jq '.QAIRT_SDK_version' | tr -d '"')
 
     return 0
@@ -105,12 +120,14 @@ function qimsdk-docker-build-initialize() {
 
     local QIMSDK_CAMERA_SERVICE_SOURCES
     local QIMSDK_GST_SOURCES
+    local QIMSDK_MICROSERVICES_SOURCES
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
             QIMSDK_CONTAINER_NAME_PTR                                                              \
             QIMSDK_IMAGE_NAME_PTR                                                                  \
             QIMSDK_CAMERA_SERVICE_SOURCES                                                          \
             QIMSDK_GST_SOURCES                                                                     \
+            QIMSDK_MICROSERVICES_SOURCES                                                           \
             QIMSDK_QAIRT_SDK_VERSION_PTR                                                        || {
         print-red "FAILED: qimsdk-docker-parse-json !!!"
         return -1
@@ -143,8 +160,14 @@ function qimsdk-docker-build-initialize() {
         return -1
     }
 
+    git -C ${QIMSDK_MICROSERVICES_SOURCES} branch | grep -q "iot-solutions.lnx.1.0"             || {
+        print-red "ERROR: ${QIMSDK_GST_SOURCES} does not contain local branch: iot-solutions.lnx.1.0 !!!"
+        return -1
+    }
+
     rsync -aL ${QIMSDK_CAMERA_SERVICE_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/camera-service         && \
-            rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-imsdk
+            rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-imsdk         && \
+            rsync -aL ${QIMSDK_MICROSERVICES_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/solutions-microservices
 }
 
 # Qimsdk build qimsdk-debian deploy docker image
@@ -208,6 +231,7 @@ function qimsdk-docker-build-qimsdk-debian-image() {
     local QIMSDK_QAIRT_SDK_VERSION=${2}
     local QIMSDK_CAMERA_SERVICE_TAG
     local QIMSDK_GST_PLUGINS_TAG
+    local QIMSDK_SOLUTIONS_MICROSERVICES_TAG
 
     local PATH_TO_QIMSDK_DEBIAN_DOCKERFILE=${QIMSDK_DOCKER_DIR}
 
@@ -218,6 +242,12 @@ function qimsdk-docker-build-qimsdk-debian-image() {
 
     [ -z ${IMAGE_NAME} ]                                                                        && {
         print-red "Image name is empty!"
+        return -1
+    }
+
+    qimsdk-get-components-tag ${PATH_TO_CONFIG_JSON} QIMSDK_CAMERA_SERVICE_TAG                     \
+        QIMSDK_GST_PLUGINS_TAG QIMSDK_SOLUTIONS_MICROSERVICES_TAG                               || {
+        print-red "FAILED: qimsdk-get-components-tag !!!"
         return -1
     }
 
@@ -232,7 +262,7 @@ function qimsdk-docker-build-qimsdk-debian-image() {
             ${DOCKERFILE} > ${DOCKERFILE}.work
 
         qimsdk-get-components-tag ${PATH_TO_CONFIG_JSON} QIMSDK_CAMERA_SERVICE_TAG                 \
-                QIMSDK_GST_PLUGINS_TAG                                                          || {
+                QIMSDK_GST_PLUGINS_TAG QIMSDK_SOLUTIONS_MICROSERVICES_TAG                       || {
         print-red "FAILED: qimsdk-get-components-tag !!!"
         return -1
     }
@@ -241,6 +271,7 @@ function qimsdk-docker-build-qimsdk-debian-image() {
                 --build-arg QIMSDK_ARG_QNP_VERSION=${QIMSDK_QAIRT_SDK_VERSION}                     \
                 --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=${QIMSDK_CAMERA_SERVICE_TAG}             \
                 --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=${QIMSDK_GST_PLUGINS_TAG}                   \
+                --build-arg QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG=${QIMSDK_SOLUTIONS_MICROSERVICES_TAG} \
                 --progress=plain --target qimsdk_build                                             \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian                        \
                 -f ${DOCKERFILE}.work                                                           || {

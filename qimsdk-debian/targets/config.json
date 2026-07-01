@@ -7,9 +7,11 @@
 
     "camera_service_Source_Dir" : "<path-to-camera-service-dir>",
     "IM_SDK_Source_Dir" : "<path-to-gst-plugins-imsdk-dir>",
+    "solutions_microservices_Source_dir" : "<path-to-solutions-microservices-dir>",
 
     "camera_service_git_tag" : "<optional-git-tag-for-camera-service>",
     "IM_SDK_Source_git_tag" : "<optional-git-tag-for-gst-plugins-imsdk>",
+    "solutions_microservices_Source_git_tag" : "<optional-git-tag-for-solutions-microservices>",
 
     "MAP_sources_to_dev_container" : "FALSE"
 }

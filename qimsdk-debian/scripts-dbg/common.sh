@@ -229,8 +229,9 @@ function qimsdk-get-docker-image-path() {
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) give camera service commit ID or tag as argument
 #   $3 - (mandatory) give gst plugins commit ID or tag as argument
+#   $4 - (mandatory) give solutions microservices commit ID or tag as argument
 function qimsdk-get-components-tag() {
-    local QIMSDK_ARG_COUNT_EXPECTED=2
+    local QIMSDK_ARG_COUNT_EXPECTED=4
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
@@ -238,6 +239,7 @@ function qimsdk-get-components-tag() {
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CAMERA_SERVICE_TAG=${2}
     local -n OUT_QIMSDK_GST_PLUGINS_TAG=${3}
+    local -n OUT_QIMSDK_SOLUTIONS_MICROSERVICES_TAG=${4}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -252,6 +254,11 @@ function qimsdk-get-components-tag() {
 
     OUT_QIMSDK_GST_PLUGINS_TAG=$(
         jq -er '.IM_SDK_Source_git_tag // ""' <<< "${JSON_CONTENT}" 2>/dev/null || echo ""
+    )
+
+    OUT_QIMSDK_SOLUTIONS_MICROSERVICES_TAG=$(
+        jq -er '.solutions_microservices_Source_git_tag // ""' <<< "${JSON_CONTENT}"               \
+                2>/dev/null || echo ""
     )
 
     return 0
