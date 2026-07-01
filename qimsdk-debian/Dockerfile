@@ -448,6 +448,15 @@ RUN git clone --single-branch --branch main https://github.com/qualcomm/gst-plug
         [ -z "${QIMSDK_ARG_GST_PLUGINS_TAG}" ]                                                  || \
         git -C ${QIMSDK_SRC_DIR}/gst-plugins-imsdk checkout -b work ${QIMSDK_ARG_GST_PLUGINS_TAG}
 
+# gst-plugins-imsdk: fetch
+ARG QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG
+RUN git clone --single-branch --branch iot-solutions.lnx.1.0                                       \
+            https://git.codelinaro.org/clo/le/solutions-microservices                              \
+        ${QIMSDK_SRC_DIR}/solutions-microservices                                               && \
+        [ -z "${QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG}" ]                                      || \
+        git -C ${QIMSDK_SRC_DIR}/solutions-microservices checkout -b work                          \
+                ${QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG}
+
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts/
 COPY scripts ${QIMSDK_SCRIPTS}

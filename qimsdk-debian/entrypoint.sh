@@ -39,4 +39,4 @@ for QIMSDK_SOCKET in ${QIMSDK_SOCKET_LIST} ; do
 done
 
 # Hand off to the container's main process
-exec gosu qimsdk bash
+exec gosu qimsdk "$@"

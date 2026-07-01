@@ -50,11 +50,12 @@ This separation allows for efficient development on the host system while ensuri
     9. Fetch and install QNP release
     10. Fetch open-source camera-service repo needed to enable camera functionality
     11. Fetch QCOM gst source code from github
-    12. Copy build and install scripts to build image
-    13. Source container helper scripts from bashrc
-    14. Copy tflite headers and libs using qimsdk-copy-tf-lite-headers-to-sysroot
-    15. Apply patches to open-source projects which need to be patched
-    16. Call incremental build function which builds open-source and QCOM GStreamer plugins
+    12. Fetch QCOM solutions-microservices code needed for qimsdk microservices apps
+    13. Copy build and install scripts to build image
+    14. Source container helper scripts from bashrc
+    15. Copy tflite headers and libs using qimsdk-copy-tf-lite-headers-to-sysroot
+    16. Apply patches to open-source projects which need to be patched
+    17. Call incremental build function which builds open-source and QCOM GStreamer plugins
 
 <div id="qimsdk_deploy">
 

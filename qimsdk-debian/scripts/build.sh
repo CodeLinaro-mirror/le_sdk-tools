@@ -512,6 +512,18 @@ function qimsdk-cmake-clean-gst-plugins-imsdk() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
+# CMake Build solutions-microservices
+qimsdk-cmake-build-solutions-microservices() {
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/solutions-microservices/microservices/qimsdk /usr      && \
+        print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Clean solutions-microservices
+function qimsdk-cmake-clean-solutions-microservices() {
+    rm -rf ${QIMSDK_BUILD_DIR}/solutions-microservices                                          && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
     qimsdk-debian-rules-build-gst-plugins-base                                                  && \
@@ -523,6 +535,7 @@ function qimsdk-incremental-build() {
             qimsdk-cmake-build-flatbuffers-v23-5-26                                             && \
             qimsdk-cmake-build-tflite                                                           && \
             qimsdk-cmake-build-gst-plugins-imsdk                                                && \
+            qimsdk-cmake-build-solutions-microservices                                          && \
         print-green "QIMSDK GStreamer targets built successfully !!!"
 }
 
