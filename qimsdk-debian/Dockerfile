@@ -92,12 +92,15 @@ ENV QIMSDK_HOST_TOOLS_DIR=${QIMSDK_BASE_DIR}/host-tools
 # Add qimsdk install directory
 ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 ENV QIMSDK_INSTALL_LIB_DIR=${QIMSDK_INSTALL_DIR}/usr/lib
-ENV QIMSDK_ADSP_DIR=${QIMSDK_INSTALL_LIB_DIR}/rfsa/adsp
-ENV QIMSDK_KODIAK_CDSP_DIR=${QIMSDK_INSTALL_DIR}/usr/share/qcom/qcm6490/Thundercomm/RB3gen2/dsp/cdsp
-ENV QIMSDK_LEMANS_CDSP_DIR=${QIMSDK_INSTALL_DIR}/usr/share/qcom/sa8775p/Qualcomm/SA8775P-RIDE/dsp/cdsp
-ENV QIMSDK_MONACO_CDSP_DIR=${QIMSDK_INSTALL_DIR}/usr/share/qcom/qcs8300/Qualcomm/QCS8300-RIDE/dsp/cdsp
-ENV QIMSDK_TALOS_CDSP_DIR=${QIMSDK_INSTALL_DIR}/usr/share/qcom/qcs615/Qualcomm/QCS615-RIDE/dsp/cdsp
 RUN mkdir -p ${QIMSDK_INSTALL_LIB_DIR}
+
+# Set up dirs used by fastrpc, comprising of skel binaries for each dsp version
+ENV QIMSDK_V66_CDSP_DIR=${QIMSDK_INSTALL_DIR}/usr/share/qcom/v66
+ENV QIMSDK_V68_CDSP_DIR=${QIMSDK_INSTALL_DIR}/usr/share/qcom/v68
+ENV QIMSDK_V73_CDSP_DIR=${QIMSDK_INSTALL_DIR}/usr/share/qcom/v73
+ENV QIMSDK_V75_CDSP_DIR=${QIMSDK_INSTALL_DIR}/usr/share/qcom/v75
+RUN mkdir -p ${QIMSDK_V66_CDSP_DIR} ${QIMSDK_V68_CDSP_DIR} ${QIMSDK_V73_CDSP_DIR}                  \
+        ${QIMSDK_V75_CDSP_DIR}
 
 # Add qimsdk debug install directory
 ENV QIMSDK_INSTALL_DEBUG_DIR=${QIMSDK_BASE_DIR}/deploy_dbg
@@ -339,18 +342,21 @@ RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                   
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
     mkdir -p ${QIMSDK_DOWNLOAD_DIR}/fastcv                                                      && \
     tar xvf ${FASTCV_PACKAGE_NAME}_${FASTCV_VERSION}_${FASTCV_ARCH}.tar.gz -C fastcv            && \
-    mkdir -p ${QIMSDK_TALOS_CDSP_DIR} ${QIMSDK_KODIAK_CDSP_DIR}                                    \
-             ${QIMSDK_LEMANS_CDSP_DIR} ${QIMSDK_MONACO_CDSP_DIR}                                && \
     cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/dsp/cdsp/cv/v65/TALOS_MOOREA/*.so                     \
-            ${QIMSDK_TALOS_CDSP_DIR}/                                                           && \
-    cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/dsp/cdsp/cv/v68/KODIAK/*.so ${QIMSDK_KODIAK_CDSP_DIR}/ && \
-    cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/dsp/cdsp/cv/v73/LEMANS/*.so ${QIMSDK_LEMANS_CDSP_DIR}/ && \
-    cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/dsp/cdsp/cv/v75/MONACO/*.so ${QIMSDK_MONACO_CDSP_DIR}/ && \
+            ${QIMSDK_V66_CDSP_DIR}/                                                             && \
+    cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/dsp/cdsp/cv/v68/KODIAK/*.so                           \
+            ${QIMSDK_V68_CDSP_DIR}/                                                             && \
+    cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/dsp/cdsp/cv/v73/LEMANS/*.so                           \
+            ${QIMSDK_V73_CDSP_DIR}/                                                             && \
+    cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/dsp/cdsp/cv/v75/MONACO/*.so                           \
+            ${QIMSDK_V75_CDSP_DIR}/                                                             && \
     cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/libfastcvopt.so.1.8.0 ${QIMSDK_INSTALL_LIB_DIR}/   && \
-    cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/libfastcvdsp_stub.so.1.8.0 ${QIMSDK_INSTALL_LIB_DIR}/ && \
+    cp ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/libfastcvdsp_stub.so.1.8.0                            \
+            ${QIMSDK_INSTALL_LIB_DIR}/                                                          && \
     cp -d ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/libfastcvopt.so.1 ${QIMSDK_INSTALL_LIB_DIR}/    && \
     cp -d ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/libfastcvopt.so ${QIMSDK_INSTALL_LIB_DIR}/      && \
-    cp -d ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/libfastcvdsp_stub.so.1 ${QIMSDK_INSTALL_LIB_DIR}/ && \
+    cp -d ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/libfastcvdsp_stub.so.1                             \
+            ${QIMSDK_INSTALL_LIB_DIR}/                                                          && \
     cp -d ${QIMSDK_DOWNLOAD_DIR}/fastcv/usr/lib/libfastcvdsp_stub.so ${QIMSDK_INSTALL_LIB_DIR}/ && \
     rm -rf fastcv ${FASTCV_PACKAGE_NAME}_${FASTCV_VERSION}_${FASTCV_ARCH}.tar.gz
 
@@ -377,11 +383,10 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
             /usr/include/.                                                                      && \
         cp -r ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QNN/*             \
             /usr/include/.                                                                      && \
-        mkdir -p ${QIMSDK_ADSP_DIR}                                                             && \
-        cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v66/unsigned/* ${QIMSDK_ADSP_DIR}/                    && \
-        cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v68/unsigned/* ${QIMSDK_ADSP_DIR}/                    && \
-        cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v73/unsigned/* ${QIMSDK_ADSP_DIR}/                    && \
-        cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v75/unsigned/* ${QIMSDK_ADSP_DIR}/                    && \
+        cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v66/unsigned/* ${QIMSDK_V66_CDSP_DIR}/                && \
+        cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v68/unsigned/* ${QIMSDK_V68_CDSP_DIR}/                && \
+        cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v73/unsigned/* ${QIMSDK_V73_CDSP_DIR}/                && \
+        cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v75/unsigned/* ${QIMSDK_V75_CDSP_DIR}/                && \
         find "${QIMSDK_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2"                                     \
             -maxdepth 1 -type f                                                                    \
             \(                                                                                     \
@@ -572,21 +577,63 @@ RUN apt-get update                                                              
     rm -rf /var/lib/apt/lists* /var/tmp/*                                                       && \
     rm -f /etc/profile.d/qcom-adreno-profile.sh /usr/lib/qcom-adreno-vars.sh
 
-# Bake fastrpc DSP path config for all supported devices into a safe path
-# that is never bind-mounted. The entrypoint copies it to
-# /usr/share/qcom/conf.d/ at runtime after the bind-mount is in place.
-RUN mkdir -p /etc/fastrpc                                                                       && \
+# Create yaml file specifying directories of dsp skel binaries needed for fastrpc
+RUN mkdir -p /usr/share/qcom/conf.d                                                             && \
     {                                                                                              \
-      echo '# SPDX-License-Identifier: MIT';                                                       \
-      echo '# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.';                 \
-      echo 'machines:';                                                                            \
-      echo '  Qualcomm Technologies, Inc. Monaco Monza addons:';                                   \
-      echo '    DSP_LIBRARY_PATH: qcs8300/Qualcomm/QCS8300-RIDE/dsp';                              \
-      echo '  Qualcomm Technologies, Inc. Addons IQ 9075 EVK:';                                    \
-      echo '    DSP_LIBRARY_PATH: qcm6490/Thundercomm/RB3gen2/dsp';                                \
-      echo '  Qualcomm Technologies, Inc. IQ8 8275 Pro SKU EVK:';                                  \
-      echo '    DSP_LIBRARY_PATH: qcs8300/Qualcomm/QCS8300-RIDE/dsp';                              \
-    } > /etc/fastrpc/hexagon-dsp-binaries.yaml
+        echo '# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.';               \
+        echo '# SPDX-License-Identifier: MIT';                                                     \
+        echo 'machines:';                                                                          \
+        echo '  Qualcomm Technologies, Inc. SDM845 HDK:';                                          \
+        echo '    DSP_LIBRARY_PATH: v66';                                                          \
+        echo '  Qualcomm QCS615 IQ 615 EVK:';                                                      \
+        echo '    DSP_LIBRARY_PATH: v66';                                                          \
+        echo '  Qualcomm Technologies, Inc. QCS615 Ride (IQ-615 Beta EVK):';                       \
+        echo '    DSP_LIBRARY_PATH: v66';                                                          \
+        echo '  Qualcomm Technologies, Inc. Robotics RB3gen2:';                                    \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. Robotics RB3gen2 addons vision mezz platform:';        \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. Glymur CRD:';                                          \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. Kaanapali MTP:';                                       \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. Purwa IoT EVK:';                                       \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. QCM6490 IDP:';                                         \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Thundercomm RUBIK Pi 3:';                                                          \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Radxa Dragon Q6A:';                                                                \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. Robotics RB5:';                                        \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. Lemans EVK:';                                          \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. Addons IQ 9075 EVK:';                                  \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. Hamoa IoT EVK:';                                       \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. Shikra CQS EVK:';                                      \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. SM8750 MTP:';                                          \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm SA8775P Ride:';                                                           \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm SA8775P Ride Rev3:';                                                      \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. Lemans Ride:';                                         \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. Lemans Ride Rev3:';                                    \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Arduino VENTUNO Q:';                                                               \
+        echo '    DSP_LIBRARY_PATH: v75';                                                          \
+        echo '  Qualcomm Technologies, Inc. Monaco EVK:';                                          \
+        echo '    DSP_LIBRARY_PATH: v75';                                                          \
+        echo '  Qualcomm Technologies, Inc. Monaco Monza addons:';                                 \
+        echo '    DSP_LIBRARY_PATH: v75';                                                          \
+        echo '  Qualcomm Technologies, Inc. QCS8300 Ride:';                                        \
+        echo '    DSP_LIBRARY_PATH: v75';                                                          \
+    } > /usr/share/qcom/conf.d/hexagon-dsp-binaries.yaml
 
 # Create USER and add to video group for accessing v4ls devices
 RUN addgroup qcom                                                                               && \
