@@ -468,6 +468,10 @@ The developer generally needs to build the deploy image, load it to the device a
 - qimsdk-docker-device-images-cleanup  \<path-to-config-json> - Docker device images clean up
 - qimsdk-docker-host-images-cleanup                           - Docker host images clean up
 
+> **Note:** The helper functions here are not meant to be used with devices lacking adb connectivity for the time being!
+
+> **Note:** Please note that the `qimsdk-docker-device-run-container` function here assumes the `QIMSDK_USER_CONTENTS_ROOT` environment variable is set to: /etc and the target to container mapping implies /etc as the model root directory.
+
 <div id="Docker_Debug_Container_Side_Helper_Scripts">
 
 ### Docker Debug Container Side Helper Scripts
@@ -552,6 +556,8 @@ adb disable-verity
 adb reboot
 ```
 
+> **Note:** The helper functions here are not meant to be used with devices lacking adb connectivity for the time being!
+
 #### Prepare Device After Reboot
 
 ***Please note that this step needs to be invoked only once after device, connected to local PC, is started***
@@ -625,22 +631,62 @@ qimsdk-docker-build-image <path-to-config-json>
 qimsdk-docker-device-save-image <path-to-config-json>
 ```
 
-Load docker image and run the container on remote machine with device connected to it
+Load the docker image and run the container on the remote machine with the target device connected to it.
 
-***NOTE: Ensure proper CDI json, which contains all of the needed platform mountings for the specific platform, is copied to /etc/cdi in device storage, before running the qimsdk container. CDI json for the specific hardware and platform is located in qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json. Because of the basic design principles of Docker, an .env file is also needed for the environment variables inside device container as well. .env file is located in qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env. It needs to be copied to /etc/docker/env in device storage.***
+Any required platform resources like GPU, DSP, video device nodes and any other system folders/volumes need to be propagated and explicitly exposed to the Docker container.
 
-For example, if working on qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json. The correct .env file would be qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+This is achieved with the help of:
+
+* uploading a matching target-specfic CDI file;
+* uploading a matching target-specific ENV file;
+* creating all of the required target folders used for the local model data storage;
+* uploading the model-specific data accordingly;
+* setting the appropriate target model data file and folder access permissions;
+* listing the model-specific platform to container folder/volume mappings in the container run command.
+
+A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
+
+In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
+
+> **Note:** CDI files are located in: qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json;
+
+The CDI file needed for a specific hardware platform needs to be copied to the /etc/cdi/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
 
 ```bash
-### push corresponding CDI json to the device
-adb shell mkdir -p /etc/cdi/
+adb shell "mkdir -p /etc/cdi"
+adb shell "chmod 755 /etc/cdi"
+```
+
+> **Note:** the ENV files are located in: qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env;
+
+The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
+
+```bash
+adb shell "mkdir -p /etc/docker/env"
+adb shell "chmod 755 /etc/docker/env"
+```
+
+For example, if working on the qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be:
+
+> qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json.
+
+The correct .env file would be:
+> qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+
+```bash
+#### Upload (push) the corresponding CDI json to the device
 adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
-adb shell mkdir -p /etc/docker/env/
 adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
 ```
 
+> **Note:** The helper functions here are not meant to be used with devices lacking adb connectivity for the time being!
+
 ```bash
-# Remote machine with device connected to it
+# Remote machine with a device connected to it
 ############################################
 # Load docker image from Docker_image_path
 qimsdk-docker-device-load-image <path-to-config-json>
@@ -674,17 +720,57 @@ qimsdk-device-prepare
 
 Build docker image, update image to the device, run device container
 
-***NOTE: Ensure proper CDI json, which contains all of the needed platform mountings for the specific platform, is copied to /etc/cdi in device storage, before running the qimsdk container. CDI json for the specific hardware and platform is located in qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json. Because of the basic design principles of Docker, an .env file is also needed for the environment variables inside device container as well. .env file is located in qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env. It needs to be copied to /etc/docker/env in device storage.***
+Any required platform resources like GPU, DSP, video device nodes and any other system folders/volumes need to be propagated and explicitly exposed to the Docker container.
 
-For example, if working on qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json. The correct .env file would be qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+This is achieved with the help of:
+
+* uploading a matching target-specfic CDI file;
+* uploading a matching target-specific ENV file;
+* creating all of the required target folders used for the local model data storage;
+* uploading the model-specific data accordingly;
+* setting the appropriate target model data file and folder access permissions;
+* listing the model-specific platform to container folder/volume mappings in the container run command.
+
+A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
+
+In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
+
+> **Note:** CDI files are located in: qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json;
+
+The CDI file needed for a specific hardware platform needs to be copied to the /etc/cdi/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
 
 ```bash
-### push corresponding CDI json to the device
-adb shell mkdir -p /etc/cdi/
+adb shell "mkdir -p /etc/cdi"
+adb shell "chmod 755 /etc/cdi"
+```
+
+> **Note:** the ENV files are located in: qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env;
+
+The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
+
+```bash
+adb shell "mkdir -p /etc/docker/env"
+adb shell "chmod 755 /etc/docker/env"
+```
+
+For example, if working on the qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be:
+
+> qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json.
+
+The correct .env file would be:
+> qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+
+```bash
+#### Upload (push) the corresponding CDI json to the device
 adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
-adb shell mkdir -p /etc/docker/env/
 adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
 ```
+
+> **Note:** The helper functions here are not meant to be used with devices lacking adb connectivity for the time being!
 
 ```bash
 # Build docker image
@@ -814,17 +900,57 @@ qimsdk-docker-device-rm-container <path-to-config-json>
 
 4. Run container
 
-***NOTE: Ensure proper CDI json, which contains all of the needed platform mountings for the specific platform, is copied to /etc/cdi in device storage, before running the qimsdk container. CDI json for the specific hardware and platform is located in qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json. Because of the basic design principles of Docker, an .env file is also needed for the environment variables inside device container as well. .env file is located in qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env. It needs to be copied to /etc/docker/env in device storage.***
+Any required platform resources like GPU, DSP, video device nodes and any other system folders/volumes need to be propagated and explicitly exposed to the Docker container.
 
-For example, if working on qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json. The correct .env file would be qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+This is achieved with the help of:
+
+* uploading a matching target-specfic CDI file;
+* uploading a matching target-specific ENV file;
+* creating all of the required target folders used for the local model data storage;
+* uploading the model-specific data accordingly;
+* setting the appropriate target model data file and folder access permissions;
+* listing the model-specific platform to container folder/volume mappings in the container run command.
+
+A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
+
+In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
+
+> **Note:** CDI files are located in: qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json;
+
+The CDI file needed for a specific hardware platform needs to be copied to the /etc/cdi/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
 
 ```bash
-### push corresponding CDI json to the device
-adb shell mkdir -p /etc/cdi/
+adb shell "mkdir -p /etc/cdi"
+adb shell "chmod 755 /etc/cdi"
+```
+
+> **Note:** the ENV files are located in: qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env;
+
+The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
+
+```bash
+adb shell "mkdir -p /etc/docker/env"
+adb shell "chmod 755 /etc/docker/env"
+```
+
+For example, if working on the qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be:
+
+> qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json.
+
+The correct .env file would be:
+> qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+
+```bash
+#### Upload (push) the corresponding CDI json to the device
 adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
-adb shell mkdir -p /etc/docker/env/
 adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
 ```
+
+> **Note:** The helper functions here are not meant to be used with devices lacking adb connectivity for the time being!
 
 ```bash
 # Run container
@@ -887,9 +1013,39 @@ vi /etc/cdi/qimsdk.json
 ```
 
 ```bash
+# For QLI platforms — content stored under the root home directory
+export QIMSDK_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export QIMSDK_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export QIMSDK_USER_CONTENTS_ROOT=/etc
+
 # After that's done, the container needs to be removed and a new one needs to be run, if already running
 docker rm -f qimsdk
-docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env --device qualcomm.com/device=qimsdk -h qimsdk --name qimsdk <desired-image-name>
+
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qimsdk.env \
+  --device qualcomm.com/device=qimsdk \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/home/qimsdk/media \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/home/qimsdk/models \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/home/qimsdk/labels \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/home/qimsdk/configs \
+  -h qimsdk --name qimsdk <desired-image-name>
+```
+
+> **Note:** When the `QIMSDK_USER_CONTENTS_ROOT` environment variable value is `/etc`** (the model content shall be mounted into the `/etc/` folder inside the container):
+
+```bash
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qimsdk.env \
+  --device qualcomm.com/device=qimsdk \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/etc/media \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/etc/models \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/etc/labels \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/etc/configs \
+  -h qimsdk --name qimsdk <desired-image-name>
 ```
 
 <div id="Docker_Container_Renaming">
@@ -966,29 +1122,115 @@ docker load -i /tmp/qimsdk.tar
 
 ### Run QIMSDK Deploy Container
 
-***NOTE: Ensure proper CDI json, which contains all of the needed platform mountings for the specific platform, is copied to /etc/cdi in device storage, before running the qimsdk container. CDI json for the specific hardware and platform is located in qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json. Because of the basic design principles of Docker, an .env file is also needed for the environment variables inside device container as well. .env file is located in qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env. It needs to be copied to /etc/docker/env in device storage.***
+Any required platform resources like GPU, DSP, video device nodes and any other system folders/volumes need to be propagated and explicitly exposed to the Docker container.
 
-For example, if working on qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json. The correct .env file would be qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+This is achieved with the help of:
+
+* uploading a matching target-specfic CDI file;
+* uploading a matching target-specific ENV file;
+* creating all of the required target folders used for the local model data storage;
+* uploading the model-specific data accordingly;
+* setting the appropriate target model data file and folder access permissions;
+* listing the model-specific platform to container folder/volume mappings in the container run command.
+
+A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
+
+In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
+
+> **Note:** CDI files are located in: qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json;
+
+The CDI file needed for a specific hardware platform needs to be copied to the /etc/cdi/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
 
 ```bash
-### push corresponding CDI json to the device
-adb shell mkdir -p /etc/cdi/
+adb shell "mkdir -p /etc/cdi"
+adb shell "chmod 755 /etc/cdi"
+```
+
+> **Note:** the ENV files are located in: qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env;
+
+The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
+
+```bash
+adb shell "mkdir -p /etc/docker/env"
+adb shell "chmod 755 /etc/docker/env"
+```
+
+For example, if working on the qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be:
+
+> qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json.
+
+The correct .env file would be:
+> qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+
+```bash
+#### Upload (push) the corresponding CDI json to the device
 adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
-adb shell mkdir -p /etc/docker/env/
 adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
 ```
+
+> **Note:** The helper functions here are not meant to be used with devices lacking adb connectivity for the time being!
+
+<div id="Platform_model_file_and_folder_setup">
 
 #### Sample file directory setup requirements
 The following directories must be created under the user’s home directory to store test files:
 
+> **Note:** The `HOME` directory depends on the target platform OS:
+> - `/root` on Qualcomm QLI platforms
+> - `/home/ubuntu` on Qualcomm Ubuntu platforms
+
+Set the root path for the user content by exporting one of the following environment variables in a platform terminal, depending on your platform and preference:
+
 ```bash
-mkdir ${HOME}/media
-mkdir ${HOME}/models
-mkdir ${HOME}/labels
-mkdir ${HOME}/configs
+# For QLI platforms — content stored under the root home directory
+export QIMSDK_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export QIMSDK_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export QIMSDK_USER_CONTENTS_ROOT=/etc
 ```
 
-All directories must be assigned **permission mode 666** to ensure they are accessible and usable by the container environment.
+Then create the required directories:
+
+```bash
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/media
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/models
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/labels
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/configs
+```
+
+Apply the correct permissions to each directory and its contents.
+> **Note:** Use `sudo` when the `QIMSDK_USER_CONTENTS_ROOT` value is set to `/etc` for any non-root platform user:
+
+```bash
+# media
+find ${QIMSDK_USER_CONTENTS_ROOT}/media/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/media/ -type f -exec chmod 644 {} \;
+
+# models
+find ${QIMSDK_USER_CONTENTS_ROOT}/models/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/models/ -type f -exec chmod 644 {} \;
+
+# labels
+find ${QIMSDK_USER_CONTENTS_ROOT}/labels/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/labels/ -type f -exec chmod 644 {} \;
+
+# configs
+find ${QIMSDK_USER_CONTENTS_ROOT}/configs/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/configs/ -type f -exec chmod 644 {} \;
+```
+
+> **Note:** The platform model folder naming and layout must follow the structure defined in the [#Sample file directory setup requirements](#Platform_model_file_and_folder_setup) section!
+
+> **Important Notice:** Any deviation from this exact folder layout and folder naming convention might result in your models failing to be correctly identified, located, loaded and utilized due to a potential violation of any target device SELinux policy restrictions in place!
+
+**Before running the arm64 deploy container, please upload your models and model-specific data into these newly created platform model data folders.**
 
 <h3 style="color:red">
   <b>Create a shell file with the following content:</b>
@@ -996,9 +1238,40 @@ All directories must be assigned **permission mode 666** to ensure they are acce
 
 ```bash
 ### adb shell
-docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env                                 \
-    --device qualcomm.com/device=qimsdk -h qimsdk                                                  \
-    --name <desired-container-name> <generated-image-name>
+```bash
+# For QLI platforms — content stored under the root home directory
+export QIMSDK_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export QIMSDK_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export QIMSDK_USER_CONTENTS_ROOT=/etc
+
+# After that's done, the container needs to be removed and a new one needs to be run, if already running
+docker rm -f qimsdk
+
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qimsdk.env \
+  --device qualcomm.com/device=qimsdk \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/home/qimsdk/media \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/home/qimsdk/models \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/home/qimsdk/labels \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/home/qimsdk/configs \
+  -h qimsdk --name <desired-container-name> <generated-image-name>
+```
+
+> **Note:** When the `QIMSDK_USER_CONTENTS_ROOT` environment variable value is `/etc`** (the model content shall be mounted into the `/etc/` folder inside the container):
+
+```bash
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qimsdk.env \
+  --device qualcomm.com/device=qimsdk \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/etc/media \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/etc/models \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/etc/labels \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/etc/configs \
+  -h qimsdk --name <desired-container-name> <generated-image-name>
 ```
 
 <div id="Execute_QIMSDK_Deploy_Container">

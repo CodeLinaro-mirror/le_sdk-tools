@@ -551,6 +551,8 @@ function qimsdk-generate-docker-compose-cdi-yaml() {
     )
 
     local I
+    local MODEL_ROOT="/etc"
+    declare -a QIMSDK_USER_CONTENTS_DIRS_ARRAY=("media" "models" "labels" "configs")
     echo "services:" > ${PATH_TO_DOCKER_COMPOSE_YAML}                                           && \
             yq -i ".services.qimsdk.image=\"${IMAGE_NAME}\""                                       \
                     ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
@@ -573,6 +575,10 @@ function qimsdk-generate-docker-compose-cdi-yaml() {
             done                                                                                && \
             for I in ${USER_SPECIFIC_LIBS_ARRAY[@]}; do
                 yq -i ".services.qimsdk.volumes += [\"${I}:${I}\"]" ${PATH_TO_DOCKER_COMPOSE_YAML}
+            done                                                                                && \
+            for I in ${QIMSDK_USER_CONTENTS_DIRS_ARRAY[@]}; do
+                yq -i ".services.qimsdk.volumes += [\"${MODEL_ROOT}/${I}:${MODEL_ROOT}/${I}\"]"    \
+                    ${PATH_TO_DOCKER_COMPOSE_YAML}
             done                                                                                && \
             yq -i ".services.qimsdk.deploy.resources.reservations.devices[0].driver = \"cdi\""     \
                 ${PATH_TO_DOCKER_COMPOSE_YAML} && \
@@ -654,9 +660,15 @@ function qimsdk-generate-docker-run-cmd() {
 
     QIMSDK_DOCKER_RUN_CMD_ARGUMENTS+="-v /dev/socket/weston:/dev/socket/weston "
 
+    local MODEL_ROOT="/etc"
+
     echo "docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env                       \
             --device qualcomm.com/device=qimsdk ${QIMSDK_DOCKER_RUN_CMD_ARGUMENTS}                 \
             ${USER_SPECIFIC_MAP} ${USER_LIBS_TO_MOUNT} ${USER_EXPORTS} ${TARGET_EXPORTS}           \
+            -v ${MODEL_ROOT}/media:${MODEL_ROOT}/media                                             \
+            -v ${MODEL_ROOT}/models:${MODEL_ROOT}/models                                           \
+            -v ${MODEL_ROOT}/labels:${MODEL_ROOT}/labels                                           \
+            -v ${MODEL_ROOT}/configs:${MODEL_ROOT}/configs                                         \
             -h ${CONTAINER_NAME} --user qimsdk --name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}
 
     rc=$?
