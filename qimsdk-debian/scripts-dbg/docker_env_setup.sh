@@ -523,47 +523,35 @@ function qimsdk-docker-device-save-image() {
         return -1
     }
 
-    for DEVICE_JSON in ${QIMSDK_DOCKER_DIR}/targets/target_*.json; do
+    qimsdk-generate-docker-run-cmd ${COMMON_PATH}/docker_run.sh                                    \
+            ${QIMSDK_CONTAINER_NAME}                                                               \
+            ${QIMSDK_IMAGE_NAME}-debian-deploy                                                  || {
+        print-red "Generate ${COMMON_PATH}/docker_run.sh file failed !!!"
+        rm -f ${COMMON_PATH}/docker_run.sh
+        return -1
+    }
 
-        local SUFFIX_NAME="$(basename "${DEVICE_JSON%.json}")"
-        SUFFIX_NAME="${SUFFIX_NAME#target_}"
+    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run.sh                                   \
+            ${DOCKER_IMAGE_PATH}                                                                || {
+        print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+        rm -f ${COMMON_PATH}/docker_run.sh
+        return -1
+    }
 
-        qimsdk-generate-docker-run-cmd ${DEVICE_JSON}                                              \
-                ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                                        \
-                ${QIMSDK_CONTAINER_NAME}                                                           \
-                ${QIMSDK_IMAGE_NAME}-debian-deploy                                              || {
-            print-red "Generate ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh file failed !!!"
-            rm -f ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh
+    qimsdk-generate-docker-compose-yaml ${COMMON_PATH}/docker-compose.yml                          \
+            ${QIMSDK_CONTAINER_NAME}                                                               \
+            ${QIMSDK_IMAGE_NAME}-debian-deploy                                                  || {
+        print-red "Generate qimsdk docker compose CDI file failed !!!"
+        rm -f ${COMMON_PATH}/docker-compose.yml
+        return -1
+    }
 
-            return -1
-        }
-
-        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                \
-                ${DOCKER_IMAGE_PATH}                                                            || {
-            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-            rm -f ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh
-
-            return -1
-        }
-
-        qimsdk-generate-docker-compose-cdi-yaml ${DEVICE_JSON}                                     \
-                ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml                               \
-                ${QIMSDK_CONTAINER_NAME}                                                           \
-                ${QIMSDK_IMAGE_NAME}-debian-deploy                                              || {
-            print-red "Generate qimsdk docker compose CDI file failed !!!"
-            rm -f ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml
-
-            return -1
-        }
-
-        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml       \
-                ${DOCKER_IMAGE_PATH}                                                            || {
-            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-            rm -f ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml
-
-            return -1
-        }
-    done
+    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-compose.yml                              \
+            ${DOCKER_IMAGE_PATH}                                                                || {
+        print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+        rm -f ${COMMON_PATH}/docker-compose.yml
+        return -1
+    }
 
     print-green "Device save image successful !!!"
 
@@ -861,52 +849,26 @@ function qimsdk-docker-device-run-container() {
             }
         done
 
-        local TARGET_PLATFORM=""
-
         local TMP_RUN_CMD_DIR=$(mktemp -d)
 
-        for DEVICE_JSON in ${QIMSDK_DOCKER_DIR}/targets/target_*.json; do
-
-            local SUFFIX_NAME="$(basename "${DEVICE_JSON%.json}")"
-            SUFFIX_NAME="${SUFFIX_NAME#target_}"
-
-            qimsdk-generate-docker-run-cmd ${DEVICE_JSON}                                          \
-                    ${TMP_RUN_CMD_DIR}/docker_run_${SUFFIX_NAME}.sh                                \
-                    ${QIMSDK_CONTAINER_NAME}                                                       \
-                    ${QIMSDK_IMAGE_NAME}-debian-deploy                                          || {
-                print-red "Generate ${TMP_RUN_CMD_DIR}/docker_run_${SUFFIX_NAME}.sh `
-                    `file failed !!!"
-                rm -rf ${TMP_RUN_CMD_DIR}
-
-                return -1
-            }
-
-            declare -A SOC_LIST=$(cat ${DEVICE_JSON} | jq '.Soc[]' | tr -d '"')
-
-            for SOC in ${SOC_LIST[@]}; do
-                [[ ${MACHINE} == ${SOC} ]]                                                      && {
-                    TARGET_PLATFORM="${SUFFIX_NAME}"
-                    # Break out of both loops
-                    break 2
-                }
-            done
-        done
-
-        [ -z ${TARGET_PLATFORM} ]                                                               && {
-            print-red "Target platform is not set !!!"
+        qimsdk-generate-docker-run-cmd ${TMP_RUN_CMD_DIR}/docker_run.sh                            \
+                ${QIMSDK_CONTAINER_NAME}                                                           \
+                ${QIMSDK_IMAGE_NAME}-debian-deploy                                              || {
+            print-red "Generate ${TMP_RUN_CMD_DIR}/docker_run.sh file failed !!!"
+            rm -rf ${TMP_RUN_CMD_DIR}
             return -1
         }
 
-        adb push ${TMP_RUN_CMD_DIR}/docker_run_${TARGET_PLATFORM}.sh /tmp/                      && \
-        qimsdk-device-command "source /tmp/docker_run_${TARGET_PLATFORM}.sh"                    || {
+        adb push ${TMP_RUN_CMD_DIR}/docker_run.sh /tmp/                                         && \
+        qimsdk-device-command "source /tmp/docker_run.sh"                                       || {
             rm -rf ${TMP_RUN_CMD_DIR}
-            qimsdk-device-command "rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh"
+            qimsdk-device-command "rm -rf /tmp/docker_run.sh"
             echo "qimsdk-docker-device-run-container failed !!!"
             return -1
         }
 
         rm -rf ${TMP_RUN_CMD_DIR}
-        qimsdk-device-command "rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh"
+        qimsdk-device-command "rm -rf /tmp/docker_run.sh"
     )                                                                                           || {
         print-red "Device run container failed !!!"
         return -1
