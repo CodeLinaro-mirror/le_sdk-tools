@@ -56,54 +56,6 @@
         ],
         "mounts": [
           {
-            "hostPath": "/home/ubuntu/media",
-            "containerPath": "/home/tflite/media",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
-          {
-            "hostPath": "/home/ubuntu/models",
-            "containerPath": "/home/tflite/models",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
-          {
-            "hostPath": "/home/ubuntu/labels",
-            "containerPath": "/home/tflite/labels",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
-          {
-            "hostPath": "/etc/media",
-            "containerPath": "/etc/media",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
-          {
-            "hostPath": "/etc/models",
-            "containerPath": "/etc/models",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
-          {
-            "hostPath": "/etc/labels",
-            "containerPath": "/etc/labels",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
-          {
             "hostPath": "/usr/lib/dsp/cdsp",
             "containerPath": "/usr/lib/dsp/cdsp",
             "options": [
