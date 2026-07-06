@@ -9,6 +9,8 @@
 * [Workflow](#Workflow)
     * [How to build](#How_to_build)
     * [Running the qairt deploy container](#Running_the_container)
+        * [Setting up the platform](#Platform_model_file_and_folder_setup)
+        * [How to run the qairt deploy container](#Run_the_qairt_deploy_container)
     * [How to use the qairt-debian container](#Using_the_container)
 
 <div id="Docker_images">
@@ -82,20 +84,161 @@ In the docker build command above, provide the version of QAIRT SDK that you wan
 
 ### Running the qairt deploy container
 
-In order to run the qairt container with SNPE & QNN functionalities inside, it must be run from the qairt_deploy_arm64 image built earlier, container needs to be ran with 'host' network mode. GPU devices, and other needed user volumes need to be mounted. CDI json for the specific platform contains all of these needed platform mountings. Because of the basic design principles of Docker, an .env file is needed for the environment variables inside device container as well.
+In order to run the qairt container with GStreamer functionalities inside, please make use of the qairt arm64 deploy image built earlier and specify the 'host' network mode.
 
-CDI files are located in: qairt-container/cdi/\<hardware\>-\<platform\>-qairt.json;
-The CDI file needed for the specific hardware platform needs to be copied to /etc/cdi/ directory in device storage. (Create directory if it does not exist)
+Any required platform resources like GPU, DSP, video device nodes and any other system folders/volumes need to be propagated and explicitly exposed to the Docker container.
 
-.env files are located in: qairt-container/env/\<hardware\>-\<platform\>-qairt.env;
-The .env file needed for the specific hardware platform needs to be copied to /etc/docker/env/ directory in device storage. (Create directory if it does not exist)
+This is achieved with the help of:
 
-Command to run the qairt device deploy container:
+* uploading a matching target-specfic CDI file;
+* uploading a matching target-specific ENV file;
+* creating all of the required target folders used for the local model data storage;
+* uploading the model-specific data accordingly;
+* setting the appropriate target model data file and folder access permissions;
+* listing the model-specific platform to container folder/volume mappings in the container run command.
+
+A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
+
+In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
+
+> **Note:** CDI files are located in and named: `qairt-container/cdi/\<hardware\>-\<platform\>-qairt.json`;
+
+The CDI file needed for a specific hardware platform needs to be copied to the /etc/cdi/ directory on the target device storage.
+
+Please create this directory first, if it does not exist as follows:
+
+```bash
+sudo mkdir -p /etc/cdi
+sudo chmod 755 /etc/cdi
+```
+
+> **Note:** the ENV files are located in and named: `qairt-container/env/\<hardware\>-\<platform\>-qairt.env`;
+
+The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
+
+Please create this directory first, if it does not exist as follows:
+
+```bash
+sudo mkdir -p /etc/docker/env
+sudo chmod 755 /etc/docker/env
+```
+
+<div id="Platform_model_file_and_folder_setup">
+
+### Platform model file and folder setup
+The following directories must be created under the user’s home directory to store test files:
+
+> **Note:** The `HOME` directory depends on the target platform OS:
+> - `/root` on Qualcomm QLI platforms
+> - `/home/ubuntu` on Qualcomm Ubuntu platforms
+
+Set the root path for the user content by exporting one of the following environment variables in a platform terminal, depending on your platform and preference:
+
+```bash
+# For QLI platforms — content stored under the root home directory
+export QAIRT_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export QAIRT_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export QAIRT_USER_CONTENTS_ROOT=/etc
+```
+
+Then create the required directories:
+
+```bash
+mkdir -p ${QAIRT_USER_CONTENTS_ROOT}/media
+mkdir -p ${QAIRT_USER_CONTENTS_ROOT}/models
+mkdir -p ${QAIRT_USER_CONTENTS_ROOT}/labels
+mkdir -p ${QAIRT_USER_CONTENTS_ROOT}/configs
+```
+
+Apply the correct permissions to each directory and its contents.
+> **Note:** Use `sudo` when the `QAIRT_USER_CONTENTS_ROOT` value is set to `/etc` for any non-root platform user:
+
+```bash
+# media
+find ${QAIRT_USER_CONTENTS_ROOT}/media/ -type d -exec chmod 755 {} \;
+find ${QAIRT_USER_CONTENTS_ROOT}/media/ -type f -exec chmod 644 {} \;
+
+# models
+find ${QAIRT_USER_CONTENTS_ROOT}/models/ -type d -exec chmod 755 {} \;
+find ${QAIRT_USER_CONTENTS_ROOT}/models/ -type f -exec chmod 644 {} \;
+
+# labels
+find ${QAIRT_USER_CONTENTS_ROOT}/labels/ -type d -exec chmod 755 {} \;
+find ${QAIRT_USER_CONTENTS_ROOT}/labels/ -type f -exec chmod 644 {} \;
+
+# configs
+find ${QAIRT_USER_CONTENTS_ROOT}/configs/ -type d -exec chmod 755 {} \;
+find ${QAIRT_USER_CONTENTS_ROOT}/configs/ -type f -exec chmod 644 {} \;
+```
+
+**Before running the qairt arm64 deploy container, please upload your models and model-specific data into these newly created platform model data folders.**
+
+<div id="Run_the_qairt_deploy_container">
+
+### Commands to run the qairt device deploy container:
+
+> **Note:** If your platform and OS combo do not support adb connectivity, please use the onboard Ethernet/WLAN network to access the device over ssh and adapt the execution of the commands listed below accordingly.
+
+Set the root path for the user content by exporting one of the following environment variables in a platform terminal, depending on your platform and preference:
+
+```bash
+# For QLI platforms — content stored under the root home directory
+export QAIRT_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export QAIRT_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export QAIRT_USER_CONTENTS_ROOT=/etc
+```
+
+Push the CDI and ENV files and run the container.
 
 ```bash
 adb push qairt-container/cdi/<hardware>-<platform>-qairt.json /etc/cdi/qairt.json
 adb push qairt-container/env/<hardware>-<platform>-qairt.env /etc/docker/env/qairt.env
-docker run -it -d --net host --env-file /etc/docker/env/qairt.env --device qualcomm.com/device=qairt -h qairt --name qairt <desired-image-name>
+```
+
+>**Note:** When the `QAIRT_USER_CONTENTS_ROOT` environment variable value is `/root` or `/home/ubuntu`** (the model content shall be mounted into the `/home/qairt/` folder inside the container):
+
+Push the deploy Docker image to the device and load it
+
+```bash
+export QAIRT_DEVICE_TEST_PATH="<target_device_path>"
+export QAIRT_DOCKER_IMAGE="<path_to_docker_image_file>"
+adb shell mkdir -p "${QAIRT_DEVICE_TEST_PATH}"
+adb push "${QAIRT_DOCKER_IMAGE}" "${QAIRT_DEVICE_TEST_PATH}/${QAIRT_DOCKER_IMAGE}"
+adb shell docker load -i "${QAIRT_DEVICE_TEST_PATH}/${QAIRT_DOCKER_IMAGE}"
+```
+
+Now run the deploy Docker container
+
+```bash
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qairt.env \
+  --device qualcomm.com/device=qairt \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/media:/home/qairt/media \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/models:/home/qairt/models \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/labels:/home/qairt/labels \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/configs:/home/qairt/configs \
+  -h qairt --name qairt <desired-image-name>
+```
+
+> **Note:** When the `QAIRT_USER_CONTENTS_ROOT` environment variable value is `/etc`** (the model content shall be mounted into the `/etc/` folder inside the container):
+
+```bash
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qairt.env \
+  --device qualcomm.com/device=qairt \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/media:/etc/media \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/models:/etc/models \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/labels:/etc/labels \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/configs:/etc/configs \
+  -h qairt --name qairt <desired-image-name>
 ```
 
 <div id="Using_the_container">

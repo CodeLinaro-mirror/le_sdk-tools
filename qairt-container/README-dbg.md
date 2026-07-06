@@ -20,7 +20,12 @@ The docker build generates device image on host files system. The device image c
 * [Development Workflow](#Development_Workflow)
   * [Continuous Development](#Continuous_Development)
 * [Examples For Development](#Examples_For_Development)
-  * [Developing Python Scripts](#Developing_Python_Scripts)
+  * [Docker Image Preparation](#CI_Docker_image_preparation)
+  * [Target Device Preparation](#CI_Target_device_preparation)
+  * [Platform Model Setup](#CI_platform_model_setup)
+  * [Docker Image Uploading](#CI_Docker_image_upload)
+  * [Run a Deploy Container](#CI_run_deploy_container)
+  * [Python Scripts Development](#Developing_Python_Scripts)
 
 <div id="Prerequisites">
 
@@ -299,7 +304,9 @@ qairt-docker-device-run-container <path-to-config-json>
 
 ## Examples For Development
 
-#### Continuous Development
+<div id="CI_Docker_image_preparation">
+
+### Continuous Development - Docker image preparation
 
 Build docker image and save the docker image to file on build machine
 
@@ -314,14 +321,162 @@ qairt-docker-device-save-image <path-to-config-json>
 
 Load docker image and run the container on remote machine with device connected to it
 
-***NOTE: Ensure proper CDI json, which contains all of the needed platform mountings for the specific platform, is copied to /etc/cdi in device storage, before running the QAIRT container. CDI json for the specific hardware and platform is located in qairt-container/cdi/\<hardware\>_\<platform\>_qiart.json***
+<div id="CI_Target_device_preparation">
 
+### Continuous Development - target device preparation
+
+In order to run the qairt container with GStreamer functionalities inside, please make use of the qairt arm64 deploy image built earlier and specify the 'host' network mode.
+
+Any required platform resources like GPU, DSP, video device nodes and any other system folders/volumes need to be propagated and explicitly exposed to the Docker container.
+
+This is achieved with the help of:
+
+* uploading a matching target-specfic CDI file;
+* uploading a matching target-specific ENV file;
+* creating all of the required target folders used for the local model data storage;
+* uploading the model-specific data accordingly;
+* setting the appropriate target model data file and folder access permissions;
+* listing the model-specific platform to container folder/volume mappings in the container run command.
+
+A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
+
+In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
+
+> **Note:** CDI files are located in and named: `qairt-container/cdi/\<hardware\>-\<platform\>-qairt.json`;
+
+The CDI file needed for a specific hardware platform needs to be copied to the /etc/cdi/ directory on the target device storage.
+
+Please create this directory first, if it does not exist as follows:
+
+```bash
+sudo mkdir -p /etc/cdi
+sudo chmod 755 /etc/cdi
+```
+
+> **Note:** the ENV files are located in and named: `qairt-container/env/\<hardware\>-\<platform\>-qairt.env`;
+
+The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
+
+Please create this directory first, if it does not exist as follows:
+
+```bash
+sudo mkdir -p /etc/docker/env
+sudo chmod 755 /etc/docker/env
+```
+<div id="CI_platform_model_setup">
+
+### Continuous Development - platform model file and folder setup
+
+The following directories must be created under the user’s home directory to store test files:
+
+> **Note:** The `HOME` directory depends on the target platform OS:
+> - `/root` on Qualcomm QLI platforms
+> - `/home/ubuntu` on Qualcomm Ubuntu platforms
+
+Set the root path for the user content by exporting one of the following environment variables in a platform terminal, depending on your platform and preference:
+
+```bash
+# For QLI platforms — content stored under the root home directory
+export QAIRT_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export QAIRT_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export QAIRT_USER_CONTENTS_ROOT=/etc
+```
+
+Then create the required directories:
+
+```bash
+mkdir -p ${QAIRT_USER_CONTENTS_ROOT}/media
+mkdir -p ${QAIRT_USER_CONTENTS_ROOT}/models
+mkdir -p ${QAIRT_USER_CONTENTS_ROOT}/labels
+mkdir -p ${QAIRT_USER_CONTENTS_ROOT}/configs
+```
+
+Apply the correct permissions to each directory and its contents.
+> **Note:** Use `sudo` when the `QAIRT_USER_CONTENTS_ROOT` value is set to `/etc` for any non-root platform user:
+
+```bash
+# media
+find ${QAIRT_USER_CONTENTS_ROOT}/media/ -type d -exec chmod 755 {} \;
+find ${QAIRT_USER_CONTENTS_ROOT}/media/ -type f -exec chmod 644 {} \;
+
+# models
+find ${QAIRT_USER_CONTENTS_ROOT}/models/ -type d -exec chmod 755 {} \;
+find ${QAIRT_USER_CONTENTS_ROOT}/models/ -type f -exec chmod 644 {} \;
+
+# labels
+find ${QAIRT_USER_CONTENTS_ROOT}/labels/ -type d -exec chmod 755 {} \;
+find ${QAIRT_USER_CONTENTS_ROOT}/labels/ -type f -exec chmod 644 {} \;
+
+# configs
+find ${QAIRT_USER_CONTENTS_ROOT}/configs/ -type d -exec chmod 755 {} \;
+find ${QAIRT_USER_CONTENTS_ROOT}/configs/ -type f -exec chmod 644 {} \;
+```
+
+**Before running the qairt arm64 deploy container, please upload your models and model-specific data into these newly created platform model data folders.**
+<div id="CI_Docker_image_upload">
+
+### Continuous Development - Docker image uploading
+
+Push the deploy Docker image to the device and load it.
 For example, if working on qcs6490 hardware target with QLI 2.X platform, the correct CDI json would be qairt-container/cdi/qcs6490_qli_1x_qairt.json
 
 ```bash
-### push corresponding CDI json to the device
+export QAIRT_DEVICE_TEST_PATH="<target_device_path>"
+export QAIRT_DOCKER_IMAGE="<path_to_docker_image_file>"
 adb push qairt-container/cdi/qcs6490_qli_2x_qairt.json /etc/cdi/
+adb shell mkdir -p "${QAIRT_DEVICE_TEST_PATH}"
+adb push "${QAIRT_DOCKER_IMAGE}" "${QAIRT_DEVICE_TEST_PATH}/${QAIRT_DOCKER_IMAGE}"
+adb shell docker load -i "${QAIRT_DEVICE_TEST_PATH}/${QAIRT_DOCKER_IMAGE}"
 ```
+
+<div id="CI_run_deploy_container">
+
+### Continuous Development - running a deploy container
+
+Set the root path for the user content by exporting one of the following environment variables in a platform terminal, depending on your platform and preference:
+
+```bash
+# For QLI platforms — content stored under the root home directory
+export QAIRT_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export QAIRT_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export QAIRT_USER_CONTENTS_ROOT=/etc
+```
+
+Commands to run the deploy container:
+
+```bash
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qairt.env \
+  --device qualcomm.com/device=qairt \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/media:/home/qairt/media \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/models:/home/qairt/models \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/labels:/home/qairt/labels \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/configs:/home/qairt/configs \
+  -h qairt --name qairt <desired-image-name>
+```
+
+> **Note:** When the `QAIRT_USER_CONTENTS_ROOT` environment variable value is `/etc`** (the model content shall be mounted into the `/etc/` folder inside the container):
+
+```bash
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qairt.env \
+  --device qualcomm.com/device=qairt \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/media:/etc/media \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/models:/etc/models \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/labels:/etc/labels \
+  -v ${QAIRT_USER_CONTENTS_ROOT}/configs:/etc/configs \
+  -h qairt --name qairt <desired-image-name>
+```
+
+### Continuous Development - scripted docker image loading and running a container
 
 ```bash
 # Remote machine with device connected to it
@@ -332,8 +487,7 @@ qairt-docker-device-load-image <path-to-config-json>
 qairt-docker-device-run-container <path-to-config-json>
 ```
 
-
-#### Continuous Development
+#### Continuous Development - scripted docker image rebuilding and running a container
 
 Build docker image, update image to the device, run device container
 
@@ -348,14 +502,15 @@ qairt-docker-device-run-container <path-to-config-json>
 
 <div id="Developing_Python_Scripts">
 
-### Developing Python Binding Scripts
+
+## Python Binding Scripts Development
 
 - Scenario is:
   - Locally connected device
   - Device with disabled verity
   - Need to do python scripts development
 
-#### Initial Setup
+### Initial Setup
 
 Prepare the environment, build image, update it to device and run the container
 
@@ -368,7 +523,7 @@ qairt-docker-device-update-image <path-to-config-json>
 qairt-docker-device-run-container <path-to-config-json>
 ```
 
-#### Continuous Development
+### Continuous Development
 
 Sync python wrapper script, load script to the container, run the test app
 
