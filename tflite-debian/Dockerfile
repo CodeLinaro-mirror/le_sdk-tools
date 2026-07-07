@@ -47,9 +47,16 @@ ENV TFLITE_HOST_TOOLS_DIR=${TFLITE_BASE_DIR}/host-tools
 # Add tflite install directory
 ENV TFLITE_INSTALL_DIR=${TFLITE_BASE_DIR}/deploy
 ENV TFLITE_INSTALL_LIB_DIR=${TFLITE_INSTALL_DIR}/usr/lib
-ENV TFLITE_ADSP_DIR=${TFLITE_INSTALL_LIB_DIR}/rfsa/adsp
 
 RUN mkdir -p ${TFLITE_INSTALL_LIB_DIR}
+
+# Set up dirs used by fastrpc, comprising of skel binaries for each dsp version
+ENV TFLITE_V66_CDSP_DIR=${TFLITE_INSTALL_DIR}/usr/share/qcom/v66
+ENV TFLITE_V68_CDSP_DIR=${TFLITE_INSTALL_DIR}/usr/share/qcom/v68
+ENV TFLITE_V73_CDSP_DIR=${TFLITE_INSTALL_DIR}/usr/share/qcom/v73
+ENV TFLITE_V75_CDSP_DIR=${TFLITE_INSTALL_DIR}/usr/share/qcom/v75
+RUN mkdir -p ${TFLITE_V66_CDSP_DIR} ${TFLITE_V68_CDSP_DIR} ${TFLITE_V73_CDSP_DIR}                  \
+        ${TFLITE_V75_CDSP_DIR}
 
 # Add tflite debug install directory
 ENV TFLITE_INSTALL_DEBUG_DIR=${TFLITE_BASE_DIR}/deploy_dbg
@@ -151,11 +158,10 @@ RUN if [ -z "$TFLITE_ARG_QNP_VERSION" ]; then                                   
         TFLITE_ARG_QNP_SDK_VERSION=$(ls qairt)                                                  && \
         cp -r ${TFLITE_DOWNLOAD_DIR}/qairt/${TFLITE_ARG_QNP_SDK_VERSION}/include/QNN/*             \
             /usr/include/.                                                                      && \
-        mkdir -p ${TFLITE_ADSP_DIR}                                                             && \
-        cp ${TFLITE_QNN_LIB_PATH}/hexagon-v66/unsigned/* ${TFLITE_ADSP_DIR}/                    && \
-        cp ${TFLITE_QNN_LIB_PATH}/hexagon-v68/unsigned/* ${TFLITE_ADSP_DIR}/                    && \
-        cp ${TFLITE_QNN_LIB_PATH}/hexagon-v73/unsigned/* ${TFLITE_ADSP_DIR}/                    && \
-        cp ${TFLITE_QNN_LIB_PATH}/hexagon-v75/unsigned/* ${TFLITE_ADSP_DIR}/                    && \
+        cp ${TFLITE_QNN_LIB_PATH}/hexagon-v66/unsigned/* ${TFLITE_V66_CDSP_DIR}/                && \
+        cp ${TFLITE_QNN_LIB_PATH}/hexagon-v68/unsigned/* ${TFLITE_V68_CDSP_DIR}/                && \
+        cp ${TFLITE_QNN_LIB_PATH}/hexagon-v73/unsigned/* ${TFLITE_V73_CDSP_DIR}/                && \
+        cp ${TFLITE_QNN_LIB_PATH}/hexagon-v75/unsigned/* ${TFLITE_V75_CDSP_DIR}/                && \
         find "${TFLITE_QNN_LIB_PATH}/aarch64-oe-linux-gcc11.2"                                     \
             -maxdepth 1 -type f                                                                    \
             \(                                                                                     \
@@ -251,6 +257,64 @@ RUN apt-get update                                                              
     apt-get clean                                                                               && \
     rm -rf /var/lib/apt/lists* /var/tmp/*                                                       && \
     rm -f /etc/profile.d/qcom-adreno-profile.sh /usr/lib/qcom-adreno-vars.sh
+
+# Create yaml file specifying directories of dsp skel binaries needed for fastrpc
+RUN mkdir -p /usr/share/qcom/conf.d                                                             && \
+    {                                                                                              \
+        echo '# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.';               \
+        echo '# SPDX-License-Identifier: MIT';                                                     \
+        echo 'machines:';                                                                          \
+        echo '  Qualcomm Technologies, Inc. SDM845 HDK:';                                          \
+        echo '    DSP_LIBRARY_PATH: v66';                                                          \
+        echo '  Qualcomm QCS615 IQ 615 EVK:';                                                      \
+        echo '    DSP_LIBRARY_PATH: v66';                                                          \
+        echo '  Qualcomm Technologies, Inc. QCS615 Ride (IQ-615 Beta EVK):';                       \
+        echo '    DSP_LIBRARY_PATH: v66';                                                          \
+        echo '  Qualcomm Technologies, Inc. Robotics RB3gen2:';                                    \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. Robotics RB3gen2 addons vision mezz platform:';        \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. Glymur CRD:';                                          \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. Kaanapali MTP:';                                       \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. Purwa IoT EVK:';                                       \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. QCM6490 IDP:';                                         \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Thundercomm RUBIK Pi 3:';                                                          \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Radxa Dragon Q6A:';                                                                \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. Robotics RB5:';                                        \
+        echo '    DSP_LIBRARY_PATH: v68';                                                          \
+        echo '  Qualcomm Technologies, Inc. Lemans EVK:';                                          \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. Addons IQ 9075 EVK:';                                  \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. Hamoa IoT EVK:';                                       \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. Shikra CQS EVK:';                                      \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. SM8750 MTP:';                                          \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm SA8775P Ride:';                                                           \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm SA8775P Ride Rev3:';                                                      \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. Lemans Ride:';                                         \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. Lemans Ride Rev3:';                                    \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Arduino VENTUNO Q:';                                                               \
+        echo '    DSP_LIBRARY_PATH: v75';                                                          \
+        echo '  Qualcomm Technologies, Inc. Monaco EVK:';                                          \
+        echo '    DSP_LIBRARY_PATH: v75';                                                          \
+        echo '  Qualcomm Technologies, Inc. Monaco Monza addons:';                                 \
+        echo '    DSP_LIBRARY_PATH: v75';                                                          \
+        echo '  Qualcomm Technologies, Inc. QCS8300 Ride:';                                        \
+        echo '    DSP_LIBRARY_PATH: v75';                                                          \
+    } > /usr/share/qcom/conf.d/hexagon-dsp-binaries.yaml
 
 # Create USER and add to video group for accessing v4ls devices
 RUN addgroup qcom                                                                               && \
