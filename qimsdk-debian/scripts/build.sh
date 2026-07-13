@@ -452,6 +452,39 @@ function qimsdk-cmake-clean-tflite() {
             print-green "${FUNCNAME} completed successfully!"
 }
 
+# CMake Build litert
+function qimsdk-cmake-build-litert() {
+    local LITERT_QUALCOMM_FLAGS="-DLITERT_ENABLE_QUALCOMM=OFF"
+    [ -n "${QIMSDK_QNP_VERSION:-}" ]                                                            && \
+          LITERT_QUALCOMM_FLAGS="-DLITERT_ENABLE_QUALCOMM=ON `
+            `-DQAIRT_HEADERS_DIR=${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_QNP_VERSION}/include/QNN"
+
+    qimsdk-cmake-build ${QIMSDK_DOWNLOAD_DIR}/litert/litert /usr `
+            `-DCMAKE_BUILD_TYPE=Release `
+            `-DCMAKE_SYSTEM_NAME=Linux `
+            `-DCMAKE_SYSTEM_PROCESSOR=arm64 `
+            `-DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON `
+            `-DCMAKE_POLICY_VERSION_MINIMUM=3.5 `
+            `-DLITERT_AUTO_BUILD_TFLITE=ON `
+            `-DLITERT_MAJOR_VERSION=${LITERT_MAJOR_VERSION} `
+            `-DLITERT_MINOR_VERSION=${LITERT_MINOR_VERSION} `
+            `-DLITERT_PATCH_VERSION=${LITERT_PATCH_VERSION} `
+            `-DLITERT_BUILD_TESTS=OFF `
+            `-DTFLITE_BUILD_BENCHMARK_TOOL=OFF `
+            `-DBUILD_TESTING=OFF `
+            `-DBENCHMARK_ENABLE_TESTING=OFF `
+            `-DBENCHMARK_ENABLE_INSTALL=OFF `
+            `-DINSTALL_GTEST=OFF                                                                   \
+            ${LITERT_QUALCOMM_FLAGS}                                                            && \
+        print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Clean litert
+function qimsdk-cmake-clean-litert() {
+    rm -rf ${QIMSDK_BUILD_DIR}/litert                                                           && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
 # Incremental build all gst-plugins-imsdk
 function qimsdk-cmake-build-gst-plugins-imsdk() {
     (
@@ -489,6 +522,7 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
                 `-DENABLE_GST_PLUGIN_MLVPOSE=ON `
                 `-DENABLE_GST_PLUGIN_MLVSEGMENTATION=ON `
                 `-DENABLE_GST_PLUGIN_MLTFLITE=ON `
+                `-DENABLE_GST_PLUGIN_MLLITERT=ON `
                 `-DENABLE_GST_PLUGIN_MLSNPE=${IS_QNP_ENABLED} `
                 `-DENABLE_GST_PLUGIN_MLQNN=${IS_QNP_ENABLED} `
                 `-DENABLE_GST_PLUGIN_MLQAIRT=${ENABLE_GST_PLUGIN_MLQAIRT} `
@@ -538,6 +572,7 @@ function qimsdk-incremental-build() {
             qimsdk-cmake-build-flatbuffers-v23-5-26                                             && \
             qimsdk-cmake-build-tflite                                                           && \
             qimsdk-cmake-build-gst-plugins-imsdk                                                && \
+            qimsdk-cmake-build-litert                                                           && \
             qimsdk-cmake-build-solutions-microservices                                          && \
         print-green "QIMSDK GStreamer targets built successfully !!!"
 }
