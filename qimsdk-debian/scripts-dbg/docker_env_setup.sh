@@ -422,24 +422,22 @@ function qimsdk-docker-device-update-image() {
     }
 
     (
-        export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
-
-        [ -z ${ANDROID_SERIAL} ]                                                                && {
-            print-red "Android serial is not set !!!"
+        [ -z "${QIMSDK_DEVICE_ID}" ]                                                            && {
+            print-red "Device ID is not set !!!"
             rm ${FILE_NAME}
 
             return -1
         }
 
-        qimsdk-device-command "mkdir -p /tmp/data/docker_images" ${QIMSDK_DEVICE_ID}            || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "mkdir -p /tmp/data/docker_images"          || {
             print-red "FAILED: qimsdk-device-command !!!"
             rm ${FILE_NAME}
 
             return -1
         }
 
-        adb push ${FILE_NAME} /tmp/data/docker_images                                           || {
-            print-red "FAILED: adb push ${FILE_NAME} /tmp/data/docker_images !!!"
+        qimsdk-cmd "${QIMSDK_DEVICE_ID}" push ${FILE_NAME} /tmp/data/docker_images              || {
+            print-red "FAILED: push ${FILE_NAME} /tmp/data/docker_images !!!"
             rm ${FILE_NAME}
 
             return -1
@@ -447,13 +445,13 @@ function qimsdk-docker-device-update-image() {
 
         rm ${FILE_NAME}
 
-        qimsdk-device-command "docker load -i /tmp/data/docker_images/${FILE_NAME}"                \
-                ${QIMSDK_DEVICE_ID}                                                             || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                \
+                "docker load -i /tmp/data/docker_images/${FILE_NAME}"                           || {
             print-red "Device load image failed: docker load failed !!!"
             return -1
         }
 
-        qimsdk-device-command "rm /tmp/data/docker_images/${FILE_NAME}" ${QIMSDK_DEVICE_ID}     || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm /tmp/data/docker_images/${FILE_NAME}"   || {
             print-red "Device failed to remove ${FILE_NAME} !!!"
             return -1
         }
@@ -614,24 +612,22 @@ function qimsdk-docker-device-load-image() {
     }
 
     (
-        export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
-
-        [ -z ${ANDROID_SERIAL} ]                                                                && {
-            print-red "Android serial is not set !!!"
+        [ -z "${QIMSDK_DEVICE_ID}" ]                                                            && {
+            print-red "Device ID is not set !!!"
             qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
             return -1
         }
 
-        qimsdk-device-command "mkdir -p /tmp/data/docker_images" ${QIMSDK_DEVICE_ID}            || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "mkdir -p /tmp/data/docker_images"          || {
             print-red "FAILED: qimsdk-device-command !!!"
             qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
             return -1
         }
 
-        adb push ${LOCAL_DOCKER_IMAGE} /tmp/data/docker_images                                  || {
-            print-red "FAILED: adb push ${LOCAL_DOCKER_IMAGE}                                      \
+        qimsdk-cmd "${QIMSDK_DEVICE_ID}" push ${LOCAL_DOCKER_IMAGE} /tmp/data/docker_images     || {
+            print-red "FAILED: push ${LOCAL_DOCKER_IMAGE}                                          \
                     /tmp/data/docker_images !!!"
 
             qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
@@ -640,13 +636,13 @@ function qimsdk-docker-device-load-image() {
 
         qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
-        qimsdk-device-command "docker load -i /tmp/data/docker_images/${FILE_NAME}"                \
-                ${QIMSDK_DEVICE_ID}                                                             || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                \
+                "docker load -i /tmp/data/docker_images/${FILE_NAME}"                           || {
             print-red "Device load image failed: docker load failed !!!"
             return -1
         }
 
-        qimsdk-device-command "rm /tmp/data/docker_images/${FILE_NAME}" ${QIMSDK_DEVICE_ID}     || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm /tmp/data/docker_images/${FILE_NAME}"   || {
             print-red "Device failed to remove ${FILE_NAME} !!!"
             return -1
         }
@@ -833,17 +829,17 @@ function qimsdk-docker-device-run-container() {
     }
 
     (
-        export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
-
-        local MACHINE=$(adb shell "cat /sys/devices/soc0/machine" | tr -d '\r')                 || {
-            print-red "FAILED: adb shell "cat /sys/devices/soc0/machine"  !!!"
+        local MACHINE=$(qimsdk-cmd "${QIMSDK_DEVICE_ID}"                                           \
+                shell "cat /sys/devices/soc0/machine" | tr -d '\r')                             || {
+            print-red "FAILED: reading /sys/devices/soc0/machine !!!"
             return -1
         }
 
         local MEDIA_DIRS=("labels" "media" "models" "configs")
 
         for idx in ${!MEDIA_DIRS[@]}; do
-            qimsdk-device-command "mkdir -m 777 -p /etc/${MEDIA_DIRS[$idx]}"                    || {
+            qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                            \
+                        "mkdir -m 777 -p /etc/${MEDIA_DIRS[$idx]}"                              || {
                 print-red "FAILED: /etc/${MEDIA_DIRS[$idx]} can not be created in device !!!"
                 return -1
             }
@@ -859,16 +855,16 @@ function qimsdk-docker-device-run-container() {
             return -1
         }
 
-        adb push ${TMP_RUN_CMD_DIR}/docker_run.sh /tmp/                                         && \
-        qimsdk-device-command "source /tmp/docker_run.sh"                                       || {
+        qimsdk-cmd "${QIMSDK_DEVICE_ID}" push ${TMP_RUN_CMD_DIR}/docker_run.sh /tmp/            && \
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "source /tmp/docker_run.sh"                 || {
             rm -rf ${TMP_RUN_CMD_DIR}
-            qimsdk-device-command "rm -rf /tmp/docker_run.sh"
+            qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm -rf /tmp/docker_run.sh"
             echo "qimsdk-docker-device-run-container failed !!!"
             return -1
         }
 
         rm -rf ${TMP_RUN_CMD_DIR}
-        qimsdk-device-command "rm -rf /tmp/docker_run.sh"
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm -rf /tmp/docker_run.sh"
     )                                                                                           || {
         print-red "Device run container failed !!!"
         return -1
@@ -904,7 +900,7 @@ function qimsdk-docker-device-rm-container() {
         return -1
     }
 
-    qimsdk-device-command "docker rm ${QIMSDK_CONTAINER_NAME}" ${QIMSDK_DEVICE_ID}              || {
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker rm ${QIMSDK_CONTAINER_NAME}"            || {
         print-red "Device rm container failed !!!"
         return -1
     }
@@ -939,7 +935,7 @@ function qimsdk-docker-device-start-container() {
         return -1
     }
 
-    qimsdk-device-command "docker start ${QIMSDK_CONTAINER_NAME}" ${QIMSDK_DEVICE_ID}           || {
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker start ${QIMSDK_CONTAINER_NAME}"         || {
         print-red "Device start container failed !!!"
         return -1
     }
@@ -974,7 +970,7 @@ function qimsdk-docker-device-stop-container() {
         return -1
     }
 
-    qimsdk-device-command "docker stop ${QIMSDK_CONTAINER_NAME}" ${QIMSDK_DEVICE_ID}            || {
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker stop ${QIMSDK_CONTAINER_NAME}"          || {
         print-red "Device stop container failed !!!"
         return -1
     }
@@ -1011,8 +1007,8 @@ function qimsdk-docker-device-command() {
         return -1
     }
 
-    qimsdk-device-command "docker exec ${QIMSDK_CONTAINER_NAME} bash -c ${CMD}"                    \
-            ${QIMSDK_DEVICE_ID}                                                                 || {
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                    \
+            "docker exec ${QIMSDK_CONTAINER_NAME} bash -c ${CMD}"                               || {
         print-red "FAILED: qimsdk-device-command !!!"
         return -1
     }
@@ -1045,7 +1041,23 @@ function qimsdk-docker-device-shell() {
         return -1
     }
 
-    adb -s ${QIMSDK_DEVICE_ID} shell -t "docker exec -it ${QIMSDK_CONTAINER_NAME} bash"
+    local TRANSPORT
+    qimsdk-device-transport "${QIMSDK_DEVICE_ID}" TRANSPORT                                     || {
+        print-red "FAILED: qimsdk-device-transport !!!"
+        return -1
+    }
+
+    if [ "${TRANSPORT}" = "adb" ]; then
+        adb -s ${QIMSDK_DEVICE_ID} shell -t "docker exec -it ${QIMSDK_CONTAINER_NAME} bash"
+    else
+        # Connect using the bare device ID as the ssh target and let the host's
+        # ~/.ssh/config govern the user, hostname and identity (passwordless,
+        # key-based access).
+        local -a SSH_OPTS
+        qimsdk-ssh-opts SSH_OPTS
+        ssh -t "${SSH_OPTS[@]}" "${QIMSDK_DEVICE_ID}"                                              \
+                "docker exec -it ${QIMSDK_CONTAINER_NAME} bash"
+    fi
 }
 
 # Docker device images clean up
@@ -1065,10 +1077,10 @@ function qimsdk-docker-device-images-cleanup() {
     }
 
     local DEVICE_DOCKER_IMAGES=$(
-        qimsdk-device-command "docker images -f 'dangling=true' -q" ${QIMSDK_DEVICE_ID}
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker images -f 'dangling=true' -q"
     )
 
-    qimsdk-device-command "docker rmi ${DEVICE_DOCKER_IMAGES}" ${QIMSDK_DEVICE_ID}              || {
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker rmi ${DEVICE_DOCKER_IMAGES}"            || {
         print-red "FAILED: qimsdk-device-command !!!"
         return -1
     }
@@ -1138,34 +1150,35 @@ function qimsdk-dbg-load-artifacts-variant() {
     qimsdk-get-device-id ${PATH_TO_CONFIG_JSON} QIMSDK_DEVICE_ID
 
     (
-        export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
-
-        [ -z ${ANDROID_SERIAL} ]                                                                && {
-            print-red "Android serial is not set !!!"
-            rm ${FILE_NAME}
+        [ -z "${QIMSDK_DEVICE_ID}" ]                                                            && {
+            print-red "Device ID is not set !!!"
+            rm -f qimsdk_dev_artifacts_${VARIANT}.tar
 
             return -1
         }
 
         rsync -aP ${DOCKER_IMAGE_PATH}/qimsdk_dev_artifacts_${VARIANT}.tar .                    && \
-                qimsdk-device-command "mkdir -p /tmp/qti/development" ${QIMSDK_DEVICE_ID}       && \
-                adb push qimsdk_dev_artifacts_${VARIANT}.tar /tmp/qti/development/              && \
-                qimsdk-device-command "cd /tmp/qti/development && `
+                qimsdk-device-command "${QIMSDK_DEVICE_ID}" "mkdir -p /tmp/qti/development"     && \
+                qimsdk-cmd "${QIMSDK_DEVICE_ID}" push qimsdk_dev_artifacts_${VARIANT}.tar          \
+                        /tmp/qti/development/                                                   && \
+                qimsdk-device-command "${QIMSDK_DEVICE_ID}" "cd /tmp/qti/development && `
                         `tar -xf /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar && `
-                        `docker cp usr ${QIMSDK_CONTAINER_NAME}:/" ${QIMSDK_DEVICE_ID}          && \
-                qimsdk-device-command "rm -rf /tmp/qti/development/usr"                            \
-                        ${QIMSDK_DEVICE_ID}                                                     || {
+                        `docker cp usr ${QIMSDK_CONTAINER_NAME}:/"                              && \
+                qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                        \
+                        "rm -rf /tmp/qti/development/usr"                                       || {
             print-red "Artifacts load failed !!!"
 
-            qimsdk-device-command "rm -rf /tmp/qti/development/usr"
-            qimsdk-device-command "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
+            qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm -rf /tmp/qti/development/usr"
+            qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                            \
+                    "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
 
             rm -f qimsdk_dev_artifacts_${VARIANT}.tar
 
             return -1
         }
 
-        qimsdk-device-command "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                \
+                "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
         rm -f qimsdk_dev_artifacts_${VARIANT}.tar
     )
 
