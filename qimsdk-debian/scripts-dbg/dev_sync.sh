@@ -22,6 +22,11 @@ function qimsdk-dbg-save-artifacts-variant() {
     [ "${VARIANT}" == "release" ] && PACKAGES_DIRECTORY="${QIMSDK_INSTALL_DIR}"
     [ "${VARIANT}" == "debug" ]   && PACKAGES_DIRECTORY="${QIMSDK_INSTALL_DEBUG_DIR}"
 
+    [[ -z "${QIMSDK_DOCKER_IMAGE_PATH}" ]]  || [ ! -d ${QIMSDK_DOCKER_IMAGE_PATH} ]             && {
+        print-red "Docker image path unset or not a valid directory!"
+        return -1
+    }
+
     pushd ${PACKAGES_DIRECTORY} > /dev/null
         tar cf qimsdk_dev_artifacts_${VARIANT}.tar ./*                                          && \
                 rsync -aP qimsdk_dev_artifacts_${VARIANT}.tar ${QIMSDK_DOCKER_IMAGE_PATH}       || {
@@ -70,6 +75,11 @@ function qimsdk-dbg-push-artifacts-variant() {
             print-red "Device ID is not set !!!"
             rm -f qimsdk_dev_artifacts_${VARIANT}.tar
 
+            return -1
+        }
+
+        [[ -z "${QIMSDK_DOCKER_IMAGE_PATH}" ]]  || [ ! -d ${QIMSDK_DOCKER_IMAGE_PATH} ]         && {
+            print-red "Docker image path unset or not a valid directory!"
             return -1
         }
 

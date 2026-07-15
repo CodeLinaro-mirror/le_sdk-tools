@@ -8,6 +8,8 @@ RUN usermod -aG plugdev root
 ENV QIMSDK_BASE_DIR=/mnt/work
 ENV QIMSDK_REPO_DOWNLOAD_DIR=${QIMSDK_BASE_DIR}/download/repo
 ENV QIMSDK_TMP_DIR=${QIMSDK_BASE_DIR}/tmp
+ENV QIMSDK_DOCKER_IMAGE_PATH=${QIMSDK_BASE_DIR}/dev_artifacts
+RUN mkdir -p ${QIMSDK_DOCKER_IMAGE_PATH}
 RUN mkdir -p ${QIMSDK_TMP_DIR}
 
 # Add supported targets files

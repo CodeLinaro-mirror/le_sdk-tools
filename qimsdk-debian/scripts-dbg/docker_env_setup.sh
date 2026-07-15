@@ -698,7 +698,6 @@ function qimsdk-dbg-docker-run-container() {
     [ -d /dev/bus/usbd ] && USB_DEVICE="--device /dev/bus/usb"
 
     docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME}_dbg                                   \
-            --env QIMSDK_DOCKER_IMAGE_PATH=${DOCKER_IMAGE_PATH}                                    \
             --env QIMSDK_DEVICE_ID=${QIMSDK_DEVICE_ID}                                             \
             --env QIMSDK_CONTAINER_NAME=${QIMSDK_CONTAINER_NAME}                                   \
             --name ${QIMSDK_CONTAINER_NAME}_dbg                                                    \
