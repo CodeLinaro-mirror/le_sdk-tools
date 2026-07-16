@@ -536,10 +536,11 @@ EOF
 #    rtspsrc usecases:            gstreamer1.0-plugins-ugly
 #  pulseaudio runtime dependency: pulseaudio
 #  fast rpc runtime dependency:   libyaml-0-2:arm64
+#  WebRTC runtime dependency:     gstreamer1.0-nice
 RUN apt-get update                                                                              && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
             adduser gosu bash-completion nano libhiredis1.1.0 gstreamer1.0-tools                   \
-            libgstrtspserver-1.0-0 libopencv-imgproc410 libxv1                                     \
+            libgstrtspserver-1.0-0 libopencv-imgproc410 libxv1 gstreamer1.0-nice                   \
             gstreamer1.0-plugins-good pulseaudio gstreamer1.0-plugins-base librdkafka1             \
             gstreamer1.0-plugins-ugly gir1.2-gst-1.0 libyaml-0-2                                && \
     apt -y upgrade                                                                              && \
