@@ -50,8 +50,32 @@
         ],
         "mounts": [
           {
-            "hostPath": "/usr/share/qcom/sa8775p/Qualcomm/SA8775P-RIDE/dsp",
-            "containerPath": "/usr/lib/dsp",
+            "hostPath": "/usr/share/qcom/sa8775p/Qualcomm/SA8775P-RIDE/dsp/cdsp/fastrpc_shell_3",
+            "containerPath": "/usr/lib/dsp/cdsp/fastrpc_shell_3",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/share/qcom/sa8775p/Qualcomm/SA8775P-RIDE/dsp/cdsp/fastrpc_shell_unsigned_3",
+            "containerPath": "/usr/lib/dsp/cdsp/fastrpc_shell_unsigned_3",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/share/qcom/sa8775p/Qualcomm/SA8775P-RIDE/dsp/cdsp1/fastrpc_shell_4",
+            "containerPath": "/usr/lib/dsp/cdsp1/fastrpc_shell_4",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/share/qcom/sa8775p/Qualcomm/SA8775P-RIDE/dsp/cdsp1/fastrpc_shell_unsigned_4",
+            "containerPath": "/usr/lib/dsp/cdsp1/fastrpc_shell_unsigned_4",
             "options": [
               "rbind",
               "rw"
@@ -62,7 +86,7 @@
             "containerPath": "/run/device-model",
             "options": [
               "rbind",
-              "rw"
+              "ro"
             ]
           }
         ]
