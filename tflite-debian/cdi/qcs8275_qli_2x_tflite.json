@@ -13,11 +13,13 @@
         "deviceNodes": [
           {
             "path": "/dev/kgsl-3d0",
+            "fileMode": 0660,
             "uid": 0,
             "gid": 1000
           },
           {
             "path": "/dev/dma_heap/system",
+            "fileMode": 0660,
             "uid": 0,
             "gid": 1000
           },
@@ -26,48 +28,78 @@
             "fileMode": 0660,
             "uid": 0,
             "gid": 1000
+          },
+          {
+            "path": "/dev/fastrpc-cdsp-secure",
+            "fileMode": 0660,
+            "uid": 0,
+            "gid": 1000
           }
         ],
         "mounts": [
           {
-            "hostPath": "/etc/media",
-            "containerPath": "/etc/media",
-            "options": ["rbind", "rw"]
-          },
-          {
-            "hostPath": "/etc/models",
-            "containerPath": "/etc/models",
-            "options": ["rbind", "rw"]
-          },
-          {
-            "hostPath": "/etc/labels",
-            "containerPath": "/etc/labels",
-            "options": ["rbind", "rw"]
-          },
-          {
             "hostPath": "/root/media",
             "containerPath": "/home/tflite/media",
-            "options": ["rbind", "rw"]
+            "options": [
+              "rbind",
+              "rw"
+            ]
           },
           {
             "hostPath": "/root/models",
             "containerPath": "/home/tflite/models",
-            "options": ["rbind", "rw"]
+            "options": [
+              "rbind",
+              "rw"
+            ]
           },
           {
             "hostPath": "/root/labels",
             "containerPath": "/home/tflite/labels",
-            "options": ["rbind", "rw"]
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/etc/media",
+            "containerPath": "/etc/media",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/etc/models",
+            "containerPath": "/etc/models",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/etc/labels",
+            "containerPath": "/etc/labels",
+            "options": [
+              "rbind",
+              "rw"
+            ]
           },
           {
             "hostPath": "/usr/share/qcom/qcs8300/Qualcomm/QCS8300-RIDE/dsp",
             "containerPath": "/usr/lib/dsp",
-            "options": ["rbind"]
+            "options": [
+              "rbind",
+              "rw"
+            ]
           },
           {
             "hostPath": "/sys/firmware/devicetree/base/model",
             "containerPath": "/run/device-model",
-            "options": ["rbind"]
+            "options": [
+              "rbind",
+              "rw"
+            ]
           }
         ]
       }
