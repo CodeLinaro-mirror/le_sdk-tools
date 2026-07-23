@@ -27,6 +27,12 @@ RUN echo "[url \"file://${QIMSDK_REPO_DOWNLOAD_DIR}/gst-plugins-imsdk\"] instead
         https://github.com/qualcomm/gst-plugins-imsdk.git"                                         \
         >> /etc/gitconfig
 
+COPY tmp/solutions-microservices ${QIMSDK_REPO_DOWNLOAD_DIR}/solutions-microservices
+
+RUN echo "[url \"file://${QIMSDK_REPO_DOWNLOAD_DIR}/solutions-microservices\"] insteadOf =         \
+        https://git.codelinaro.org/clo/le/solutions-microservices"                                 \
+        >> /etc/gitconfig
+
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts/
 COPY scripts-dbg/dev_sync.sh ${QIMSDK_SCRIPTS}/dev_sync.sh
