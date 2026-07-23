@@ -38,54 +38,6 @@
         ],
         "mounts": [
           {
-            "hostPath": "/root/media",
-            "containerPath": "/home/qairt/media",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
-          {
-            "hostPath": "/root/models",
-            "containerPath": "/home/qairt/models",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
-          {
-            "hostPath": "/root/labels",
-            "containerPath": "/home/qairt/labels",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
-          {
-            "hostPath": "/etc/media",
-            "containerPath": "/etc/media",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
-          {
-            "hostPath": "/etc/models",
-            "containerPath": "/etc/models",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
-          {
-            "hostPath": "/etc/labels",
-            "containerPath": "/etc/labels",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
-          {
             "hostPath": "/usr/share/qcom/qcs8300/Qualcomm/QCS8300-RIDE/dsp",
             "containerPath": "/usr/lib/dsp",
             "options": [

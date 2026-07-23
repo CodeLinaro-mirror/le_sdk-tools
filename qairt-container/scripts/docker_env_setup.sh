@@ -363,7 +363,12 @@ function qairt-docker-device-run-container() {
         return $rc
     }
 
-    qairt-device-command "docker run -it --device qualcomm.com/device=snpe_python \
+    local MODEL_ROOT="/etc"
+    qairt-device-command "docker run -it --device qualcomm.com/device=qairt                        \
+            -v ${MODEL_ROOT}/media:${MODEL_ROOT}/media                                             \
+            -v ${MODEL_ROOT}/models:${MODEL_ROOT}/models                                           \
+            -v ${MODEL_ROOT}/labels:${MODEL_ROOT}/labels                                           \
+            -v ${MODEL_ROOT}/configs:${MODEL_ROOT}/configs                                         \
             -h ${QAIRT_CONTAINER_NAME} --name ${QAIRT_CONTAINER_NAME} ${QAIRT_IMAGE_NAME}" ${QAIRT_DEVICE_ID}
 
     rc=$?
