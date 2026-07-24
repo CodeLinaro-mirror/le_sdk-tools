@@ -61,7 +61,7 @@ EOF
 #   libgdbm-dev, systemtap-sdt-dev, libdb-dev:arm64
 
 # Installing required apt packages
-RUN apt-get update                                                                              && \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update                                               && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
             fakeroot git tar unzip ssh rsync bash-completion jq cmake wget pipx xz-utils           \
             gobject-introspection flex bison locales-all ninja-build gpg curl devscripts           \
@@ -183,12 +183,17 @@ RUN GST_PLUGINS_BAD_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad*      
             commit -m "Initial Plugins Bad Commit"                                              && \
     echo "export GST_PLUGINS_BAD_VERSION=${GST_PLUGINS_BAD_VERSION}" >> /root/.bashrc
 
+# Optional build argument for helping set max CPU thread utilization
+ARG QIMSDK_ARG_MAX_JOBS
+ENV QIMSDK_MAX_JOBS="${QIMSDK_ARG_MAX_JOBS}"
+
 # Clone Tensorflow Lite
 ENV QIMSDK_TF_LITE_MAJOR="2"
 ENV QIMSDK_TF_LITE_MINOR="16"
 ENV QIMSDK_TF_LITE_PATCH="2"
 ENV QIMSDK_TF_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/tensorflow
-RUN git config --global http.postBuffer 157286400                                               && \
+RUN git config --global pack.threads "${QIMSDK_ARG_MAX_JOBS:-$(nproc)}"                         && \
+    git config --global http.postBuffer 157286400                                               && \
     git clone --progress https://github.com/tensorflow/tensorflow.git --single-branch              \
             --branch r${QIMSDK_TF_LITE_MAJOR}.${QIMSDK_TF_LITE_MINOR} ${QIMSDK_TF_SRC_DIR}
 
@@ -285,7 +290,8 @@ EOF
 # Build qcom-libdmabufheap
 RUN cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
     cd $(ls -d qcom-libdmabufheap-* | head -n1)                                                 && \
-    DEB_BUILD_OPTIONS="nocheck parallel=$(nproc)" dpkg-buildpackage -b -us -uc -aarm64
+    MAKEFLAGS="-j${QIMSDK_ARG_MAX_JOBS:-$(nproc)}"                                                 \
+    DEB_BUILD_OPTIONS="nocheck parallel=${QIMSDK_ARG_MAX_JOBS:-$(nproc)}" dpkg-buildpackage -b -us -uc -aarm64
 
 # Build fastrpc
 RUN cd "${QIMSDK_DOWNLOAD_DIR}"                                                                 && \
@@ -314,7 +320,7 @@ RUN cd "${QIMSDK_DOWNLOAD_DIR}"                                                 
             ${CONFIGURE_ARGS}                                                                      \
             --prefix="${PREFIX}"                                                                   \
             --libdir="${LIBDIR}"                                                                && \
-    make -j"$(nproc)"                                                                           && \
+    make -j"${QIMSDK_ARG_MAX_JOBS:-$(nproc)}"                                                   && \
     cp ./src/.libs/libcdsprpc.so* ${QIMSDK_INSTALL_DIR}/usr/lib/                                && \
     aarch64-linux-gnu-strip ${QIMSDK_INSTALL_DIR}/usr/lib/libcdsprpc.so*
 
@@ -558,7 +564,7 @@ RUN apt-get update                                                              
 #  gpg curl:                        install PPA
 #  qcom-adreno1:                    adreno
 
-RUN apt-get update                                                                              && \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update                                               && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gpg curl             \
             ca-certificates                                                                     && \
     update-ca-certificates                                                                      && \
