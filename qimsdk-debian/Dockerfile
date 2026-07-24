@@ -295,7 +295,7 @@ RUN cd ${QIMSDK_DOWNLOAD_DIR}                                                   
 
 # Build fastrpc
 RUN cd "${QIMSDK_DOWNLOAD_DIR}"                                                                 && \
-    git clone --depth 1 https://github.com/quic/fastrpc.git --branch v1.0.5                     && \
+    git clone --depth 1 https://github.com/quic/fastrpc.git --branch v1.0.6                     && \
     cd fastrpc                                                                                  && \
     autoreconf -is                                                                              && \
     BUILD_ARCH="$(dpkg --print-architecture)"                                                   && \
