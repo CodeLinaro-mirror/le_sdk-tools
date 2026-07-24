@@ -94,7 +94,7 @@ function qimsdk-dbg-push-artifacts-variant() {
         rm -f qimsdk_dev_artifacts_${VARIANT}.tar
     )
 
-    echo "dbg ${VARIANT} artifacts pished to ${QIMSDK_ARG_DEVICE_ID} !!!"
+    echo "dbg ${VARIANT} artifacts pushed to ${QIMSDK_DEVICE_ID} !!!"
 }
 
 # Push release variant to device with id provided provided in config json file.

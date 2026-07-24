@@ -39,15 +39,3 @@ COPY scripts-dbg/dev_sync.sh ${QIMSDK_SCRIPTS}/dev_sync.sh
 
 # Change workdir back to base dir from downloads dir
 WORKDIR ${QIMSDK_BASE_DIR}
-
-# Set artifacts save Docker_image_path
-ARG QIMSDK_ARG_DOCKER_IMAGE_PATH
-ENV QIMSDK_DOCKER_IMAGE_PATH=${QIMSDK_ARG_DOCKER_IMAGE_PATH}
-
-# Set artifacts push device id
-ARG QIMSDK_ARG_DEVICE_ID
-ENV QIMSDK_DEVICE_ID=${QIMSDK_ARG_DEVICE_ID}
-
-# Set device container name
-ARG QIMSDK_ARG_CONTAINER_NAME
-ENV QIMSDK_CONTAINER_NAME=${QIMSDK_ARG_CONTAINER_NAME}
