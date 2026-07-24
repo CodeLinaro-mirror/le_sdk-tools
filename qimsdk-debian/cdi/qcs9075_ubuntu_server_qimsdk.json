@@ -159,8 +159,32 @@
             ]
           },
           {
-            "hostPath": "/usr/lib/dsp/cdsp",
-            "containerPath": "/usr/lib/dsp/cdsp",
+            "hostPath": "/usr/lib/dsp/cdsp/fastrpc_shell_3",
+            "containerPath": "/usr/lib/dsp/cdsp/fastrpc_shell_3",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/lib/dsp/cdsp/fastrpc_shell_unsigned_3",
+            "containerPath": "/usr/lib/dsp/cdsp/fastrpc_shell_unsigned_3",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/lib/dsp/cdsp1/fastrpc_shell_4",
+            "containerPath": "/usr/lib/dsp/cdsp1/fastrpc_shell_4",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/lib/dsp/cdsp1/fastrpc_shell_unsigned_4",
+            "containerPath": "/usr/lib/dsp/cdsp1/fastrpc_shell_unsigned_4",
             "options": [
               "rbind",
               "rw"
@@ -171,7 +195,7 @@
             "containerPath": "/run/device-model",
             "options": [
               "rbind",
-              "rw"
+              "ro"
             ]
           }
         ]

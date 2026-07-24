@@ -158,8 +158,16 @@
             ]
           },
           {
-            "hostPath": "/usr/share/qcom/qcs615/Qualcomm/QCS615-RIDE/dsp",
-            "containerPath": "/usr/lib/dsp",
+            "hostPath": "/usr/share/qcom/qcs615/Qualcomm/QCS615-RIDE/dsp/cdsp/fastrpc_shell_3",
+            "containerPath": "/usr/lib/dsp/cdsp/fastrpc_shell_3",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/share/qcom/qcs615/Qualcomm/QCS615-RIDE/dsp/cdsp/fastrpc_shell_unsigned_3",
+            "containerPath": "/usr/lib/dsp/cdsp/fastrpc_shell_unsigned_3",
             "options": [
               "rbind",
               "rw"
@@ -170,7 +178,7 @@
             "containerPath": "/run/device-model",
             "options": [
               "rbind",
-              "rw"
+              "ro"
             ]
           }
         ]
