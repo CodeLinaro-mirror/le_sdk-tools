@@ -261,6 +261,12 @@ function qimsdk-docker-build-qimsdk-debian-image() {
         return -1
     }
 
+    qimsdk-get-components-tag ${PATH_TO_CONFIG_JSON} QIMSDK_CAMERA_SERVICE_TAG                     \
+        QIMSDK_GST_PLUGINS_TAG QIMSDK_SOLUTIONS_MICROSERVICES_TAG                               || {
+        print-red "FAILED: qimsdk-get-components-tag !!!"
+        return -1
+    }
+
     (
         cd ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} || return -1
 
@@ -270,12 +276,6 @@ function qimsdk-docker-build-qimsdk-debian-image() {
         sed -E                                                                                     \
             "s|^(FROM[[:space:]]+)debian:trixie-slim([[:space:]]+AS[[:space:]]+qimsdk_build)|\1${IMAGE_NAME}\2|"  \
             ${DOCKERFILE} > ${DOCKERFILE}.work
-
-        qimsdk-get-components-tag ${PATH_TO_CONFIG_JSON} QIMSDK_CAMERA_SERVICE_TAG                 \
-                QIMSDK_GST_PLUGINS_TAG QIMSDK_SOLUTIONS_MICROSERVICES_TAG                       || {
-        print-red "FAILED: qimsdk-get-components-tag !!!"
-        return -1
-    }
 
         DOCKER_BUILDKIT=1 docker build                                                             \
                 --build-arg QIMSDK_ARG_QNP_VERSION=${QIMSDK_QAIRT_SDK_VERSION}                     \
@@ -367,7 +367,7 @@ function qimsdk-dbg-docker-build-image() {
 
     DOCKER_BUILDKIT=1 docker build                                                                 \
             --build-arg QIMSDK_ARG_MAX_JOBS=${QIMSDK_MAX_BUILD_JOBS}                               \
-            --progress=plain --target qimsdk_dbg_image -f Dockerfile.dbg                           \
+            --progress=plain --target qimsdk_dbg_image -f ${QIMSDK_DOCKER_DIR}/Dockerfile.dbg      \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}                                        || {
         print-red "Build image failed !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
@@ -1234,8 +1234,8 @@ function qimsdk-dbg-load-artifacts-dbg() {
     qimsdk-dbg-load-artifacts-variant ${PATH_TO_CONFIG_JSON} debug
 }
 
-QIMSDK_DOCKER_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/.. && pwd )"
-
+# Abosulute path to the Docker source directory
+QIMSDK_DOCKER_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )"/.. && pwd )"
 source ${QIMSDK_DOCKER_DIR}/scripts-dbg/common.sh
 
 print-green "Docker build environment setup"
