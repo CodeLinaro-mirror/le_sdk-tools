@@ -821,7 +821,7 @@ function qimsdk-docker-device-run-container() {
             return -1
         }
 
-        local MEDIA_DIRS=("labels" "media" "models")
+        local MEDIA_DIRS=("labels" "media" "models" "configs")
 
         for idx in ${!MEDIA_DIRS[@]}; do
             qimsdk-device-command "mkdir -m 777 -p /etc/${MEDIA_DIRS[$idx]}"                    || {
