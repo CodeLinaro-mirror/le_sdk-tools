@@ -13,5 +13,6 @@
     "IM_SDK_Source_git_tag" : "<optional-git-tag-for-gst-plugins-imsdk>",
     "solutions_microservices_Source_git_tag" : "<optional-git-tag-for-solutions-microservices>",
 
-    "MAP_sources_to_dev_container" : "FALSE"
+    "MAP_sources_to_dev_container" : "FALSE",
+    "MAX_build_cpu_threads": "<optional-number-of-jobs>"
 }

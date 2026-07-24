@@ -172,15 +172,17 @@ function qimsdk-docker-build-initialize() {
 
 # Qimsdk build qimsdk-debian deploy docker image
 #   $1 - (mandatory) image name
+#   $2 - (mandatory) path to target config json
 function qimsdk-docker-build-qimsdk-debian-deploy-image() {
-    local QIMSDK_ARG_COUNT_EXPECTED=1
+    local QIMSDK_ARG_COUNT_EXPECTED=2
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
 
     local IMAGE_NAME=${1}
-
+    local PATH_TO_CONFIG_JSON=${2}
     local PATH_TO_QIMSDK_DEBIAN_DOCKERFILE=${QIMSDK_DOCKER_DIR}
+    local QIMSDK_MAX_BUILD_JOBS
 
     [ ! -d ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} ]                                                && {
         print-red "No such directory: ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE}!"
@@ -189,6 +191,11 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
 
     [ -z ${IMAGE_NAME} ]                                                                        && {
         print-red "Image name is empty!"
+        return -1
+    }
+
+    ! qimsdk-get-max-build-jobs ${PATH_TO_CONFIG_JSON} QIMSDK_MAX_BUILD_JOBS                    && {
+        print-red "Incorrect QIMSDK_MAX_BUILD_JOBS argument value!"
         return -1
     }
 
@@ -208,6 +215,7 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
         DOCKER_BUILDKIT=1 docker build                                                             \
                 --progress=plain --target qimsdk_deploy_arm64                                      \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian-deploy                 \
+                --build-arg QIMSDK_ARG_MAX_JOBS=${QIMSDK_MAX_BUILD_JOBS}                           \
                 -f ${DOCKERFILE}.work_deploy                                                    || {
             rm -f ${DOCKERFILE}.work_deploy
             print-red "Build ${IMAGE_NAME}-debian-deploy image failed !!!"
@@ -221,6 +229,7 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
 # Qimsdk build qimsdk-debian docker image
 #   $1 - (mandatory) image name
 #   $2 - (mandatory) QAIRT SDK VERSION
+#   $3 - (mandatory) path to target config json
 function qimsdk-docker-build-qimsdk-debian-image() {
     local QIMSDK_ARG_COUNT_EXPECTED=1
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
@@ -229,9 +238,11 @@ function qimsdk-docker-build-qimsdk-debian-image() {
 
     local IMAGE_NAME=${1}
     local QIMSDK_QAIRT_SDK_VERSION=${2}
+    local PATH_TO_CONFIG_JSON=${3}
     local QIMSDK_CAMERA_SERVICE_TAG
     local QIMSDK_GST_PLUGINS_TAG
     local QIMSDK_SOLUTIONS_MICROSERVICES_TAG
+    local QIMSDK_MAX_BUILD_JOBS
 
     local PATH_TO_QIMSDK_DEBIAN_DOCKERFILE=${QIMSDK_DOCKER_DIR}
 
@@ -245,9 +256,8 @@ function qimsdk-docker-build-qimsdk-debian-image() {
         return -1
     }
 
-    qimsdk-get-components-tag ${PATH_TO_CONFIG_JSON} QIMSDK_CAMERA_SERVICE_TAG                     \
-        QIMSDK_GST_PLUGINS_TAG QIMSDK_SOLUTIONS_MICROSERVICES_TAG                               || {
-        print-red "FAILED: qimsdk-get-components-tag !!!"
+    ! qimsdk-get-max-build-jobs ${PATH_TO_CONFIG_JSON} QIMSDK_MAX_BUILD_JOBS                    && {
+        print-red "Incorrect QIMSDK_MAX_BUILD_JOBS argument value!"
         return -1
     }
 
@@ -272,6 +282,7 @@ function qimsdk-docker-build-qimsdk-debian-image() {
                 --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=${QIMSDK_CAMERA_SERVICE_TAG}             \
                 --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=${QIMSDK_GST_PLUGINS_TAG}                   \
                 --build-arg QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG=${QIMSDK_SOLUTIONS_MICROSERVICES_TAG} \
+                --build-arg QIMSDK_ARG_MAX_JOBS=${QIMSDK_MAX_BUILD_JOBS}                           \
                 --progress=plain --target qimsdk_build                                             \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian                        \
                 -f ${DOCKERFILE}.work                                                           || {
@@ -308,7 +319,7 @@ function qimsdk-docker-build-image() {
         return -1
     }
 
-    qimsdk-docker-build-qimsdk-debian-deploy-image ${QIMSDK_IMAGE_NAME}                         || {
+    qimsdk-docker-build-qimsdk-debian-deploy-image ${QIMSDK_IMAGE_NAME} ${PATH_TO_CONFIG_JSON}  || {
         print-red "FAILED: qimsdk-docker-build-qimsdk-debian-deploy-image !!!"
         return -1
     }
@@ -332,6 +343,7 @@ function qimsdk-dbg-docker-build-image() {
     local DOCKER_IMAGE_PATH
     local QIMSDK_DEVICE_ID
     local QIMSDK_QAIRT_SDK_VERSION
+    local QIMSDK_MAX_BUILD_JOBS
 
     local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
     mkdir -p ${QIMSDK_TMP_FOLDER}
@@ -348,10 +360,16 @@ function qimsdk-dbg-docker-build-image() {
         return -1
     }
 
+    ! qimsdk-get-max-build-jobs ${PATH_TO_CONFIG_JSON} QIMSDK_MAX_BUILD_JOBS                    && {
+        print-red "Incorrect QIMSDK_MAX_BUILD_JOBS argument value!"
+        return -1
+    }
+
     DOCKER_BUILDKIT=1 docker build                                                                 \
             --build-arg QIMSDK_ARG_DOCKER_IMAGE_PATH=${DOCKER_IMAGE_PATH}                          \
             --build-arg QIMSDK_ARG_DEVICE_ID=${QIMSDK_DEVICE_ID}                                   \
             --build-arg QIMSDK_ARG_CONTAINER_NAME=${QIMSDK_CONTAINER_NAME}                         \
+            --build-arg QIMSDK_ARG_MAX_JOBS=${QIMSDK_MAX_BUILD_JOBS}                               \
             --progress=plain --target qimsdk_dbg_image -f Dockerfile.dbg                           \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}                                        || {
         print-red "Build image failed !!!"
@@ -359,7 +377,8 @@ function qimsdk-dbg-docker-build-image() {
         return -1
     }
 
-    qimsdk-docker-build-qimsdk-debian-image ${QIMSDK_IMAGE_NAME} ${QIMSDK_QAIRT_SDK_VERSION}    || {
+    qimsdk-docker-build-qimsdk-debian-image ${QIMSDK_IMAGE_NAME} ${QIMSDK_QAIRT_SDK_VERSION}       \
+            ${PATH_TO_CONFIG_JSON}                                                              || {
         print-red "FAILED: qimsdk-docker-build-qimsdk-debian-image !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -1
