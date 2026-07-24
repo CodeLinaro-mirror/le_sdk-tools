@@ -24,6 +24,7 @@ ENV QAIRT_INSTALL_DIR=${QAIRT_BASE_DIR}/deploy
 ENV QAIRT_LIB_DIR=${QAIRT_INSTALL_DIR}/usr/lib
 ENV QAIRT_BIN_DIR=${QAIRT_INSTALL_DIR}/usr/bin
 ENV QAIRT_SDK_VERSION=${QAIRT_ARG_SDK_VERSION}
+ENV QAIRT_SDK_ROOT=/opt/qcom/qairt
 
 # Set up dirs used by fastrpc, comprising of skel binaries for each dsp version
 ENV QAIRT_V66_CDSP_DIR=${QAIRT_INSTALL_DIR}/usr/share/qcom/v66
@@ -87,14 +88,46 @@ RUN if [ -z "$QAIRT_SDK_VERSION" ]; then                                        
                 ${QAIRT_INSTALL_DIR}/usr/include/.                                              && \
         cp -r ${QAIRT_DOWNLOAD_DIR}/qairt/${QAIRT_SDK_VERSION}/include/QNN/*                       \
                 ${QAIRT_INSTALL_DIR}/usr/include/.                                              && \
+        [ ! -d "${QAIRT_DOWNLOAD_DIR}/qairt/${QAIRT_SDK_VERSION}/include/QAIRT" ] ||               \
+                cp -rf "${QAIRT_DOWNLOAD_DIR}/qairt/${QAIRT_SDK_VERSION}/include/QAIRT"            \
+                "${QAIRT_INSTALL_DIR}/usr/include/"                                             && \
         cp ${QAIRT_SDK_LIB_PATH}/hexagon-v66/unsigned/* ${QAIRT_V66_CDSP_DIR}                   && \
         cp ${QAIRT_SDK_LIB_PATH}/hexagon-v68/unsigned/* ${QAIRT_V68_CDSP_DIR}                   && \
         cp ${QAIRT_SDK_LIB_PATH}/hexagon-v73/unsigned/* ${QAIRT_V73_CDSP_DIR}                   && \
         cp ${QAIRT_SDK_LIB_PATH}/hexagon-v75/unsigned/* ${QAIRT_V75_CDSP_DIR}                   && \
         cp ${QAIRT_SDK_LIB_PATH}/aarch64-oe-linux-gcc11.2/* ${QAIRT_LIB_DIR}                    && \
-        cp ${QAIRT_SDK_BIN_PATH}/aarch64-oe-linux-gcc11.2/* ${QAIRT_BIN_DIR}                    && \
-        rm -rf ${QAIRT_DOWNLOAD_DIR}/qairt;                                                        \
+        cp ${QAIRT_SDK_BIN_PATH}/aarch64-oe-linux-gcc11.2/* ${QAIRT_BIN_DIR};                      \
     fi
+
+# QAIRT PYTHON SDK expects following:
+# 1. /sdk.yaml
+# 2. /lib/aarch64-oe-linux-gcc11.2/<QNN_SNPE_LIBS>
+# 4. /lib/aarch64-oe-linux-gcc11.2/lib/python (pruned for ARM)
+
+ENV QAIRT_SDK_PRUNED=${QAIRT_INSTALL_DIR}${QAIRT_SDK_ROOT}
+
+RUN mkdir -p ${QAIRT_SDK_PRUNED}                                                                && \
+    mkdir -p ${QAIRT_SDK_PRUNED}/lib                                                            && \
+    mkdir -p ${QAIRT_SDK_PRUNED}/lib/python                                                     && \
+    cp ${QAIRT_DOWNLOAD_DIR}/qairt/${QAIRT_SDK_VERSION}/sdk.yaml ${QAIRT_SDK_PRUNED}            && \
+    cp ${QAIRT_DOWNLOAD_DIR}/qairt/${QAIRT_SDK_VERSION}/bin/check-python-dependency                \
+       ${QAIRT_SDK_PRUNED}/
+
+# Copy pruned version of python
+RUN cd ${QAIRT_DOWNLOAD_DIR}/qairt/${QAIRT_SDK_VERSION}/lib/python                              && \
+    find .                                                                                         \
+      -type d \(                                                                                   \
+        -name "linux-x86_64" -o                                                                    \
+        -name "x86-64-linux-clang" -o                                                              \
+        -name "windows-x86_64" -o                                                                  \
+        -name "windows-arm64ec" -o                                                                 \
+        -name "arm64ec-windows-msvc"                                                               \
+      \) -prune -o                                                                                 \
+      -type f -print | while read file; do                                                         \
+        mkdir -p ${QAIRT_SDK_PRUNED}/lib/python/$(dirname "$file");                                \
+        cp "$file" ${QAIRT_SDK_PRUNED}/lib/python/"$file";                                         \
+      done                                                                                      && \
+    rm -rf ${QAIRT_DOWNLOAD_DIR}/qairt
 
 # As per requirement, Python 3.12 is required. Debian trixie, provides Python 3.13 by
 # default and there is no way to install 3.12 through the APT. So, get it from python
@@ -107,13 +140,15 @@ FROM --platform=arm64 debian:trixie-slim AS qairt_deploy_arm64
 # Set base directory
 ENV QAIRT_BASE_DIR=/mnt/work
 ENV QAIRT_INSTALL_DIR=${QAIRT_BASE_DIR}/deploy
+ENV QAIRT_SDK_ROOT=/opt/qcom/qairt
+ENV QAIRT_SDK_PRUNED=${QAIRT_INSTALL_DIR}${QAIRT_SDK_ROOT}
 
 # Install required package
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc                   && \
     apt-get update                                                                              && \
     DEBIAN_FRONTEND=noninteractive                                                                 \
     apt-get install -y --no-install-recommends                                                     \
-                    libatomic1 libyaml-0-2 gpg curl ca-certificates                             && \
+                    libatomic1 libyaml-0-2 gpg curl ca-certificates nano                        && \
     update-ca-certificates                                                                      && \
     install -d -m 0700 /var/lib/apt/gnupg                                                       && \
     install -d -m 0755 /etc/apt/keyrings                                                        && \
@@ -188,18 +223,6 @@ RUN mkdir -p /usr/share/qcom/conf.d                                             
 
 COPY --from=python_builder /usr/local /opt/python
 
-# Install Python packages in virtual environment
-ENV VIRTUAL_ENV=/opt/venv
-RUN /opt/python/bin/python3 -m venv ${VIRTUAL_ENV}                                              && \
-    . ${VIRTUAL_ENV}/bin/activate                                                               && \
-    pip3 install --no-cache-dir numpy>=1.24.4 opencv-python-headless>=4.10.0.84 pillow>=10.4.0
-
-# Set virtual environment as default
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-# Set workdir
-WORKDIR "${QAIRT_BASE_DIR}"
-
 # Create USER and add to video group for accessing v4ls devices
 RUN addgroup qcom                                                                               && \
     useradd -s /bin/bash -m -g qcom qairt                                                       && \
@@ -207,20 +230,52 @@ RUN addgroup qcom                                                               
     usermod -aG kmem qairt                                                                      && \
     echo qairt:asd | chpasswd
 
+# Set workdir
+WORKDIR "${QAIRT_BASE_DIR}"
+
+# Setup python virtual environment
+ENV VIRTUAL_ENV=/opt/venv
+RUN /opt/python/bin/python3 -m venv ${VIRTUAL_ENV}                                              && \
+    chown -R qairt:qcom ${VIRTUAL_ENV}
+
+# Set virtual environment as default
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV QAIRT_SDK_ROOT=/opt/qcom/qairt
+
+# Copy SNPE python wrapper scripts
+COPY src/python ${QAIRT_BASE_DIR}/src/python
+
 # Copy libraries and binaries from builder stage
 COPY --from=qairt_builder ${QAIRT_INSTALL_DIR}/usr /usr
 
-# Add python wrapper code
-COPY src/python ${QAIRT_BASE_DIR}/src/python
+# Copy qairt pruned SDK from build stage
+RUN mkdir -p ${QAIRT_SDK_ROOT}
+COPY --from=qairt_builder --chown=qairt:qcom                                                       \
+    ${QAIRT_SDK_PRUNED} ${QAIRT_SDK_ROOT}
 
-# Increase max number of fd to be opened by one process
-RUN ulimit -n 16192
+RUN ln -s /usr/lib ${QAIRT_SDK_ROOT}/lib/aarch64-oe-linux-gcc11.2
+
+RUN grep -q '"debian"' ${QAIRT_SDK_ROOT}/lib/python/qti/aisw/core/model_level_api/utils/__init__.py || \
+    sed -i '/oe_identifiers/ s/"ubuntu"[[:space:]]*]/"ubuntu", "debian"]/' \
+        ${QAIRT_SDK_ROOT}/lib/python/qti/aisw/core/model_level_api/utils/__init__.py && \
+    grep -q '"debian"' ${QAIRT_SDK_ROOT}/lib/python/qti/aisw/genai/__init__.py || \
+    sed -i '/oe_identifiers/ s/"ubuntu"[[:space:]]*]/"ubuntu", "debian"]/' \
+        ${QAIRT_SDK_ROOT}/lib/python/qti/aisw/genai/__init__.py && \
+    grep -q '"debian"' ${QAIRT_SDK_ROOT}/lib/python/qairt/__init__.py || \
+    sed -i '/oe_identifiers/ s/"ubuntu"[[:space:]]*]/"ubuntu", "debian"]/' \
+        ${QAIRT_SDK_ROOT}/lib/python/qairt/__init__.py
 
 # Fix ownership
 RUN chown -R qairt:qcom ${QAIRT_BASE_DIR}
 
 # Change user to qairt
 USER qairt
+
+# Install required packages from the python QAIRT SDK
+RUN pip install --no-cache-dir --no-input  qairt-dev $(                                            \
+    sed -n '/required_packages = {/,/^    }/p' ${QAIRT_SDK_ROOT}/check-python-dependency           \
+  | sed -n 's/.*"\(.*\)": "\(.*\)".*/\1==\2/p'                                                     \
+)
 
 # Set workdir
 WORKDIR "${QAIRT_BASE_DIR}"
