@@ -8,6 +8,8 @@
 * [Workflow](#Workflow)
     * [How to build](#How_to_build)
     * [Running the tflite deploy container](#Running_the_container)
+        * [Setting up the platform](#Platform_model_file_and_folder_setup)
+        * [How to run the qairt deploy container](#Run_the_qairt_deploy_container)
     * [How to use the tflite-debian container](#Using_the_container)
 
 <div id="Docker_images">
@@ -95,26 +97,164 @@ docker build --build-arg TFLITE_ARG_QNP_VERSION=<version, e.g. 2.39.0.250925> --
 
 ### Running the tflite deploy container
 
-The TFLite container requires access to GPU devices and DSP accelerators. CDI (Container Device Interface) JSON files for specific platforms contain all necessary device mountings and environment variables. Additionally, environment variable files needed depending on your platform configuration.
+The TFLite container requires access to GPU devices and DSP accelerators.
 
-**Setup steps:**
+In order to run the qairt container, please make use of the tflite arm64 deploy image built earlier and specify the 'host' network mode.
 
-1. Copy the appropriate CDI & ENV file for your hardware platform to the device:
+Any required platform resources like GPU, DSP, video device nodes and any other system folders/volumes need to be propagated and explicitly exposed to the Docker container.
+
+This is achieved with the help of:
+
+* uploading a matching target-specfic CDI file;
+* uploading a matching target-specific ENV file;
+* creating all of the required target folders used for the local model data storage;
+* uploading the model-specific data accordingly;
+* setting the appropriate target model data file and folder access permissions;
+* listing the model-specific platform to container folder/volume mappings in the container run command.
+
+A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
+
+In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
+
+> **Note:** CDI files are located in and named: `tflite-debian/cdi/\<hardware\>-\<platform\>-tflite.json`;
+
+The CDI file needed for a specific hardware platform needs to be copied to the /etc/cdi/ directory on the target device storage.
+
+Please create this directory first, if it does not exist as follows:
+
 ```bash
-adb push cdi/<hardware>-<platform>-tflite.json /etc/cdi/tflite.json
+sudo mkdir -p /etc/cdi
+sudo chmod 755 /etc/cdi
 ```
-   Example: `adb push cdi/qcs6490_qli_00_tflite.json /etc/cdi/tflite.json`
+
+> **Note:** the ENV files are located in and named: `tflite-debian/env/\<hardware\>-\<platform\>-qairt.env`;
+
+The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
+
+Please create this directory first, if it does not exist as follows:
 
 ```bash
-adb push env/<hardware>-<platform>-tflite.env /etc/docker/env/tflite.env
+sudo mkdir -p /etc/docker/env
+sudo chmod 755 /etc/docker/env
 ```
-   Note: Create the `/etc/docker/env/` directory on the device if it does not exist.
 
-3. Run the TFLite container with CDI device support:
+<div id="Platform_model_file_and_folder_setup">
 
-   ```bash
-   docker run -it -d --net host --env-file /etc/docker/env/tflite.env --device qualcomm.com/device=tflite -h tflite --name tflite <desired-image-name>
-   ```
+### Platform model file and folder setup
+The following directories must be created under the user’s home directory to store test files:
+
+> **Note:** The `HOME` directory depends on the target platform OS:
+> - `/root` on Qualcomm QLI platforms
+> - `/home/ubuntu` on Qualcomm Ubuntu platforms
+
+Set the root path for the user content by exporting one of the following environment variables in a platform terminal, depending on your platform and preference:
+
+```bash
+# For QLI platforms — content stored under the root home directory
+export TFLITE_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export TFLITE_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export TFLITE_USER_CONTENTS_ROOT=/etc
+```
+
+Then create the required directories:
+
+```bash
+mkdir -p ${TFLITE_USER_CONTENTS_ROOT}/media
+mkdir -p ${TFLITE_USER_CONTENTS_ROOT}/models
+mkdir -p ${TFLITE_USER_CONTENTS_ROOT}/labels
+mkdir -p ${TFLITE_USER_CONTENTS_ROOT}/configs
+```
+
+Apply the correct permissions to each directory and its contents.
+> **Note:** Use `sudo` when the `TFLITE_USER_CONTENTS_ROOT` value is set to `/etc` for any non-root platform user:
+
+```bash
+# media
+find ${TFLITE_USER_CONTENTS_ROOT}/media/ -type d -exec chmod 755 {} \;
+find ${TFLITE_USER_CONTENTS_ROOT}/media/ -type f -exec chmod 644 {} \;
+
+# models
+find ${TFLITE_USER_CONTENTS_ROOT}/models/ -type d -exec chmod 755 {} \;
+find ${TFLITE_USER_CONTENTS_ROOT}/models/ -type f -exec chmod 644 {} \;
+
+# labels
+find ${TFLITE_USER_CONTENTS_ROOT}/labels/ -type d -exec chmod 755 {} \;
+find ${TFLITE_USER_CONTENTS_ROOT}/labels/ -type f -exec chmod 644 {} \;
+
+# configs
+find ${TFLITE_USER_CONTENTS_ROOT}/configs/ -type d -exec chmod 755 {} \;
+find ${TFLITE_USER_CONTENTS_ROOT}/configs/ -type f -exec chmod 644 {} \;
+```
+
+**Before running the tflite arm64 deploy container, please upload your models and model-specific data into these newly created platform model data folders.**
+
+<div id="Run_the_qairt_deploy_container">
+
+### Commands to run the tflite deploy container:
+
+> **Note:** If your platform and OS combo do not support adb connectivity, please use the onboard Ethernet/WLAN network to access the device over ssh and adapt the execution of the commands listed below accordingly.
+
+Set the root path for the user content by exporting one of the following environment variables in a platform terminal, depending on your platform and preference:
+
+```bash
+# For QLI platforms — content stored under the root home directory
+export TFLITE_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export TFLITE_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export TFLITE_USER_CONTENTS_ROOT=/etc
+```
+
+Push the CDI and ENV files and run the container.
+
+```bash
+adb push tflite-debian/cdi/<hardware>-<platform>-tflite.json /etc/cdi/tflite.json
+adb push tflite-debian/env/<hardware>-<platform>-tflite.env /etc/docker/env/tflite.env
+```
+
+>**Note:** When the `TFLITE_USER_CONTENTS_ROOT` environment variable value is `/root` or `/home/ubuntu`** (the model content shall be mounted into the `/home/tflite/` folder inside the container):
+
+Push the deploy Docker image to the device and load it
+
+```bash
+export TFLITE_DEVICE_TEST_PATH="<target_device_path>"
+export TFLITE_DOCKER_IMAGE="<path_to_docker_image_file>"
+adb shell mkdir -p "${TFLITE_DEVICE_TEST_PATH}"
+adb push "${TFLITE_DOCKER_IMAGE}" "${TFLITE_DEVICE_TEST_PATH}/${TFLITE_DOCKER_IMAGE}"
+adb shell docker load -i "${TFLITE_DEVICE_TEST_PATH}/${TFLITE_DOCKER_IMAGE}"
+```
+
+Now run the deploy Docker container
+
+```bash
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/tflite.env \
+  --device qualcomm.com/device=tflite \
+  -v ${TFLITE_USER_CONTENTS_ROOT}/media:/home/tflite/media \
+  -v ${TFLITE_USER_CONTENTS_ROOT}/models:/home/tflite/models \
+  -v ${TFLITE_USER_CONTENTS_ROOT}/labels:/home/tflite/labels \
+  -v ${TFLITE_USER_CONTENTS_ROOT}/configs:/home/tflite/configs \
+  -h tflite --name tflite <desired-image-name>
+```
+
+> **Note:** When the `TFLITE_USER_CONTENTS_ROOT` environment variable value is `/etc`** (the model content shall be mounted into the `/etc/` folder inside the container):
+
+```bash
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/tflite.env \
+  --device qualcomm.com/device=tflite \
+  -v ${TFLITE_USER_CONTENTS_ROOT}/media:/etc/media \
+  -v ${TFLITE_USER_CONTENTS_ROOT}/models:/etc/models \
+  -v ${TFLITE_USER_CONTENTS_ROOT}/labels:/etc/labels \
+  -v ${TFLITE_USER_CONTENTS_ROOT}/configs:/etc/configs \
+  -h tflite --name tflite <desired-image-name>
+```
 
 **What the CDI configuration provides:**
 - GPU device access (`/dev/kgsl-3d0`)
@@ -125,7 +265,6 @@ adb push env/<hardware>-<platform>-tflite.env /etc/docker/env/tflite.env
   - `OCL_ICD_FILENAMES` - OpenCL driver path
   - `__EGL_VENDOR_LIBRARY_FILENAMES` - EGL vendor library
 - Platform-specific DSP library mounts (e.g., `/usr/lib/dsp`)
-- Model, media, and labels directory mounts (`/etc/models`, `/etc/media`, `/etc/labels`)
 - Device model information mount (`/run/device-model`)
 
 <div id="Using_the_container">
