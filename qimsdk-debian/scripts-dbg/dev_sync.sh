@@ -3,6 +3,12 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
+# Source to allow for proper location and usage of the
+# "qimsdk-device-command" and "qimsdk-cmd" transport function
+# helpers when using these functions from with the Debug
+# container running on the Host System.
+source ${QIMSDK_SCRIPTS}/common.sh
+
 # Save artifacts to Docker_image_path provided in config json file.
 #   $1 - (mandatory) artifacts variant - release or debug
 function qimsdk-dbg-save-artifacts-variant() {

@@ -37,6 +37,7 @@ RUN echo "[url \"file://${QIMSDK_REPO_DOWNLOAD_DIR}/solutions-microservices\"] i
 
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts/
+COPY scripts-dbg/common.sh ${QIMSDK_SCRIPTS}/common.sh
 COPY scripts-dbg/dev_sync.sh ${QIMSDK_SCRIPTS}/dev_sync.sh
 
 # Change workdir back to base dir from downloads dir
