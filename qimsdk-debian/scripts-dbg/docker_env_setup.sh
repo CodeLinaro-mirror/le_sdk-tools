@@ -770,7 +770,7 @@ function qimsdk-device-docker-run-container() {
         return -1
     }
 
-    docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME} --user qimsdk                         \
+    docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME}                                       \
             --name ${QIMSDK_CONTAINER_NAME} ${QIMSDK_IMAGE_NAME}-debian-deploy bash             || {
         print-red "Run device container failed on pc emulator !!!"
         return -1
