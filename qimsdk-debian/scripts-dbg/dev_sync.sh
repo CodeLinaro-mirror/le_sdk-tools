@@ -67,30 +67,38 @@ function qimsdk-dbg-push-artifacts-variant() {
         export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
 
         [ -z ${ANDROID_SERIAL} ] && {
-            print-red "Android serial is not set !!!"
-            rm ${FILE_NAME}
+            print-red "Device ID is not set !!!"
+            rm -f qimsdk_dev_artifacts_${VARIANT}.tar
 
             return -1
         }
 
-        qimsdk-device-command "mkdir -p /tmp/qti/development" ${QIMSDK_DEVICE_ID}               && \
-                adb push ${QIMSDK_DOCKER_IMAGE_PATH}/qimsdk_dev_artifacts_${VARIANT}.tar           \
+        # This runs inside the dev container and reaches the target device using
+        # the QIMSDK_DEVICE_ID environment variable, which is exported into the
+        # container by qimsdk-dbg-docker-run-container. SSH access (for IPv4 /
+        # non-adb targets) relies on the host's ~/.ssh/config for passwordless,
+        # key-based login.
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "mkdir -p /tmp/qti/development"             && \
+                qimsdk-cmd "${QIMSDK_DEVICE_ID}" push                                              \
+                        ${QIMSDK_DOCKER_IMAGE_PATH}/qimsdk_dev_artifacts_${VARIANT}.tar            \
                         /tmp/qti/development/                                                   && \
-                qimsdk-device-command "cd /tmp/qti/development                                  && \
+                qimsdk-device-command "${QIMSDK_DEVICE_ID}" "cd /tmp/qti/development            && \
                         tar -xf /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar        && \
-                        docker cp usr ${QIMSDK_CONTAINER_NAME}:/" ${QIMSDK_DEVICE_ID}           && \
-                qimsdk-device-command "rm -rf /tmp/qti/development/usr" ${QIMSDK_DEVICE_ID}     || {
+                        docker cp usr ${QIMSDK_CONTAINER_NAME}:/"                               && \
+                qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm -rf /tmp/qti/development/usr"   || {
             print-red "Artifacts push failed !!!"
 
-            qimsdk-device-command "rm -rf /tmp/qti/development/usr"
-            qimsdk-device-command "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
+            qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm -rf /tmp/qti/development/usr"
+            qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                            \
+                    "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
 
             rm -f qimsdk_dev_artifacts_${VARIANT}.tar
 
             return -1
         }
 
-        qimsdk-device-command "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                \
+                "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
         rm -f qimsdk_dev_artifacts_${VARIANT}.tar
     )
 

@@ -12,6 +12,7 @@
   * [Proxy. (optional)](#Proxy)
   * [Query and examine the Host System cgroup memory limits](#Cgroup_Memory_Limits)
   * [Adjust the Host system VM settings (optional)](#Adjust_Host_VM_Settings)
+  * [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings)
 * [Docker Images](#Docker_Images)
   * [QIMSDK Debug Image](#QIMSDK_Debug_Image)
   * [QIMSDK Build Image](#QIMSDK_Build_Image)
@@ -351,6 +352,144 @@ edit the /etc/sysctl.conf file
 
     - Therefore, in order to achieve a better free memory balancing under excessive system load, the proposed value adjustment of 262144 KB setting has been made.
 
+<div id="Configure_Host_ADB_and_SSH_Settings">
+
+### Configure Host System ADB and SSH settings
+
+#### Target Device connected to Host System via adb
+
+1. Connect the device to the host system through the USB Type-C connector.
+
+  ```bash
+    lsusb
+  ```
+
+2. Note the reported PID and VID for your device
+3. Install the packaged Android udev rules and adb platform tools, if not already present
+
+  The `android-sdk-platform-tools-common` package ships a maintained udev rules
+  file (`/lib/udev/rules.d/51-android.rules`) that already covers the VID/PID of
+  virtually all common Android/Qualcomm devices and assigns the USB device nodes
+  to the `plugdev` group. This avoids having to hand-author a per-device udev rule.
+
+  ```bash
+    sudo apt update
+    sudo apt install adb fastboot android-sdk-platform-tools-common
+  ```
+4. Add your user to the `plugdev` group so it can access the device nodes
+
+  > **Note:** Being in `plugdev` has no effect on its own — the packaged udev
+  > rules above are what assign the USB device nodes to the `plugdev` group, and
+  > your membership in that group is what grants you non-root access.
+
+  ```bash
+    sudo usermod -aG plugdev $USER
+  ```
+5. Reload the udev rules and log out/in (or reboot) for the group change to take effect:
+  ```bash
+    sudo udevadm control --reload-rules && sudo udevadm trigger
+  ```
+6. Plug and unplug your device
+7. Start the adb server
+  ```bash
+    adb start-server
+  ```
+8. Check your device is discoverable and accessible
+  ```bash
+    adb devices
+  ```
+
+> **Note:** A manual per-device udev rule is only required when your target
+> device's VID/PID is not covered by the packaged rules (custom or engineering
+> Qualcomm devices sometimes are not). In that case, create
+> `/etc/udev/rules.d/99-my-target-device-usb.rules` with the following content,
+> adjusting the VID and PID to match your target device, then repeat steps 5-8:
+>
+> ```bash
+> SUBSYSTEMS=="usb", ATTRS{idVendor}=="<VID>", ATTRS{idProduct}=="<PID>", MODE="0664", GROUP="plugdev"
+> ```
+
+> **Note: **
+>
+> These steps imply an Ubuntu Host. Other systems might have different configuration specifics.
+
+#### Target Device connected to Host System via ssh
+
+1. Ensure your Host System is equipped with a USB to Ethernet adapter
+2. Configure the Host System Ethernet adapter and adjust the Ethernet adapter name and IP address to match your setup:
+  ```bash
+    ip a
+    export QIMSDK_HOST_USB_ETH_ADAPTER="<adapter_id>"
+    export QIMSDK_HOST_USB_ETH_ADAPTER_IP_ADDR="XXX.XXX.XX.Y/24"
+    export QIMSDK_TARGET_USB_ETH_IP_ADDR="XXX.XXX.XX.X"
+    export QIMSDK_HOST_USB_ETH_NETPLAN_FILE="/etc/netplan/XX-network-manager-all.yaml"
+
+    sudo ip addr add "${QIMSDK_HOST_USB_ETH_ADAPTER_IP_ADDR}" dev "${QIMSDK_HOST_USB_ETH_ADAPTER}"
+    sudo ip link set "${QIMSDK_HOST_USB_ETH_ADAPTER}" up
+
+    sudo nano "${QIMSDK_HOST_USB_ETH_NETPLAN_FILE}"
+    # Add the following section to the existing settings
+    ethernets:
+      ${QIMSDK_HOST_USB_ETH_ADAPTER}:
+        dhcp4: false
+        addresses:
+          - ${QIMSDK_HOST_USB_ETH_ADAPTER_IP_ADDR}
+        optional: true
+    # Save and apply the configuration changes
+    sudo netplan apply
+  ```
+3. Configure the target device Ethernet settings
+  ```bash
+    export QIMSDK_TARGET_USB_ETH_IP_ADDR="XXX.XXX.XX.X/24"
+    export QIMSDK_TARGET_ETH_NETPLAN_FILE="/etc/netplan/XX-netcfg.yaml"
+    export QIMSDK_TARGET_USB_ADAPTER="<your_device>"
+
+    sudo ip addr add ${QIMSDK_TARGET_USB_ETH_IP_ADDR} dev ${QIMSDK_TARGET_USB_ADAPTER}
+    sudo ip link set ${QIMSDK_TARGET_USB_ADAPTER} up
+    sudo apt update
+    sudo systemctl status ssh
+    sudo systemctl enable --now ssh
+    sudo tee "${QIMSDK_TARGET_ETH_NETPLAN_FILE}" > /dev/null << EOF
+network:
+  version: 2
+  ethernets:
+    ${QIMSDK_TARGET_USB_ADAPTER}:
+      addresses:
+        - ${QIMSDK_TARGET_USB_ETH_IP_ADDR}
+EOF
+    sudo netplan apply
+  ```
+4. Configure the Host System SSH settings
+  ```bash
+    export QIMSDK_HOST_SSH_CONFIG_FILE=~/.ssh/config
+    export QIMSDK_HOST_SSH_TARGET_FOLDER="~/.ssh/target_dev"
+    export QIMSDK_TARGET_DEVICE_HOST_NAME="<testdev>"
+    mkdir -p "${QIMSDK_HOST_SSH_TARGET_FOLDER}"
+    ssh-keygen -t rsa -b 4096 -C "uno-ssh" -f ${QIMSDK_HOST_SSH_TARGET_FOLDER}/id_rsa
+    ssh-copy-id -i ${QIMSDK_HOST_SSH_TARGET_FOLDER}/id_rsa.pub ubuntu@${QIMSDK_TARGET_USB_ETH_IP_ADDR}
+
+    tee -a "${QIMSDK_HOST_SSH_CONFIG_FILE}" > /dev/null << EOF
+
+Host ${QIMSDK_TARGET_DEVICE_HOST_NAME}
+HostName ${QIMSDK_TARGET_USB_ETH_IP_ADDR}
+ User ubuntu
+ IdentityFile ${QIMSDK_HOST_SSH_TARGET_FOLDER}/id_rsa
+ PubkeyAcceptedKeyTypes +ssh-rsa
+
+EOF
+  ```
+5. Enable passwordless ssh login to the target device
+  ```bash
+    ssh-keygen -f '~/.ssh/known_hosts' -R '$  {QIMSDK_TARGET_USB_ETH_IP_ADDR}'
+    ssh-copy-id -i ${QIMSDK_HOST_SSH_TARGET_FOLDER}/id_rsa.pub -o StrictHostKeyChecking=no ubuntu@${QIMSDK_TARGET_USB_ETH_IP_ADDR}
+  ```
+6. Test the SSH connection to the target device
+  ```bash
+    export QIMSDK_SSH_OPTS=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10        \
+            -o LogLevel=ERROR)
+    export QIMSDK_TARGET_DEVICE_HOST_NAME="<testdev>"
+    ssh "${QIMSDK_SSH_OPTS[@]}" ${QIMSDK_TARGET_DEVICE_HOST_NAME} "uname -a"
+  ```
 <div id="Docker_Images">
 
 ## Docker Images
@@ -423,7 +562,7 @@ Config json files *(config.json)* must contain the following data:
  1. ***MANDATORY*** - **Additional_tag_container** - Additional tag for debug container - allows for personalization of the names of the docker containers according to their purpose - allows to avoid container conflict if more than one user on the same machine.
  2. ***MANDATORY*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose - allows to avoid image conflicts if more than one user on the same machine.
  3. ***MANDATORY*** - **Docker_image_path** - Absolute path to remote ssh or local destination to sync docker images or artifacts.
- 4. ***MANDATORY*** -  **Target_device_ID** - adb device ID of the target device qimsdk is to be installed on. Any faux value can still be provided and compilation will carry on.
+ 4. ***MANDATORY*** -  **Target_device_ID** - adb device ID, or an IPv4 network address of the target device qimsdk is to be installed on. Any faux value can still be provided and compilation will carry on.
  5. ***OPTIONAL*** -  **QAIRT_SDK_version** - Version of the Qualcomm AI Runtime SDK to be used in the container. If field is left open - QAIRT functionalities will be disabled.
  6. ***MANDATORY*** - **camera_service_Source_Dir** - PATH to camera-service sources directory, which contains open-source repo needed to enable camera functionality.
  7. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-imsdk directory! Code checked out on local branch main will be built. Ensure desired code is checked out on main branch before proceeding with debug variant QIMSDK build!***
@@ -455,7 +594,7 @@ source scripts-dbg/docker_env_setup.sh
 
 The developer generally needs to build the deploy image, load it to the device and run the QIMSDK deploy container.
 
-- qimsdk-device-prepare - Prepare device after reboot
+- qimsdk-device-prepare                \<target_device_id> - Prepare device after reboot
 - qimsdk-docker-build-image            \<path-to-config-json> - Alter QIMSDK Build Image to use gst code and meta layers provided by user in config json. Afterwards, build QIMSDK Build Image and Build QIMSDK Deploy Image with needed artifacts from build image.
 - qimsdk-docker-device-update-image    \<path-to-config-json> - Update QIMSDK Deploy Image to the device
 - qimsdk-docker-device-save-image      \<path-to-config-json> - Save QIMSDK Deploy Image as a tar file, compose file and run command
@@ -469,7 +608,7 @@ The developer generally needs to build the deploy image, load it to the device a
 - qimsdk-docker-device-images-cleanup  \<path-to-config-json> - Docker device images clean up
 - qimsdk-docker-host-images-cleanup                           - Docker host images clean up
 
-> **Note:** The helper functions here are not meant to be used with devices lacking adb connectivity for the time being!
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
 
 > **Note:** Please note that the `qimsdk-docker-device-run-container` function here assumes the `QIMSDK_USER_CONTENTS_ROOT` environment variable is set to: /etc and the target to container mapping implies /etc as the model root directory.
 
@@ -552,19 +691,19 @@ cat swap_usage_log.txt | grep -E "^[ ]{2,}[0-9]{2,}[0-9MG \.]{1,}$(M|G)"
 ***Please note that adb is single instance. All adb servers in other containers or host OS MUST be killed***
 
 ```bash
-qimsdk-device-prepare
+qimsdk-device-prepare <target_device_id>
 adb disable-verity
 adb reboot
 ```
 
-> **Note:** The helper functions here are not meant to be used with devices lacking adb connectivity for the time being!
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
 
 #### Prepare Device After Reboot
 
 ***Please note that this step needs to be invoked only once after device, connected to local PC, is started***
 
 ```bash
-qimsdk-device-prepare
+qimsdk-device-prepare <target_device_id>
 ```
 
 <div id="Continuous_Development_After_Initial_Setup">
@@ -616,7 +755,7 @@ Prepare the environment on remote machine with device connected to it
 # Remote machine with device connected to it
 ############################################
 # Prepare Device For Work
-qimsdk-device-prepare
+qimsdk-device-prepare <target_device_id>
 ```
 
 #### Continuous Development
@@ -684,7 +823,7 @@ adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
 adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
 ```
 
-> **Note:** The helper functions here are not meant to be used with devices lacking adb connectivity for the time being!
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
 
 ```bash
 # Remote machine with a device connected to it
@@ -700,8 +839,8 @@ qimsdk-docker-device-run-container <path-to-config-json>
 ### Local Device With Verity Check
 
 - Scenario is:
-  - Locally connected device
-  - Device with verity check
+  - Locally connected device: supporting adb and/or ssh network connectivity
+  - Device with verity check disabled, if present
   - Incremental Build
 
 #### Initial Setup
@@ -710,12 +849,14 @@ Prepare the environment
 
 ```bash
 # Disable device verity check
-qimsdk-device-prepare
+qimsdk-device-prepare <target_device_id>
 adb disable-verity
 adb reboot
 # Prepare Device For Work
-qimsdk-device-prepare
+qimsdk-device-prepare <target_device_id>
 ```
+
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
 
 #### Continuous Development
 
@@ -771,7 +912,7 @@ adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
 adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
 ```
 
-> **Note:** The helper functions here are not meant to be used with devices lacking adb connectivity for the time being!
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
 
 ```bash
 # Build docker image
@@ -839,7 +980,7 @@ Prepare the environment
 
 ```bash
 # Prepare Device For Work
-qimsdk-device-prepare
+qimsdk-device-prepare <target_device_id>
 ```
 
 #### Device Docker Clean Up
@@ -951,7 +1092,7 @@ adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
 adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
 ```
 
-> **Note:** The helper functions here are not meant to be used with devices lacking adb connectivity for the time being!
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
 
 ```bash
 # Run container
@@ -1173,7 +1314,7 @@ adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
 adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
 ```
 
-> **Note:** The helper functions here are not meant to be used with devices lacking adb connectivity for the time being!
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
 
 <div id="Platform_model_file_and_folder_setup">
 
