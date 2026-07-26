@@ -144,11 +144,12 @@ ENV QAIRT_SDK_ROOT=/opt/qcom/qairt
 ENV QAIRT_SDK_PRUNED=${QAIRT_INSTALL_DIR}${QAIRT_SDK_ROOT}
 
 # Install required package
+# libgl1 - Required this dependency for classification sample app
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /root/.bashrc                   && \
     apt-get update                                                                              && \
     DEBIAN_FRONTEND=noninteractive                                                                 \
     apt-get install -y --no-install-recommends                                                     \
-                    libatomic1 libyaml-0-2 gpg curl ca-certificates nano                        && \
+            libatomic1 libyaml-0-2 gpg curl ca-certificates nano libgl1                         && \
     update-ca-certificates                                                                      && \
     install -d -m 0700 /var/lib/apt/gnupg                                                       && \
     install -d -m 0755 /etc/apt/keyrings                                                        && \
