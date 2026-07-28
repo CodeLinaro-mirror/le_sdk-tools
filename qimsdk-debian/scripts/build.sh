@@ -485,6 +485,96 @@ function qimsdk-cmake-clean-litert() {
             print-green "${FUNCNAME} completed successfully!"
 }
 
+# CMake Build onnx
+function qimsdk-cmake-build-onnx() {
+    qimsdk-cmake-build ${QIMSDK_ONNX_SRC_DIR} /usr `
+        `-G Ninja `
+        `-DCMAKE_SYSTEM_PROCESSOR=arm64 `
+        `-DCMAKE_SYSTEM_NAME=Linux `
+        `-DONNX_USE_PROTOBUF_SHARED_LIBS=ON `
+        `-DONNX_DISABLE_STATIC_REGISTRATION=ON `
+        `-DBUILD_SHARED_LIBS=ON `
+        `-DProtobuf_INCLUDE_DIR=/usr/include `
+        `-DProtobuf_LIBRARY=/usr/lib/aarch64-linux-gnu/libprotobuf.so `
+        `-DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc `
+        `-DONNX_USE_LITE_PROTO=OFF `
+        `-DONNX_GEN_PB_TYPE_STUBS=OFF `
+        `-DONNX_BUILD_TESTS=OFF `
+        `-DFETCHCONTENT_FULLY_DISCONNECTED=ON                                                   && \
+    print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Clean onnx
+function qimsdk-cmake-clean-onnx() {
+    rm -rf ${QIMSDK_BUILD_DIR}/onnx                                                             && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Build onnxruntime
+function qimsdk-cmake-build-onnxruntime() {
+    qimsdk-cmake-build ${QIMSDK_ONNXRUNTIME_SRC_DIR}/cmake /usr `
+        `-G Ninja `
+        `-Donnxruntime_USE_QNN=OFF `
+        `-DCMAKE_SYSTEM_NAME=Linux `
+        `-DCMAKE_SYSTEM_PROCESSOR=arm64 `
+        `-Donnxruntime_BUILD_SHARED_LIB=ON `
+        `-Donnxruntime_USE_EXTERNAL_PROTOBUF=ON `
+        `-Donnxruntime_DISABLE_RTTI=OFF `
+        `-DProtobuf_INCLUDE_DIR=/usr/include `
+        `-DProtobuf_LIBRARY=/usr/lib/aarch64-linux-gnu/libprotobuf.so `
+        `-DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc `
+        `-DONNX_CUSTOM_PROTOC_EXECUTABLE=/usr/bin/protoc `
+        `-DFETCHCONTENT_SOURCE_DIR_ONNX=${QIMSDK_ONNX_SRC_DIR} `
+        `-DONNX_BUILD_TESTS=OFF `
+        `-Donnxruntime_BUILD_UNIT_TESTS=OFF `
+        `-Donnxruntime_BUILD_BENCHMARKS=OFF `
+        `-Donnxruntime_RUN_ONNX_TESTS=OFF                                                       && \
+    print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Clean onnxruntime
+function qimsdk-cmake-clean-onnxruntime() {
+    rm -rf ${QIMSDK_BUILD_DIR}/onnxruntime                                                      && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Build onnxruntime-qnn
+function qimsdk-cmake-build-onnxruntime-qnn() {
+    [ -z "${QIMSDK_QNP_VERSION:-}" ]                                                            && {
+        print-yellow "WARN: QNP SDK is not installed. ONNX Runtime QNN will be skipped."
+
+        return 0
+    }
+
+    qimsdk-cmake-build ${QIMSDK_ONNXRUNTIME_QNN_SRC_DIR}/cmake /usr `
+        `-G Ninja `
+        `-Donnxruntime_USE_QNN=ON `
+        `-Donnxruntime_QNN_HOME=${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_QNP_VERSION} `
+        `-DCMAKE_SYSTEM_NAME=Linux `
+        `-DCMAKE_SYSTEM_PROCESSOR=arm64 `
+        `-Donnxruntime_BUILD_SHARED_LIB=ON `
+        `-Donnxruntime_USE_EXTERNAL_PROTOBUF=ON `
+        `-Donnxruntime_DISABLE_RTTI=OFF `
+        `-DProtobuf_INCLUDE_DIR=/usr/include `
+        `-DProtobuf_LIBRARY=/usr/lib/aarch64-linux-gnu/libprotobuf.so `
+        `-DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc `
+        `-DONNX_CUSTOM_PROTOC_EXECUTABLE=/usr/bin/protoc `
+        `-Donnxruntime_ORT_HOME=/usr `
+        `-DCMAKE_LIBRARY_ARCHITECTURE=aarch64-linux-gnu `
+        `-DFETCHCONTENT_SOURCE_DIR_ORT_CORE=${QIMSDK_ONNXRUNTIME_SRC_DIR} `
+        `-DONNX_BUILD_TESTS=OFF `
+        `-Donnxruntime_BUILD_UNIT_TESTS=OFF `
+        `-Donnxruntime_BUILD_BENCHMARKS=OFF `
+        `-Donnxruntime_RUN_ONNX_TESTS=OFF                                                       && \
+    print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Clean onnxruntime-qnn
+function qimsdk-cmake-clean-onnxruntime-qnn() {
+    rm -rf ${QIMSDK_BUILD_DIR}/onnxruntime-qnn                                                  && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
 # Incremental build all gst-plugins-imsdk
 function qimsdk-cmake-build-gst-plugins-imsdk() {
     (
@@ -523,6 +613,7 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
                 `-DENABLE_GST_PLUGIN_MLVSEGMENTATION=ON `
                 `-DENABLE_GST_PLUGIN_MLTFLITE=ON `
                 `-DENABLE_GST_PLUGIN_MLLITERT=ON `
+                `-DENABLE_GST_PLUGIN_MLONNX=ON `
                 `-DENABLE_GST_PLUGIN_MLSNPE=${IS_QNP_ENABLED} `
                 `-DENABLE_GST_PLUGIN_MLQNN=${IS_QNP_ENABLED} `
                 `-DENABLE_GST_PLUGIN_MLQAIRT=${ENABLE_GST_PLUGIN_MLQAIRT} `
@@ -573,6 +664,9 @@ function qimsdk-incremental-build() {
             qimsdk-cmake-build-tflite                                                           && \
             qimsdk-cmake-build-gst-plugins-imsdk                                                && \
             qimsdk-cmake-build-litert                                                           && \
+            qimsdk-cmake-build-onnx                                                             && \
+            qimsdk-cmake-build-onnxruntime                                                      && \
+            qimsdk-cmake-build-onnxruntime-qnn                                                  && \
             qimsdk-cmake-build-solutions-microservices                                          && \
         print-green "QIMSDK GStreamer targets built successfully !!!"
 }

@@ -60,19 +60,22 @@ EOF
 # build time dependencies, needed for pyconfig.h generation:
 #   libgdbm-dev, systemtap-sdt-dev, libdb-dev:arm64
 
+# build time dependencies, needed for mk-build-deps generation:
+#   equivs, devscripts
+
 # Installing required apt packages
 RUN DEBIAN_FRONTEND=noninteractive apt-get update                                               && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
             fakeroot git tar unzip ssh rsync bash-completion jq cmake wget pipx xz-utils           \
-            gobject-introspection flex bison locales-all ninja-build gpg curl devscripts           \
+            gobject-introspection flex bison locales-all ninja-build gpg curl devscripts equivs    \
             debhelper libprotobuf-dev:arm64 protobuf-compiler:arm64 crossbuild-essential-arm64     \
             binutils-aarch64-linux-gnu python-gi-dev python3.13-dev libgdbm-dev systemtap-sdt-dev  \
             pkgconf:arm64 libc6:arm64 libgcc-s1:arm64 libstdc++6:arm64                             \
             dpkg-dev libyaml-dev:arm64 libbsd-dev:arm64 libeigen3-dev:arm64                        \
             libgstrtspserver-1.0-dev:arm64 libmosquitto-dev:arm64 libcairo-dev:arm64               \
             libjson-glib-dev:arm64 libhiredis-dev:arm64 libgstreamer-plugins-bad1.0-dev:arm64      \
-            libdrm-dev:arm64 libgraphene-1.0-dev:arm64 opencl-headers:arm64 libdb-dev:arm64     && \
-    apt-get build-dep -a arm64 -y gst-plugins-base1.0 gst-plugins-good1.0 gst-plugins-bad1.0    && \
+            libdrm-dev:arm64 libgraphene-1.0-dev:arm64 opencl-headers:arm64 libdb-dev:arm64        \
+    apt-get build-dep -a arm64 -y gst-plugins-base1.0 gst-plugins-good1.0                       && \
     apt -y upgrade                                                                              && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
@@ -130,13 +133,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update                               
     apt-get clean                                                                               && \
     rm -rf /var/lib/apt/lists* /var/tmp/*
 
-# Install additional dependencies required by some gstreamer plugins: (NOTE: This needs to be done
-#   separately, otherwise installation of these packages breaks.)
-#   gst-plugin-msgbroker:          librdkafka-dev
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y librdkafka-dev:arm64    && \
-    apt-get clean                                                                               && \
-    rm -rf /var/lib/apt/lists* /var/tmp/*
-
 # Automatically save gst source package version and set up gst source directories
 RUN GST_PLUGINS_BASE_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base*                       \
             -maxdepth 1 -type d | head -1 | sed 's/.*-//')                                      && \
@@ -168,8 +164,18 @@ RUN GST_PLUGINS_GOOD_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good*    
             commit -m "Initial Plugins Good Commit"                                             && \
     echo "export GST_PLUGINS_GOOD_VERSION=${GST_PLUGINS_GOOD_VERSION}" >> /root/.bashrc
 
+# Disable the onnx GStreamer element in gst-plugins-bad1.0: upstream's own
+#   -Donnx=disabled excludes arm64, so append our own at the end of the dh_auto_configure recipe
+#   line instead
 RUN GST_PLUGINS_BAD_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad*                         \
             -maxdepth 1 -type d | head -1 | sed 's/.*-//')                                      && \
+    (                                                                                              \
+        cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}                 && \
+        sed -i '/^\tdh_auto_configure --/ s/$/ -Donnx=disabled/' debian/rules                   && \
+        sed -i '/libonnxruntime-dev/d' debian/control                                           && \
+        sed -i '/libgstonnx\.so/d'     debian/rules                                             && \
+        grep -qP '^\tdh_auto_configure --.*-Donnx=disabled' debian/rules                           \
+    )                                                                                           && \
     git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION} init            && \
     git config --global --add safe.directory                                                       \
             ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}                && \
@@ -182,6 +188,30 @@ RUN GST_PLUGINS_BAD_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad*      
     git -C ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}                    \
             commit -m "Initial Plugins Bad Commit"                                              && \
     echo "export GST_PLUGINS_BAD_VERSION=${GST_PLUGINS_BAD_VERSION}" >> /root/.bashrc
+
+# Install gst-plugins-bad1.0's build-deps from the patched local debian/control via
+#  mk-build-deps, so the Debian packaged onnxruntime is never pulled in,
+#  qimsdk ships its own build and having both breaks dpkg-shlibdeps.
+RUN GST_PLUGINS_BAD_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad*                         \
+            -maxdepth 1 -type d | head -1 | sed 's/.*-//')                                      && \
+    DEBIAN_FRONTEND=noninteractive apt-get update                                               && \
+    (                                                                                              \
+        cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}                 && \
+        mk-build-deps -i -r --host-arch arm64 -a arm64                                             \
+            -t 'apt-get -y --no-install-recommends' debian/control                              && \
+        rm -f gst-plugins-bad1.0-cross-build-deps_*.deb                                            \
+            gst-plugins-bad1.0-cross-build-deps_*.changes                                          \
+            gst-plugins-bad1.0-cross-build-deps_*.buildinfo                                        \
+    )                                                                                           && \
+    apt-get clean                                                                               && \
+    rm -rf /var/lib/apt/lists* /var/tmp/*
+
+# Install additional dependencies required by some gstreamer plugins: (NOTE: This needs to be done
+#   separately, otherwise installation of these packages breaks.)
+#   gst-plugin-msgbroker:          librdkafka-dev
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y librdkafka-dev:arm64    && \
+    apt-get clean                                                                               && \
+    rm -rf /var/lib/apt/lists* /var/tmp/*
 
 # Optional build argument for helping set max CPU thread utilization
 ARG QIMSDK_ARG_MAX_JOBS
@@ -240,6 +270,54 @@ RUN mkdir -p ${QIMSDK_META_AI_DIR}                                              
     git -C ${QIMSDK_META_AI_DIR} fetch --depth 1 origin main                                    && \
     git -C ${QIMSDK_META_AI_DIR} checkout FETCH_HEAD                                            && \
     git -C ${QIMSDK_LITERT_SRC_DIR} am ${QIMSDK_LITERT_PATCHES_DIR}/0*.patch
+
+# Clone onnxruntime-qnn. It is cloned first because its cmake/deps.txt declares
+#  the onnx and onnxruntime versions it was validated against, which are used to
+#  clone the two below.
+ENV QIMSDK_ONNXRUNTIME_QNN_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/onnxruntime-qnn
+ENV QIMSDK_ONNXRUNTIME_QNN_SRC_BRANCH=v2.4.0
+RUN mkdir -p ${QIMSDK_ONNXRUNTIME_QNN_SRC_DIR}                                                  && \
+    git -C ${QIMSDK_ONNXRUNTIME_QNN_SRC_DIR} init                                               && \
+    git -C ${QIMSDK_ONNXRUNTIME_QNN_SRC_DIR}                                                       \
+            remote add origin https://github.com/onnxruntime/onnxruntime-qnn                    && \
+    git -C ${QIMSDK_ONNXRUNTIME_QNN_SRC_DIR} fetch --depth 1 --no-tags origin                      \
+            ${QIMSDK_ONNXRUNTIME_QNN_SRC_BRANCH}                                                && \
+    git -C ${QIMSDK_ONNXRUNTIME_QNN_SRC_DIR} checkout FETCH_HEAD
+
+# Clone onnx and onnxruntime on the release branches onnxruntime-qnn pins for
+#  them in cmake/deps.txt.
+ENV QIMSDK_ONNX_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/onnx
+ENV QIMSDK_ONNXRUNTIME_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/onnxruntime
+RUN QIMSDK_ONNX_DEPS_FILE=${QIMSDK_ONNXRUNTIME_QNN_SRC_DIR}/cmake/deps.txt                      && \
+    QIMSDK_ONNX_SRC_BRANCH=$(grep "onnx;" ${QIMSDK_ONNX_DEPS_FILE}                                 \
+        | rev | cut -d '/' -f 1 | rev | sed -E 's#.*v([0-9.]+)\.zip;.*#rel-\1#')                && \
+    QIMSDK_ONNXRUNTIME_SRC_BRANCH=$(grep "ort_core;" ${QIMSDK_ONNX_DEPS_FILE}                      \
+        | rev | cut -d '/' -f 1 | rev | sed -E 's#.*v([0-9.]+)\.zip;.*#rel-\1#')                && \
+    mkdir -p ${QIMSDK_ONNX_SRC_DIR}                                                             && \
+    git -C ${QIMSDK_ONNX_SRC_DIR} init                                                          && \
+    git -C ${QIMSDK_ONNX_SRC_DIR}                                                                  \
+            remote add origin https://github.com/onnx/onnx.git                                  && \
+    git -C ${QIMSDK_ONNX_SRC_DIR} fetch --depth 1 --no-tags origin ${QIMSDK_ONNX_SRC_BRANCH}    && \
+    git -C ${QIMSDK_ONNX_SRC_DIR} checkout FETCH_HEAD                                           && \
+    mkdir -p ${QIMSDK_ONNXRUNTIME_SRC_DIR}                                                      && \
+    git -C ${QIMSDK_ONNXRUNTIME_SRC_DIR} init                                                   && \
+    git -C ${QIMSDK_ONNXRUNTIME_SRC_DIR}                                                           \
+            remote add origin https://github.com/microsoft/onnxruntime                          && \
+    git -C ${QIMSDK_ONNXRUNTIME_SRC_DIR} fetch --depth 1 --no-tags origin                          \
+            ${QIMSDK_ONNXRUNTIME_SRC_BRANCH}                                                    && \
+    git -C ${QIMSDK_ONNXRUNTIME_SRC_DIR} checkout FETCH_HEAD                                    && \
+    git -C ${QIMSDK_ONNXRUNTIME_SRC_DIR} submodule update --init --recursive --depth 1
+
+# Clone meta-qcom and apply onnxruntime-qnn patches for it
+ENV QIMSDK_META_QCOM_DIR=${QIMSDK_DOWNLOAD_DIR}/meta-qcom
+ENV QIMSDK_ONNXRUNTIME_QNN_PATCHES_DIR=${QIMSDK_META_QCOM_DIR}/dynamic-layers/ai/recipes-ml/onnxruntime-qnn/files
+RUN mkdir -p ${QIMSDK_META_QCOM_DIR}                                                            && \
+    git -C ${QIMSDK_META_QCOM_DIR} init                                                         && \
+    git -C ${QIMSDK_META_QCOM_DIR}                                                                 \
+            remote add origin https://github.com/qualcomm-linux/meta-qcom.git                   && \
+    git -C ${QIMSDK_META_QCOM_DIR} fetch --depth 1 origin master                                && \
+    git -C ${QIMSDK_META_QCOM_DIR} checkout FETCH_HEAD                                          && \
+    git -C ${QIMSDK_ONNXRUNTIME_QNN_SRC_DIR} am ${QIMSDK_ONNXRUNTIME_QNN_PATCHES_DIR}/0*.patch
 
 # Clone flatbuffers. Use the exact git tag as specified in tflite dependency
 ENV QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/flatbuffers_23.5.26
