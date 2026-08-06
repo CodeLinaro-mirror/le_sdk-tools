@@ -501,7 +501,8 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
             `-DENABLE_GST_PLUGIN_SMARTVENCBIN=ON `
             `-DENABLE_GST_PLUGIN_URIDECODEBIN=ON `
             `-DENABLE_GST_SAMPLE_APPS=ON `
-            `-DENABLE_GST_SAMPLE_APPS_CAMERA=ON                                                 && \
+            `-DENABLE_GST_SAMPLE_APPS_CAMERA=ON `
+            `-DENABLE_GST_PYTHON_EXAMPLES=ON                                                    && \
         print-green "${FUNCNAME} completed successfully!"
 }
 

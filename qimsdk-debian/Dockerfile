@@ -674,3 +674,53 @@ COPY .bash_aliases /root/.bash_aliases
 ENTRYPOINT ["/bin/entrypoint.sh"]
 
 CMD ["/bin/bash"]
+
+# QIMSDK Device Image with support for python use-cases
+FROM qimsdk_deploy_arm64 AS qimsdk_deploy_py_arm64
+
+# Installing dependencies, needed in order for gst python apps to work runtime:
+#  python3 basic dependencies:    python3 python3-pip python3-venv python3-gi pygobject
+#  pygobject dependencies:        gobject-introspection libgirepository-2.0-dev libcairo2-dev
+#                                 python3-dev libgirepository1.0-dev
+# NOTE: The reason for installing dev packages (python3-dev, libcairo2-dev, libgirepository1.0-dev)
+# is that runtime, when executing the pip install command, the pip install for the PyGObject package
+# has a dependency on the pkgconfig files of python, gobject-introspection and cairo. It also has a
+# dependency on python.h headers - These are found in these dev packages.
+RUN apt-get update                                                                              && \
+    DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
+            python3 python3-dev python3-pip python3-venv python3-gi gobject-introspection          \
+            libgirepository-2.0-dev libcairo2-dev libgirepository1.0-dev                        && \
+    apt -y upgrade                                                                              && \
+    apt-get autoremove -y                                                                       && \
+    apt-get clean                                                                               && \
+    rm -rf /var/lib/apt/lists* /var/tmp/*
+
+# Switch user to create qimsdk user owned python venv
+USER qimsdk
+
+ENV QIMSDK_PYTHON_VENV_PATH=/home/qimsdk/.venv
+
+# Install python packages and set up venv to use system packages
+#  packages, needed for python use-cases installed via pip:
+#    pygobject     - needed for gobject introspection
+#    opencv-python - needed for gst-python
+# Also, add a requirements.txt file containing pip packages' versions for debug purposes
+RUN python3 -m venv ${QIMSDK_PYTHON_VENV_PATH}                                                  && \
+    PY_GOBJECT_VER=$(apt policy python3-gi 2>/dev/null                                           | \
+            sed -n 's/.*Installed: \([0-9.]*\).*/\1/p')                                         && \
+    ${QIMSDK_PYTHON_VENV_PATH}/bin/pip install PyGObject==${PY_GOBJECT_VER} opencv-python       && \
+    ${QIMSDK_PYTHON_VENV_PATH}/bin/pip freeze --local > ${QIMSDK_PYTHON_VENV_PATH}/requirements.txt
+
+# Switch user back to root to resume regular operation
+USER root
+
+# Run shell into python .venv so that python dependencies are always available in deploy container
+# Copy .bash_aliases file to be executed for qimsdk user shell
+RUN echo "source ${QIMSDK_PYTHON_VENV_PATH}/bin/activate" >> /root/.bash_aliases                && \
+    cp /root/.bash_aliases /home/qimsdk/.bash_aliases                                           && \
+    chown -R qimsdk:qcom /home/qimsdk/.bash_aliases
+
+# Create an image where a detached container can run indefinitely
+ENTRYPOINT ["/bin/entrypoint.sh"]
+
+CMD ["/bin/bash"]
