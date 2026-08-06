@@ -451,18 +451,6 @@ function qimsdk-cmake-clean-tflite() {
 function qimsdk-cmake-build-gst-plugins-imsdk() {
     local IS_QNP_ENABLED=$( [ -n "${QIMSDK_ARG_QNP_VERSION:-}" ] && echo ON || echo OFF )
 
-    # Build the plugins base in a separate directory to ensure usage of the installed headers
-    #   located in /usr/include during the plugin build process.
-    # In Yocto, the plugins base is also built first as a separate recipe.
-
-    # Sync code in new repo for base
-    mkdir -p ${QIMSDK_SRC_DIR}/gst-plugins-imsdk-base                                           && \
-    rsync -aP ${QIMSDK_SRC_DIR}/gst-plugins-imsdk/* ${QIMSDK_SRC_DIR}/gst-plugins-imsdk-base/   && \
-
-    # Build only qti plugins base
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-imsdk-base /usr `
-            `-DENABLE_GST_PLUGIN_BASE=ON && \
-
     # Build qti plugins
     qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-imsdk /usr `
             `-DENABLE_GST_PLUGIN_BASE=ON `
@@ -495,8 +483,6 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
             `-DENABLE_GST_PLUGIN_MLMETAEXTRACTOR=ON `
             `-DENABLE_GST_PLUGIN_MLPOSTPROCESS=ON `
             `-DENABLE_GST_PLUGIN_MSGBROKER=ON `
-            # TODO remove VHDR_MODES_ENABLE after qmmf src is cleaned up from compile time flags
-            `-DVHDR_MODES_ENABLE=ON `
             `-DENABLE_GST_PLUGIN_QMMFSRC=ON `
             `-DENABLE_GST_PLUGIN_SMARTVENCBIN=ON `
             `-DENABLE_GST_PLUGIN_URIDECODEBIN=ON `
