@@ -548,6 +548,9 @@ Pin: release n=trixie-backports
 Pin-Priority: 900
 EOF
 
+# Copy deb packages to device image
+COPY --from=qimsdk_build /mnt/work/downloads/debs ${QIMSDK_DEB_DIR}
+
 # Installing dependencies, needed in order for gst plugins to load succesfully runtime:
 #  gstreamer base plugins:        gstreamer1.0-tools,
 #                                 gstreamer1.0-plugins-base,
@@ -570,14 +573,15 @@ EOF
 #  Mesa Vulkan drivers:           mesa-vulkan-drivers
 RUN apt-get update                                                                              && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
-            adduser gosu bash-completion nano libhiredis1.1.0 gstreamer1.0-tools                   \
-            libgstrtspserver-1.0-0 libopencv-imgproc410 libxv1 gstreamer1.0-nice                   \
-            gstreamer1.0-plugins-good pulseaudio gstreamer1.0-plugins-base librdkafka1             \
-            gstreamer1.0-plugins-ugly gir1.2-gst-1.0 libyaml-0-2 mesa-vulkan-drivers            && \
+            adduser gosu bash-completion nano libhiredis1.1.0 ${QIMSDK_DEB_DIR}/*.deb              \
+            gstreamer1.0-tools libgstrtspserver-1.0-0 libopencv-imgproc410 libxv1                  \
+            gstreamer1.0-nice libpulse0 librdkafka1 gstreamer1.0-plugins-ugly gir1.2-gst-1.0       \
+            libyaml-0-2 mesa-vulkan-drivers                                                     && \
     apt -y upgrade                                                                              && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
-    rm -rf /var/lib/apt/lists* /var/tmp/*
+    rm -rf /var/lib/apt/lists* /var/tmp/*                                                       && \
+    rm -rf ${QIMSDK_DEB_DIR}
 
 # Add QTI PPA and install QTI dependencies
 #  gpg curl:                        install PPA
@@ -672,12 +676,6 @@ RUN ulimit -n 16192
 
 # Copy installed binaries to device image
 COPY --from=qimsdk_build ${QIMSDK_INSTALL_DIR}/usr /usr
-
-# Copy deb packages to device image
-COPY --from=qimsdk_build /mnt/work/downloads/debs ${QIMSDK_DEB_DIR}
-
-# Install deb packages to deploy image and remove the directory after install
-RUN dpkg -i ${QIMSDK_DEB_DIR}/* && rm -rf ${QIMSDK_DEB_DIR}
 
 # Change workdir to user home
 WORKDIR /home/qimsdk

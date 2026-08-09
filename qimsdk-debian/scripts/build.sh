@@ -221,6 +221,11 @@ function qimsdk-debian-rules-build() {
         export CC=aarch64-linux-gnu-gcc
         export CXX=aarch64-linux-gnu-g++
 
+        export DEBFULLNAME="qimsdk docker"
+        export DEBEMAIL="qimsdk@email"
+
+        dch --newversion "$(dpkg-parsechangelog -S Version)+qcom" "Qualcomm custom patches"
+
         # GStreamer ARM64 plugin scanner
         export GST_PLUGIN_SCANNER=/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/`
                 `gst-plugin-scanner
