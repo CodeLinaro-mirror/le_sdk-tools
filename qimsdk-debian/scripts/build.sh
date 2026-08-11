@@ -501,10 +501,8 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
 
 # Clean gst-plugins-imsdk
 function qimsdk-cmake-clean-gst-plugins-imsdk() {
-    # Remove both the plugins base and plugins build directories.
-    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-imsdk ${QIMSDK_BUILD_DIR}/gst-plugins-imsdk-base
-
-    print-green "${FUNCNAME} completed successfully!"
+    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-imsdk                                                && \
+            print-green "${FUNCNAME} completed successfully!"
 }
 
 # CMake Build solutions-microservices
