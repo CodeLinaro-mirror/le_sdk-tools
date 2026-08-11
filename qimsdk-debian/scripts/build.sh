@@ -450,7 +450,7 @@ function qimsdk-cmake-clean-tflite() {
 # Incremental build all gst-plugins-imsdk
 function qimsdk-cmake-build-gst-plugins-imsdk() {
     (
-        local IS_QNP_ENABLED=$( [ -n "${QIMSDK_ARG_QNP_VERSION:-}" ] && echo ON || echo OFF )
+        local IS_QNP_ENABLED=$( [ -n "${QIMSDK_QNP_VERSION:-}" ] && echo ON || echo OFF )
 
         # Set ${PYTHON_DIR} for the according python version for this shell
         #     (needed for site-packages dir during build)

@@ -375,6 +375,7 @@ RUN GST_PLUGINS_BASE_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base*    
 
 # qnp-sdk: fetch and copy the needed headers
 ARG QIMSDK_ARG_QNP_VERSION
+ENV QIMSDK_QNP_VERSION=${QIMSDK_ARG_QNP_VERSION}
 RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                                      \
         echo "WARN : QIMSDK_ARG_QNP_VERSION is not provided. Skipping QNN installation." >&2;      \
     else                                                                                           \
