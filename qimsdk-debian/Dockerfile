@@ -391,6 +391,9 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
             /usr/include/.                                                                      && \
         cp -r ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QNN/*             \
             /usr/include/.                                                                      && \
+        [ ! -d "${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QAIRT" ]     || \
+            cp -rf "${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_SDK_VERSION}/include/QAIRT"      \
+            "/usr/include/"                                                                     && \
         cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v66/unsigned/* ${QIMSDK_V66_CDSP_DIR}/                && \
         cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v68/unsigned/* ${QIMSDK_V68_CDSP_DIR}/                && \
         cp ${QIMSDK_QNN_LIB_PATH}/hexagon-v73/unsigned/* ${QIMSDK_V73_CDSP_DIR}/                && \
@@ -441,7 +444,21 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
                 -name 'libSnpeHtpV73Stub.so' -o                                                    \
                 -name 'libSnpeHtpV75CalculatorStub.so' -o                                          \
                 -name 'libSnpeHtpV75Stub.so' -o                                                    \
-                -name 'libSNPE.so'                                                                 \
+                -name 'libSNPE.so' -o                                                              \
+                -name 'libQairtSystem.so' -o                                                       \
+                -name 'libQairtDspV66Stub.so' -o                                                   \
+                -name 'libQairtHtpV68Stub.so' -o                                                   \
+                -name 'libQairtHtpV73Stub.so' -o                                                   \
+                -name 'libQairtHtpV75Stub.so' -o                                                   \
+                -name 'libQairtHtpPrepare.so' -o                                                   \
+                -name 'libQairtHtpBackendExtensions.so' -o                                         \
+                -name 'libQairtGpuBackendExtensions.so' -o                                         \
+                -name 'libQairtGpu.so' -o                                                          \
+                -name 'libQairtDsp.so' -o                                                          \
+                -name 'libQairtCpuBackendExtensions.so' -o                                         \
+                -name 'libQairtCpu.so' -o                                                          \
+                -name 'libQairtHtp.so' -o                                                          \
+                -name 'libQairtDspBackendExtensions.so'                                            \
             \)                                                                                     \
             -exec cp -t "${QIMSDK_INSTALL_LIB_DIR}/" {} +                                       && \
         rm -rf ${QIMSDK_DOWNLOAD_DIR}/qairt;                                                       \

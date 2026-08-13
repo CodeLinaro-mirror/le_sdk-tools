@@ -452,6 +452,9 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
     (
         local IS_QNP_ENABLED=$( [ -n "${QIMSDK_QNP_VERSION:-}" ] && echo ON || echo OFF )
 
+        local ENABLE_GST_PLUGIN_MLQAIRT=$( [ -n "${QIMSDK_QNP_VERSION:-}" ]                     && \
+                [ -d "/usr/include/QAIRT" ] && echo ON || echo OFF )
+
         # Set ${PYTHON_DIR} for the according python version for this shell
         #     (needed for site-packages dir during build)
         export PYTHON_DIR=python3.13
@@ -483,6 +486,8 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
                 `-DENABLE_GST_PLUGIN_MLTFLITE=ON `
                 `-DENABLE_GST_PLUGIN_MLSNPE=${IS_QNP_ENABLED} `
                 `-DENABLE_GST_PLUGIN_MLQNN=${IS_QNP_ENABLED} `
+                `-DENABLE_GST_PLUGIN_MLQAIRT=${ENABLE_GST_PLUGIN_MLQAIRT} `
+                `-DENABLE_GST_PLUGIN_MLBIN=ON `
                 `-DENABLE_GST_PLUGIN_MLMETAPARSER=ON `
                 `-DENABLE_GST_PLUGIN_METATRANSFORM=ON `
                 `-DENABLE_GST_PLUGIN_OBJTRACKER=ON `
