@@ -194,14 +194,23 @@ ENV QIMSDK_TF_LITE_PATCH="2"
 ENV QIMSDK_TF_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/tensorflow
 RUN git config --global pack.threads "${QIMSDK_ARG_MAX_JOBS:-$(nproc)}"                         && \
     git config --global http.postBuffer 157286400                                               && \
-    git clone --progress https://github.com/tensorflow/tensorflow.git --single-branch              \
-            --branch r${QIMSDK_TF_LITE_MAJOR}.${QIMSDK_TF_LITE_MINOR} ${QIMSDK_TF_SRC_DIR}
+    mkdir -p ${QIMSDK_TF_SRC_DIR}                                                               && \
+    git -C ${QIMSDK_TF_SRC_DIR} init                                                            && \
+    git -C ${QIMSDK_TF_SRC_DIR}                                                                    \
+            remote add origin https://github.com/tensorflow/tensorflow.git                      && \
+    git -C ${QIMSDK_TF_SRC_DIR} fetch --depth 1 origin                                             \
+            r${QIMSDK_TF_LITE_MAJOR}.${QIMSDK_TF_LITE_MINOR}                                    && \
+    git -C ${QIMSDK_TF_SRC_DIR} checkout FETCH_HEAD
 
 # Clone meta-qcom-distro and apply tflite patches for it
 ENV QIMSDK_META_QCOM_DISTRO_DIR=${QIMSDK_DOWNLOAD_DIR}/meta-qcom-distro
 ENV QIMSDK_TFLITE_PATCHES_DIR=${QIMSDK_META_QCOM_DISTRO_DIR}/recipes-ml/tflite/files/tflite
-RUN git clone https://github.com/qualcomm-linux/meta-qcom-distro.git --single-branch --branch main \
-            ${QIMSDK_META_QCOM_DISTRO_DIR}                                                      && \
+RUN mkdir -p ${QIMSDK_META_QCOM_DISTRO_DIR}                                                     && \
+    git -C ${QIMSDK_META_QCOM_DISTRO_DIR} init                                                  && \
+    git -C ${QIMSDK_META_QCOM_DISTRO_DIR}                                                          \
+            remote add origin https://github.com/qualcomm-linux/meta-qcom-distro.git            && \
+    git -C ${QIMSDK_META_QCOM_DISTRO_DIR} fetch --depth 1 origin main                           && \
+    git -C ${QIMSDK_META_QCOM_DISTRO_DIR} checkout FETCH_HEAD                                   && \
     git -C ${QIMSDK_TF_SRC_DIR}                                                                    \
             am ${QIMSDK_TFLITE_PATCHES_DIR}/0*                                                  && \
     git -C ${QIMSDK_TF_SRC_DIR}                                                                    \
@@ -223,9 +232,12 @@ RUN QIMSDK_FLATBUFFERS_23_5_26_TAG=$(cat ${QIMSDK_TF_SRC_DIR}/tensorflow/lite/to
 # Clone abseil-cpp. Use the git tag compatible with tflite 2.16, tflite 2.20 and lite rt 2.1.2
 ENV QIMSDK_ABSEIL_CPP_DIR=${QIMSDK_DOWNLOAD_DIR}/abseil-cpp
 RUN QIMSDK_ABSEIL_CPP_TAG=d38452e1ee03523a208362186fd42248ff2609f6                              && \
-    git clone --progress https://github.com/abseil/abseil-cpp.git                                  \
-            --single-branch --branch lts_2025_08_14 ${QIMSDK_ABSEIL_CPP_DIR}                    && \
-    git -C ${QIMSDK_ABSEIL_CPP_DIR} checkout -b work ${QIMSDK_ABSEIL_CPP_TAG}
+    mkdir -p ${QIMSDK_ABSEIL_CPP_DIR}                                                           && \
+    git -C ${QIMSDK_ABSEIL_CPP_DIR} init                                                        && \
+    git -C ${QIMSDK_ABSEIL_CPP_DIR}                                                                \
+            remote add origin https://github.com/abseil/abseil-cpp.git                          && \
+    git -C ${QIMSDK_ABSEIL_CPP_DIR} fetch --depth 1 origin ${QIMSDK_ABSEIL_CPP_TAG}             && \
+    git -C ${QIMSDK_ABSEIL_CPP_DIR} checkout FETCH_HEAD
 
 # Add CMake redirects
 COPY cmake ${QIMSDK_DOWNLOAD_DIR}/cmake
@@ -256,8 +268,12 @@ ENV QIMSDK_SRC_DIR=${QIMSDK_BASE_DIR}/src
 ENV QIMSDK_PATH_TO_GST_META=${QIMSDK_SRC_DIR}/gst-qti-oss-patches
 
 # media: fetch and build camera metadata library
-RUN git clone --progress https://android.googlesource.com/platform/system/media.git                \
-        --single-branch --branch main ${QIMSDK_DOWNLOAD_DIR}/media                              && \
+RUN mkdir -p ${QIMSDK_DOWNLOAD_DIR}/media                                                       && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/media init                                                    && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/media                                                            \
+            remote add origin https://android.googlesource.com/platform/system/media.git        && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/media fetch --depth 1 origin main                             && \
+    git -C ${QIMSDK_DOWNLOAD_DIR}/media checkout FETCH_HEAD                                     && \
     sed -i '\|ANDROID_API|d'                                                                       \
         ${QIMSDK_DOWNLOAD_DIR}/media/private/camera/include/camera_metadata_hidden.h            && \
     sed -i '\|#include <cutils/compiler\.h>|d'                                                     \
@@ -299,7 +315,11 @@ RUN cd ${QIMSDK_DOWNLOAD_DIR}                                                   
 
 # Build fastrpc
 RUN cd "${QIMSDK_DOWNLOAD_DIR}"                                                                 && \
-    git clone --depth 1 https://github.com/quic/fastrpc.git --branch v1.0.6                     && \
+    mkdir -p fastrpc                                                                            && \
+    git -C fastrpc init                                                                         && \
+    git -C fastrpc remote add origin https://github.com/quic/fastrpc.git                        && \
+    git -C fastrpc fetch --depth 1 origin v1.0.6                                                && \
+    git -C fastrpc checkout FETCH_HEAD                                                          && \
     cd fastrpc                                                                                  && \
     autoreconf -is                                                                              && \
     BUILD_ARCH="$(dpkg --print-architecture)"                                                   && \
@@ -372,8 +392,13 @@ RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                   
 # gst-qti-oss-patches: fetch
 RUN GST_PLUGINS_BASE_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base*                       \
             -maxdepth 1 -type d | head -1 | sed 's/.*-//')                                      && \
-    git clone --progress https://github.com/qualcomm/gst-qti-oss-patches.git --single-branch       \
-        --branch ${GST_PLUGINS_BASE_VERSION} ${QIMSDK_SRC_DIR}/gst-qti-oss-patches
+    mkdir -p ${QIMSDK_SRC_DIR}/gst-qti-oss-patches                                              && \
+    git -C ${QIMSDK_SRC_DIR}/gst-qti-oss-patches init                                           && \
+    git -C ${QIMSDK_SRC_DIR}/gst-qti-oss-patches                                                   \
+            remote add origin https://github.com/qualcomm/gst-qti-oss-patches.git               && \
+    git -C ${QIMSDK_SRC_DIR}/gst-qti-oss-patches fetch --depth 1 origin                            \
+            ${GST_PLUGINS_BASE_VERSION}                                                         && \
+    git -C ${QIMSDK_SRC_DIR}/gst-qti-oss-patches checkout FETCH_HEAD
 
 # qnp-sdk: fetch and copy the needed headers
 ARG QIMSDK_ARG_QNP_VERSION
@@ -468,26 +493,33 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
 
 # camera-service: fetch
 ARG QIMSDK_ARG_CAMERA_SERVICE_TAG
-RUN git clone --progress https://github.com/qualcomm/camera-service.git                            \
-        --single-branch --branch main ${QIMSDK_SRC_DIR}/camera-service                          && \
-        [ -z "${QIMSDK_ARG_CAMERA_SERVICE_TAG}" ]                                               || \
-        git -C ${QIMSDK_SRC_DIR}/camera-service checkout -b work ${QIMSDK_ARG_CAMERA_SERVICE_TAG}
+RUN mkdir -p ${QIMSDK_SRC_DIR}/camera-service                                                   && \
+    git -C ${QIMSDK_SRC_DIR}/camera-service init                                                && \
+    git -C ${QIMSDK_SRC_DIR}/camera-service                                                        \
+            remote add origin https://github.com/qualcomm/camera-service.git                    && \
+    git -C ${QIMSDK_SRC_DIR}/camera-service fetch --depth 1 origin                                 \
+            "${QIMSDK_ARG_CAMERA_SERVICE_TAG:-main}"                                            && \
+    git -C ${QIMSDK_SRC_DIR}/camera-service checkout FETCH_HEAD
 
 # gst-plugins-imsdk: fetch
 ARG QIMSDK_ARG_GST_PLUGINS_TAG
-RUN git clone --single-branch --branch main https://github.com/qualcomm/gst-plugins-imsdk.git      \
-        ${QIMSDK_SRC_DIR}/gst-plugins-imsdk                                                     && \
-        [ -z "${QIMSDK_ARG_GST_PLUGINS_TAG}" ]                                                  || \
-        git -C ${QIMSDK_SRC_DIR}/gst-plugins-imsdk checkout -b work ${QIMSDK_ARG_GST_PLUGINS_TAG}
+RUN mkdir -p ${QIMSDK_SRC_DIR}/gst-plugins-imsdk                                                && \
+    git -C ${QIMSDK_SRC_DIR}/gst-plugins-imsdk init                                             && \
+    git -C ${QIMSDK_SRC_DIR}/gst-plugins-imsdk                                                     \
+            remote add origin https://github.com/qualcomm/gst-plugins-imsdk.git                 && \
+    git -C ${QIMSDK_SRC_DIR}/gst-plugins-imsdk fetch --depth 1 origin                              \
+            "${QIMSDK_ARG_GST_PLUGINS_TAG:-main}"                                               && \
+    git -C ${QIMSDK_SRC_DIR}/gst-plugins-imsdk checkout FETCH_HEAD
 
 # gst-plugins-imsdk: fetch
 ARG QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG
-RUN git clone --single-branch --branch iot-solutions.lnx.1.0                                       \
-            https://git.codelinaro.org/clo/le/solutions-microservices                              \
-        ${QIMSDK_SRC_DIR}/solutions-microservices                                               && \
-        [ -z "${QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG}" ]                                      || \
-        git -C ${QIMSDK_SRC_DIR}/solutions-microservices checkout -b work                          \
-                ${QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG}
+RUN mkdir -p ${QIMSDK_SRC_DIR}/solutions-microservices                                          && \
+    git -C ${QIMSDK_SRC_DIR}/solutions-microservices init                                       && \
+    git -C ${QIMSDK_SRC_DIR}/solutions-microservices                                               \
+            remote add origin https://git.codelinaro.org/clo/le/solutions-microservices         && \
+    git -C ${QIMSDK_SRC_DIR}/solutions-microservices fetch --depth 1 origin                        \
+            "${QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG:-iot-solutions.lnx.1.0}"                  && \
+    git -C ${QIMSDK_SRC_DIR}/solutions-microservices checkout FETCH_HEAD
 
 # Add development image scripts
 ENV QIMSDK_SCRIPTS=${QIMSDK_BASE_DIR}/scripts/
