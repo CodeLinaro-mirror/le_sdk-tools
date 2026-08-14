@@ -212,9 +212,13 @@ ENV QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/flatbuffers_23.5.2
 ENV QIMSDK_FLATBUFFERS_23_5_26_INSTALL_DIR=${QIMSDK_HOST_TOOLS_DIR}/flatbuffers_23.5.26/usr
 RUN QIMSDK_FLATBUFFERS_23_5_26_TAG=$(cat ${QIMSDK_TF_SRC_DIR}/tensorflow/lite/tools/cmake/modules/flatbuffers.cmake | \
             grep GIT_TAG | rev | cut -d ' ' -f 1 | rev)                                         && \
-    git clone --progress https://github.com/google/flatbuffers.git                                 \
-            --single-branch --branch master ${QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR}               && \
-    git -C ${QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR} checkout -b work ${QIMSDK_FLATBUFFERS_24_3_25_TAG}
+    mkdir -p ${QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR}                                              && \
+    git -C ${QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR} init                                           && \
+    git -C ${QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR}                                                   \
+            remote add origin https://github.com/google/flatbuffers.git                         && \
+    git -C ${QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR}                                                   \
+            fetch --depth 1 origin ${QIMSDK_FLATBUFFERS_23_5_26_TAG}                            && \
+    git -C ${QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR} checkout FETCH_HEAD
 
 # Clone abseil-cpp. Use the git tag compatible with tflite 2.16, tflite 2.20 and lite rt 2.1.2
 ENV QIMSDK_ABSEIL_CPP_DIR=${QIMSDK_DOWNLOAD_DIR}/abseil-cpp
