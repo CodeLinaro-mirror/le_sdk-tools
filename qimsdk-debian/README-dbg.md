@@ -517,7 +517,7 @@ Two QIMSDK docker images are built. One for development machine. One for device 
 ### QIMSDK Build Image (based on host architecture)
 1. Start from Debian Trixie
 2. Add deb-src for everything
-3. Install build time dependencies, needed for gst-plugins-imsdk compilation
+3. Install build time dependencies, needed for qimsdk src compilation
 4. Create deploy and prebuilt directories to install binaries to be propagated to deploy image
 5. Create qimsdk build directory and logs directory
 6. Set up download directory and download open-source projects which need to be patched
@@ -574,7 +574,7 @@ Config json files *(config.json)* must contain the following data:
  4. ***MANDATORY*** -  **Target_device_ID** - adb device ID, or an IPv4 network address of the target device qimsdk is to be installed on. Any faux value can still be provided and compilation will carry on.
  5. ***OPTIONAL*** -  **QAIRT_SDK_version** - Version of the Qualcomm AI Runtime SDK to be used in the container. If field is left open - QAIRT functionalities will be disabled.
  6. ***MANDATORY*** - **camera_service_Source_Dir** - PATH to camera-service sources directory, which contains open-source repo needed to enable camera functionality.
- 7. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-imsdk directory! Code checked out on local branch main will be built. Ensure desired code is checked out on main branch before proceeding with debug variant QIMSDK build!***
+ 7. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to qimsdk sources directory! Code checked out on local branch main will be built. Ensure desired code is checked out on main branch before proceeding with debug variant QIMSDK build!***
  8. ***MANDATORY*** - **solutions_microservices_Source_dir** - PATH to solutions-microservices sources directory, which contains microservices apps code. ***Note: Path provided must point to solutions-microservices directory! Code checked out on local branch iot-solutions.lnx.1.0 will be built. Ensure desired code is checked out on iot-solutions.lnx.1.0 branch before proceeding with debug variant QIMSDK build!***
  9. ***OPTIONAL*** - **camera_service_git_tag** - Specifies the commit ID or tag for the camera-service project. ***Note: If not provided, the latest (TIP) version will be used!***
  10. ***OPTIONAL*** - **IM_SDK_Source_git_tag** - Specifies the commit ID or tag for the IM SDK sources directory. ***Note: If not provided, the latest (TIP) version will be used!***
@@ -659,7 +659,7 @@ And in order to load the artifacts into the python deploy container:
 
 These functions are available immediately inside development container:
 
- - qimsdk-cmake-build-gst-plugins-imsdk - Incremental build all gst-plugins-imsdk
+ - qimsdk-cmake-build-qimsdk - Incremental build all qimsdk src
  - qimsdk-help-build - Display all cmake functions to build/clean any gst plugin
  - qimsdk-incremental-build - Incremental build of all gst plugins
  - qimsdk-dbg-save-artifacts - Save release variant artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment
@@ -969,16 +969,16 @@ Inside the development container, New CMake project can be added to extend qimsd
 
 1. Add source code and top-level CMakeLists.txt file in Project Directory.
   - Project Directory Name should be same as project name.
-  - It is recommended to add projects as subdirectiories of /mnt/work/src/gst-plugins-imsdk
-  - Example: /mnt/work/src/gst-plugins-imsdk/\<Project-Directory-Name\>
+  - It is recommended to add projects as subdirectiories of /mnt/work/src/qimsdk
+  - Example: /mnt/work/src/qimsdk/\<Project-Directory-Name\>
 
 2. Add in top level CMakeLists.txt file option (with default value OFF) to add as subdirectory \<Project-Directory-Name\>
 
-3. For new project to be compiled automatically during `qimsdk-incremental-build`, newly created option from last step needs to be added to "qimsdk-cmake-build-gst-plugins-imsdk" with value ON in /mnt/work/scripts/build.sh
+3. For new project to be compiled automatically during `qimsdk-incremental-build`, newly created option from last step needs to be added to "qimsdk-cmake-build-qimsdk" with value ON in /mnt/work/scripts/build.sh
 
 ```bash
-# Incremental build all gst-plugins-imsdk
-function qimsdk-cmake-build-gst-plugins-imsdk() {
+# Incremental build all qimsdk src
+function qimsdk-cmake-build-qimsdk() {
 ...
 ...
 ...
