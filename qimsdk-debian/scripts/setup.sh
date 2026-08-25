@@ -157,7 +157,7 @@ function qimsdk-copy-tf-lite-headers-to-sysroot() {
 
     local PENDING_LIST_INIT=""
 
-    local QIMSDK_QTI_SRC_DIR=${QIMSDK_SRC_DIR}/gst-plugins-imsdk
+    local QIMSDK_QTI_SRC_DIR=${QIMSDK_SRC_DIR}/qimsdk
     local ML_TFLITE_ENGINE_CC=$(find "${QIMSDK_QTI_SRC_DIR}" -name "ml-tflite-engine-c-api.cc")
     local ML_TFLITE_ENGINE_H=$(find "${QIMSDK_QTI_SRC_DIR}" -name "ml-tflite-engine.h")
 

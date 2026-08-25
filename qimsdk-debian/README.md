@@ -51,7 +51,7 @@ This separation allows for efficient development on the host system while ensuri
 
     1. Start from Debian Trixie
     2. Add deb-src for everything
-    3. Install build time dependencies, needed for gst-plugins-imsdk compilation
+    3. Install build time dependencies, needed for qimsdk src compilation
     4. Create deploy and prebuilt directories to install binaries to be propagated to deploy image
     5. Create qimsdk build directory and logs directory
     6. Set up download directory and download open-source projects which need to be patched
@@ -108,8 +108,8 @@ Handles the compilation and installation of open-source and QCOM GStreamer plugi
 - qimsdk-debian-rules-build-\<name-of-project\> - Builds specific open-source component with custom configuration
 - qimsdk-debian-rules-clean-\<name-of-project\> - Cleans build directory for specific open-source component
 - qimsdk-cmake-build-camera-service - Build and install open-source project needed in order to enable camera functionality.
-- qimsdk-cmake-build-gst-plugins-imsdk - Base QCOM GStreamer plugins that the others depend on are built. After which, a hardcoded list of QCOM GStreamer plugins is built in parallel. If one wishes to add a new GStreamer plugin to build using CMake, simply add the plugin directory name under gst-plugins-imsdk/ source dir to the list.
-- qimsdk-incremental-build - Main entry point that builds all GStreamer components in sequence with success reporting. Also calls qimsdk-cmake-build-gst-plugins-imsdk, to build QCOM GStreamer plugins.
+- qimsdk-cmake-build-qimsdk - Base QCOM GStreamer plugins that the others depend on are built. If one wishes to add a new GStreamer plugin to build using CMake, simply add the plugin directory name under qimsdk/ source dir to the list.
+- qimsdk-incremental-build - Main entry point that builds all GStreamer components in sequence with success reporting. Also calls qimsdk-cmake-build-qimsdk, to build qimsdk.
 
 <div id="env_setup.sh">
 
@@ -182,20 +182,20 @@ This ensures all components are pinned to reproducible versions during the image
 
 ### How to add a new QCOM GStreamer plugin
 
-***NOTE: Adding a new QCOM GStreamer plugin to the qimsdk-cmake-build-gst-plugins-imsdk function***
+***NOTE: Adding a new QCOM GStreamer plugin to the qimsdk-cmake-build-qimsdk function***
 
 1. Add source code and top-level CMakeLists.txt file in Project Directory.
   - Project Directory Name should be same as project name.
-  - It is recommended to add projects as subdirectiories of /mnt/work/src/gst-plugins-imsdk
-  - Example: /mnt/work/src/gst-plugins-imsdk/\<Project-Directory-Name\>
+  - It is recommended to add projects as subdirectiories of /mnt/work/src/qimsdk
+  - Example: /mnt/work/src/qimsdk/\<Project-Directory-Name\>
 
 2. Add in top level CMakeLists.txt file option (with default value OFF) to add as subdirectory \<Project-Directory-Name\>
 
-3. For new project to be compiled automatically during `qimsdk-incremental-build`, newly created option from last step needs to be added to "qimsdk-cmake-build-gst-plugins-imsdk" with value ON in /mnt/work/scripts/build.sh
+3. For new project to be compiled automatically during `qimsdk-incremental-build`, newly created option from last step needs to be added to "qimsdk-cmake-build-qimsdk" with value ON in /mnt/work/scripts/build.sh
 
 ```bash
-# Incremental build all gst-plugins-imsdk
-function qimsdk-cmake-build-gst-plugins-imsdk() {
+# Incremental build all qimsdk src
+function qimsdk-cmake-build-qimsdk() {
 ...
 ...
 ...
