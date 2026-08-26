@@ -278,8 +278,6 @@ RUN mkdir -p /usr/share/qcom/conf.d                                             
         echo '    DSP_LIBRARY_PATH: v68';                                                          \
         echo '  Qualcomm Technologies, Inc. Kaanapali MTP:';                                       \
         echo '    DSP_LIBRARY_PATH: v68';                                                          \
-        echo '  Qualcomm Technologies, Inc. Purwa IoT EVK:';                                       \
-        echo '    DSP_LIBRARY_PATH: v68';                                                          \
         echo '  Qualcomm Technologies, Inc. QCM6490 IDP:';                                         \
         echo '    DSP_LIBRARY_PATH: v68';                                                          \
         echo '  Thundercomm RUBIK Pi 3:';                                                          \
@@ -293,6 +291,8 @@ RUN mkdir -p /usr/share/qcom/conf.d                                             
         echo '  Qualcomm Technologies, Inc. Addons IQ 9075 EVK:';                                  \
         echo '    DSP_LIBRARY_PATH: v73';                                                          \
         echo '  Qualcomm Technologies, Inc. Hamoa IoT EVK:';                                       \
+        echo '    DSP_LIBRARY_PATH: v73';                                                          \
+        echo '  Qualcomm Technologies, Inc. Purwa IoT EVK:';                                       \
         echo '    DSP_LIBRARY_PATH: v73';                                                          \
         echo '  Qualcomm Technologies, Inc. Shikra CQS EVK:';                                      \
         echo '    DSP_LIBRARY_PATH: v73';                                                          \
