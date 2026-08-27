@@ -40,6 +40,24 @@ function print-blue() {
     true
 }
 
+# Argument count function validator helper
+#   $1 - (mandatory) actual calling function argument count - allowed
+# to be equal or higher than the value of the expected argument count
+#   $2 - (mandatory) expected calling function argument count
+function qimsdk-arg-count-check() {
+    [ $# -ne 2 ] && print-red "${FUNCNAME[0]}: two arguments needed!" && return -1
+
+    ! [[ "$1" =~ ^[0-9]{1,2}$ ]] && \
+        print-red "${FUNCNAME[0]}: first argument must be a non-signed number!" && return -1
+
+    ! [[ "$2" =~ ^[0-9]{1,2}$ ]] && \
+        print-red "${FUNCNAME[0]}: second argument must be a non-signed number!" && return -1
+
+    [[ "$1" -ne "$2" ]] && [[ "$1" -lt "$2" ]] && return -1
+
+    return 0
+}
+
 # Source all scripts
 for f in ${QIMSDK_SCRIPTS}/*.sh; do
     [ "${f}" == "${QIMSDK_SCRIPTS}/env_setup.sh" ] || source ${f}

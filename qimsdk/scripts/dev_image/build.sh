@@ -465,12 +465,6 @@ function qimsdk-cmake-build-le-services () {
             print-green "${FUNCNAME} completed successfully!"
 }
 
-# CMake Build solutions-microservices
-function qimsdk-cmake-build-solutions-microservices () {
-    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/solutions-microservices && \
-            print-green "${FUNCNAME} completed successfully!"
-}
-
 # Clean meson wayland-protocols build directory
 function qimsdk-meson-clean-wayland-protocols() {
     rm -rf ${QIMSDK_BUILD_DIR}/wayland-protocols-1.33
@@ -520,11 +514,72 @@ function qimsdk-cmake-clean-le-services() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
-# Clean CMake solutions-microservices build directory
-function qimsdk-cmake-clean-solutions-microservices() {
-    rm -rf ${QIMSDK_BUILD_DIR}/solutions-microservices
+# CMake Build onnx
+function qimsdk-cmake-build-onnx() {
+    (
+        qimsdk-cmake-build ${QIMSDK_ONNX_SRC_DIR} /usr `
+            `-G Ninja `
+            `-DCMAKE_BUILD_TYPE=Release `
+            `-DCMAKE_SYSTEM_PROCESSOR=aarch64 `
+            `-DCMAKE_SYSTEM_NAME=Linux `
+            `-DCMAKE_CROSSCOMPILING=TRUE `
+            `-DBUILD_SHARED_LIBS=ON `
+            `-Donnxruntime_BUILD_SHARED_LIB=ON `
+            `-Donnxruntime_DISABLE_RTTI=OFF `
+            `-DONNX_INSTALL=ON `
+            `-DONNX_PROTOC_EXECUTABLE=/usr/bin/protoc                                           && \
+        print-green "${FUNCNAME} completed successfully!"
+    )
+}
 
-    print-green "${FUNCNAME} completed successfully!"
+# CMake Clean onnx
+function qimsdk-cmake-clean-onnx() {
+    rm -rf ${QIMSDK_BUILD_DIR}/onnx                                                             && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Build onnxruntime
+function qimsdk-cmake-build-onnxruntime() {
+    (
+        # Check whether QNP SDK is installed, and set ONNX Runtime build tags according to condition
+        local QIMSDK_QNN_TAGS=
+        [ ! -d ${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_QAIRT_VER} ]                               && {
+            print-blue "WARN: QNP SDK is not installed. ONNX Runtime will be built without QNP."
+        }                                                                                       || {
+            print-blue "Building ONNX Runtime with QNP SDK !!!"
+            QIMSDK_QNN_TAGS="-Donnxruntime_USE_QNN=ON `                                            \
+                    `-Donnxruntime_QNN_HOME=${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_QAIRT_VER}"
+        }
+
+        qimsdk-cmake-build ${QIMSDK_ONNXRUNTIME_SRC_DIR}/cmake /usr `
+            `-DCMAKE_CXX_FLAGS_INIT=-Wno-unused-variable `
+            `-DCMAKE_C_FLAGS_INIT=-Wno-unused-variable `
+            `-G Ninja `
+            `${QIMSDK_QNN_TAGS} `
+            `-DSHARED_PROVIDER=ON `
+            `-DCMAKE_BUILD_TYPE=Release `
+            `-DCMAKE_SYSTEM_PROCESSOR=aarch64 `
+            `-DCMAKE_SYSTEM_NAME=Linux `
+            `-DCMAKE_CROSSCOMPILING=TRUE `
+            `-Donnxruntime_BUILD_SHARED_LIB=ON `
+            `-Donnxruntime_DISABLE_RTTI=OFF `
+            `-Donnxruntime_USE_EXTERNAL_PROTOBUF=ON `
+            `-Donnxruntime_USE_FULL_PROTOBUF=ON `
+            `-Donnxruntime_BUILD_PROTOBUF=OFF `
+            `-DProtobuf_LIBRARIES=/usr/lib/aarch64-linux-gnu/libprotobuf.a `
+            `-DProtobuf_INCLUDE_DIR=/usr/include/google/protobuf/ `
+            `-DProtobuf_DIR=/usr/lib/aarch64-linux-gnu/ `
+            `-DCMAKE_SKIP_INSTALL_RULES=OFF `
+            `-Donnx_SOURCE_DIR=${QIMSDK_ONNX_SRC_DIR} `
+            `-DONNX_CUSTOM_PROTOC_EXECUTABLE=/usr/bin/protoc                                    && \
+        print-green "${FUNCNAME} completed successfully!"
+    )
+}
+
+# CMake Clean onnxruntime
+function qimsdk-cmake-clean-onnxruntime() {
+    rm -rf ${QIMSDK_BUILD_DIR}/onnxruntime                                                      && \
+            print-green "${FUNCNAME} completed successfully!"
 }
 
 # Configure and build gst plugins
@@ -577,6 +632,7 @@ function qimsdk-incremental-build-qti() {
             -DENABLE_GST_PLUGIN_MLVSEGMENTATION=ON                                                 \
             -DENABLE_GST_PLUGIN_MLTOOLS=ON                                                         \
             -DENABLE_GST_PLUGIN_MLTFLITE=ON                                                        \
+            -DENABLE_GST_PLUGIN_MLONNX=ON                                                          \
             -DENABLE_GST_PLUGIN_MLSNPE=ON                                                          \
             -DENABLE_GST_PLUGIN_MLQNN=ON                                                           \
             -DENABLE_GST_PLUGIN_MLMETAPARSER=ON                                                    \
@@ -619,8 +675,9 @@ function qimsdk-incremental-build() {
             qimsdk-meson-build-gst-plugins-bad                                                  && \
             qimsdk-meson-build-gstd                                                             && \
             qimsdk-cmake-build-le-services                                                      && \
+            qimsdk-cmake-build-onnx                                                             && \
+            qimsdk-cmake-build-onnxruntime                                                      && \
             qimsdk-incremental-build-qti                                                        && \
-            qimsdk-cmake-build-solutions-microservices                                          && \
             print-green "QIMSDK GStreamer targets built successfully !!!"
 }
 

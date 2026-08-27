@@ -13,7 +13,13 @@
     * [How to build](#How_to_build)
     * [How to add new QCOM GStreamer plugin](#How_to_add_new_QCOM_GStreamer_plugin)
     * [Running the qimsdk deploy container](#Running_the_container)
+      * [Setting up the platform](#Platform_model_file_and_folder_setup)
+      * [How to run the qimsdk deploy container](#Run_the_qimsdk_device_deploy_container)
     * [How to use the qimsdk-debian container](#Using_the_container)
+    * [Adding custom user configurations to deploy container](#Adding_custom_user_configurations)
+* [Important notes](#Important_notes)
+    * [Mandatory model data folder naming convention and container mapping](#Model_data_folder_naming_convention_and_container_mapping)
+    * [qimsdk-debian deploy container root user limitation](#Root_user_limitation)
 
 <div id="Docker_images">
 
@@ -47,11 +53,12 @@ This separation allows for efficient development on the host system while ensuri
     9. Fetch and install QNP release
     10. Fetch open-source camera-service repo needed to enable camera functionality
     11. Fetch QCOM gst source code from github
-    12. Copy build and install scripts to build image
-    13. Source container helper scripts from bashrc
-    14. Copy tflite headers and libs using qimsdk-copy-tf-lite-headers-to-sysroot
-    15. Apply patches to open-source projects which need to be patched
-    16. Call incremental build function which builds open-source and QCOM GStreamer plugins
+    12. Fetch QCOM solutions-microservices code needed for qimsdk microservices apps
+    13. Copy build and install scripts to build image
+    14. Source container helper scripts from bashrc
+    15. Copy tflite headers and libs using qimsdk-copy-tf-lite-headers-to-sysroot
+    16. Apply patches to open-source projects which need to be patched
+    17. Call incremental build function which builds open-source and QCOM GStreamer plugins
 
 <div id="qimsdk_deploy">
 
@@ -114,16 +121,38 @@ Handles patching, library propagation, and dependency management for GStreamer p
 
 ### How to build
 
-Building qimsdk_deploy_arm64: minimal set of runtime binaries needed to execute gst use-cases are available in this image.
+Building the qimsdk_deploy_arm64 image: minimal set of runtime binaries needed to execute gst use-cases are available in this image.
 
 ```bash
-docker build --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.39.0.250925> --target qimsdk_deploy_arm64 -t <desired-image-name> .
+docker build \
+  --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.46.0.260424> \
+  --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=<camera-service-commit-id> \
+  --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=<gstreamer-plugins-commit-id> \
+  --build-arg QIMSDK_ARG_MAX_JOBS=<optional_max_cpu_threads> \
+  --target qimsdk_deploy_arm64 \
+  -t <desired-image-name> .
 ```
-In the docker build command above, provide the version of QAIRT SDK that you want to install, e.g. *--build-arg QIMSDK_ARG_QNP_VERSION=2.39.0.250925*. If this argument is not provided, the QNN and SNPE plugins will be disabled in the image.
+#### An example with concrete values:
+```bash
+docker build \
+  --build-arg QIMSDK_ARG_QNP_VERSION=2.46.0.260424 \
+  --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=abc123def456 \
+  --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=789xyz456uvw \
+  --target qimsdk_deploy_arm64 \
+  -t my-qimsdk-image .
+```
+#### Notes:
+
+- QIMSDK_ARG_QNP_VERSION: Controls the QAIRT SDK version. If omitted, QNN and SNPE plugins will be disabled.
+- QIMSDK_ARG_CAMERA_SERVICE_TAG: Should match the exact commit ID or tag of the camera-service repository.
+- QIMSDK_ARG_GST_PLUGINS_TAG: Should point to the desired commit ID or tag for the IM SDK (GStreamer plugins) sources.
+- QIMSDK_ARG_MAX_JOBS: Optional: Should specify the maximum number of CPU threads to be used for building, if desired. Valid values: 1 - $(nproc).
+
+This ensures all components are pinned to reproducible versions during the image build.
 
 <div id="How_to_add_new_QCOM_GStreamer_plugin">
 
-### How to add new QCOM GStreamer plugin
+### How to add a new QCOM GStreamer plugin
 
 ***NOTE: Adding a new QCOM GStreamer plugin to the qimsdk-cmake-build-gst-plugins-imsdk function***
 
@@ -154,10 +183,199 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
 
 ### Running the qimsdk deploy container
 
-In order to run the qimsdk container with GStreamer functionalities inside, it must be run from the qimsdk_deploy_arm64 image built earlier, container needs to be ran with 'host' network mode. GPU devices, video devices, and other needed user volumes need to be mounted as such:
+In order to run the qimsdk container with GStreamer functionalities inside, please make use of the qimsdk arm64 deploy image built earlier and specify the 'host' network mode.
+
+Any required platform resources like GPU, DSP, video device nodes and any other system folders/volumes need to be propagated and explicitly exposed to the Docker container.
+
+This is achieved with the help of:
+
+* uploading a matching target-specfic CDI file;
+* uploading a matching target-specific ENV file;
+* creating all of the required target folders used for the local model data storage;
+* uploading the model-specific data accordingly;
+* setting the appropriate target model data file and folder access permissions;
+* listing the model-specific platform to container folder/volume mappings in the container run command.
+
+A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
+
+In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
+
+> **Note:** CDI files are located in: qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json;
+
+The CDI file needed for a specific hardware platform needs to be copied to the /etc/cdi/ directory on the target device storage.
+
+Please create this directory first, if it does not exist as follows:
 
 ```bash
-docker run -it -d --net host --device /dev/video0 --device /dev/video1 --device /dev/video2 --device /dev/video3 --device /dev/dri/card0 --device /dev/dri/renderD128 --device /dev/dma_heap -v /run/user/1000:/run/user/1000 -v /etc/OpenCL/vendors:/etc/OpenCL/vendors -v /etc/labels:/etc/labels -v /etc/media:/etc/media -v /etc/models:/etc/models -h qimsdk --name qimsdk <desired-image-name>
+sudo mkdir -p /etc/cdi
+sudo chmod 755 /etc/cdi
+```
+
+> **Note:** the ENV files are located in: qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env;
+
+The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
+
+Please create this directory first, if it does not exist as follows:
+
+```bash
+sudo mkdir -p /etc/docker/env
+sudo chmod 755 /etc/docker/env
+```
+
+<div id="Platform_model_file_and_folder_setup">
+
+### Platform model file and folder setup
+The following directories must be created under the user’s home directory to store test files:
+
+> **Note:** The `HOME` directory depends on the target platform OS:
+> - `/root` on Qualcomm QLI platforms
+> - `/home/ubuntu` on Qualcomm Ubuntu platforms
+
+Set the root path for the user content by exporting one of the following environment variables in a platform terminal, depending on your platform and preference:
+
+```bash
+# For QLI platforms — content stored under the root home directory
+export QIMSDK_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export QIMSDK_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export QIMSDK_USER_CONTENTS_ROOT=/etc
+```
+
+Then create the required directories:
+
+```bash
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/media
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/models
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/labels
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/configs
+```
+
+Apply the correct permissions to each directory and its contents.
+> **Note:** Use `sudo` when the `QIMSDK_USER_CONTENTS_ROOT` value is set to `/etc` for any non-root platform user:
+
+```bash
+# media
+find ${QIMSDK_USER_CONTENTS_ROOT}/media/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/media/ -type f -exec chmod 644 {} \;
+
+# models
+find ${QIMSDK_USER_CONTENTS_ROOT}/models/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/models/ -type f -exec chmod 644 {} \;
+
+# labels
+find ${QIMSDK_USER_CONTENTS_ROOT}/labels/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/labels/ -type f -exec chmod 644 {} \;
+
+# configs
+find ${QIMSDK_USER_CONTENTS_ROOT}/configs/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/configs/ -type f -exec chmod 644 {} \;
+```
+
+**Before running the arm64 deploy container, please upload your models and model-specific data into these newly created platform model data folders.**
+
+#### Talos (QCS615) Video node configuration
+An additional step is required for Talos (qcs615) to configure the video node, as it uses an upstream video driver. This upstream driver can assign any device node between /dev/video0 and /dev/video28.
+
+***Run the following command to list the video devices:***
+
+```bash
+v4l2-ctl --list-devices
+```
+***Example:***
+
+```bash
+Qualcomm Venus video decoder (plat:aa00000.video-codec:dec):
+    /dev/video2
+
+Qualcomm Venus video encoder (plat:aa00000.video-codec:enc):
+    /dev/video3
+```
+
+Identify the relevant device nodes and add them to the cdi.json file that has been deployed to the target system.
+
+```json
+    "deviceNodes": [
+    ...
+          },
+          {
+            "path": "/dev/video2",
+            "uid": 0,
+            "gid": 44
+          },
+          {
+            "path": "/dev/video3",
+            "uid": 0,
+            "gid": 44
+          },
+          {
+    ...
+```
+
+<div id="Run_the_qimsdk_device_deploy_container">
+
+### How to run the qimsdk device deploy container
+
+> **Note:** If your platform and OS combo do not support adb connectivity, please use the onboard Ethernet/WLAN network to access the device over ssh and adapt the execution of the commands listed below accordingly.
+
+First, set the `QIMSDK_USER_CONTENTS_ROOT` environment variable to match where your media, models, labels and configs are stored on the target device (if not done already):
+
+```bash
+# For QLI platforms — content stored under the root home directory
+export QIMSDK_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export QIMSDK_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export QIMSDK_USER_CONTENTS_ROOT=/etc
+```
+
+Then push the CDI and ENV files and run the container.
+
+```bash
+adb push qimsdk-debian/cdi/<hardware>-<platform>-qimsdk.json /etc/cdi/qimsdk.json
+adb push qimsdk-debian/env/<hardware>-<platform>-qimsdk.env /etc/docker/env/qimsdk.env
+```
+
+>**Note:** When the `QIMSDK_USER_CONTENTS_ROOT` environment variable value is `/root` or `/home/ubuntu`** (the model content shall be mounted into the `/home/qimsdk/` folder inside the container):
+
+Push the deploy Docker image to the device and load it
+
+```bash
+export QIMSDK_DEVICE_TEST_PATH="<target_device_path>"
+export QIMSDK_DOCKER_IMAGE="<path_to_docker_image_file>"
+adb shell mkdir -p "${QIMSDK_DEVICE_TEST_PATH}"
+adb push "${QIMSDK_DOCKER_IMAGE}" "${QIMSDK_DEVICE_TEST_PATH}/${QIMSDK_DOCKER_IMAGE}"
+adb shell docker load -i "${QIMSDK_DEVICE_TEST_PATH}/${QIMSDK_DOCKER_IMAGE}"
+```
+
+Now run the deploy Docker container
+
+```bash
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qimsdk.env \
+  --device qualcomm.com/device=qimsdk \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/home/qimsdk/media \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/home/qimsdk/models \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/home/qimsdk/labels \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/home/qimsdk/configs \
+  -h qimsdk --name qimsdk <desired-image-name>
+```
+
+> **Note:** When the `QIMSDK_USER_CONTENTS_ROOT` environment variable value is `/etc`** (the model content shall be mounted into the `/etc/` folder inside the container):
+
+```bash
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qimsdk.env \
+  --device qualcomm.com/device=qimsdk \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/etc/media \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/etc/models \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/etc/labels \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/etc/configs \
+  -h qimsdk --name qimsdk <desired-image-name>
 ```
 
 <div id="Using_the_container">
@@ -167,5 +385,109 @@ docker run -it -d --net host --device /dev/video0 --device /dev/video1 --device 
 To execute a bash shell in container, run the following command:
 
 ```bash
-docker exec -ti qimsdk bash
+docker exec -it qimsdk bash
 ```
+
+<div id="Adding_custom_user_configurations">
+
+### Adding custom user configurations to the deploy container
+
+If qimsdk-debian deploy container user wants to use extra devices or volumes, those can be added to the CDI file.
+
+One such example is when a USB Camera is attached to the target device, and the user would like to use it from inside the deploy container:
+
+***These steps need to be run inside a device terminal:***
+
+```bash
+# After attaching USB Camera, v4l devices /dev/video2 and /dev/video3 appear on platform
+$ ls -lah /dev/video*
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video0
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video1
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video2
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video3
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video32
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video33
+
+# Which exactly are the new v4l device nodes to appear can be easily verified by unplugging the USB
+#    Camera and running the command once again. Here we can see that they are /dev/video2 and /dev/video3:
+$ ls -lah /dev/video*
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video0
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video1
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video32
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video33
+
+# Add following lines to the /etc/cdi/qimsdk.json file in the deviceNodes section using an editor of choice:
+vi /etc/cdi/qimsdk.json
+```
+
+```json
+{
+    "deviceNodes": [
+    ...
+          },
+          {
+            "path": "/dev/video2",
+            "uid": 0,
+            "gid": 44
+          },
+          {
+            "path": "/dev/video3",
+            "uid": 0,
+            "gid": 44
+          },
+          {
+    ...
+```
+
+```bash
+# After that's done, the container needs to be removed and a new one needs to be run, if already running
+docker rm -f qimsdk
+docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env --device qualcomm.com/device=qimsdk -h qimsdk --name qimsdk <desired-image-name>
+```
+
+<div id="Important_notes">
+
+## Important notes
+
+<div id="Model_data_folder_naming_convention_and_container_mapping">
+
+### Mandatory model data folder naming convention and container mapping
+
+* The platform model folder naming and layout must follow the structure defined in the [#Setting up the platform](#Platform_model_file_and_folder_setup) section!
+
+> **Important Notice:** Any deviation from this exact folder layout and folder naming convention might result in your models failing to be correctly identified, located, loaded and utilized due to a potential violation of any target device SELinux policy restrictions in place!
+
+<div id="Root_user_limitation">
+
+### qimsdk-debian deploy container root user limitation
+
+* The qimsdk-debian device Docker container image is meant to be run only with the **qimsdk** user ID.
+
+  However, due to the fact that the platform audio, display and camera sockets group ids are not constant and might change, an **entrypoint.sh** shell script has been introduced.
+
+  This entrypoint.sh shell script is designed to check the group id of the above-listed sockets and adjust the respective access permissions inside the container.
+
+  **In order to achieve this, the entrypoint.sh script has to be run as root initially and then run the main workload as the qimsdk user.**
+
+  This is achieved with the help of an explicit gosu statement at the end of the entrypoint.sh script.
+
+  Please note that the root shell is explicitly disabled when running:
+  ```sh
+  docker exec -it <container_id> bash
+  ```
+  due to a /root/.bash_aliases file, which is sourced when a bash shell is started and explicitly runs gosu to ensure the work is offloaded to the qimsdk user.
+* The qimsdk-debian device Docker container **qimsdk** user is not part of the **sudo group** by design, hence lacking permissions to install any new packages, or make any root file system modifications for security concerns.
+
+* Please keep in mind that starting the container without any explicit user setting could still allow you to log-in to a root shell in the container by using:
+  ```bash
+  docker exec -u root -it <container_id> bash --norc --noprofile
+  ```
+  or
+  ```bash
+  docker exec -u root -it <container_id> dash
+  ```
+
+  This behaviour is by-design, since docker exec starts a new process as root (daemon-launched) and
+  bypasses the entrypoint script.
+
+  Because dash does not source /root/.bash_aliases, nothing re-execs it as the qimsdk user and we stay as root.

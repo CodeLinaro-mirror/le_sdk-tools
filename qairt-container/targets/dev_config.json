@@ -1,0 +1,10 @@
+{
+    "Additional_tag_container": "",
+    "Additional_tag_image": "",
+    "DeviceID": "<device-id>",
+    "Backend": "dsp",
+    "Model": "qseg_person_quant.dlc",
+    "Buffer": "USERBUFFER_TF16",
+    "TestExamplesDirectory": "<absolute path to input directory>",
+    "TestOutputDirectoryName": "<absolute path to output directory>"
+}

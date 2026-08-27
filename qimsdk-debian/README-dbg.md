@@ -6,9 +6,13 @@
   * [Ubuntu Version](#Ubuntu_Version)
   * [Ubuntu Packages](#Ubuntu_Packages)
   * [How to increase Max user watches and max user instances on host system](#Max_user_watches)
+  * [Host System Swap Image allocation and creation](#Swap_Image_Creation)
   * [Docker Must Be Configured On The Host System (one time)](#Docker_Host_System)
   * [Add internal docker registry mirror. (optional)](#Add_internal_docker_registry_mirror)
   * [Proxy. (optional)](#Proxy)
+  * [Query and examine the Host System cgroup memory limits](#Cgroup_Memory_Limits)
+  * [Adjust the Host system VM settings (optional)](#Adjust_Host_VM_Settings)
+  * [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings)
 * [Docker Images](#Docker_Images)
   * [QIMSDK Debug Image](#QIMSDK_Debug_Image)
   * [QIMSDK Build Image](#QIMSDK_Build_Image)
@@ -17,6 +21,7 @@
   * [How to fill out Configuration JSON Files](#How_to_fill_out_Configuration_JSON_Files)
   * [Docker Host Side Helper Scripts](#Docker_Host_Side_Helper_Scripts)
   * [Docker Debug Container Side Helper Scripts](#Docker_Debug_Container_Side_Helper_Scripts)
+  * [Troubleshoot Docker Image OOM Build Errors](#Host_System_OOM_Debugging)
 * [Development Workflow](#Development_Workflow)
   * [Initial One Time Setup](#Initial_One_Time_Setup)
   * [Continuous Development After Initial Setup](#Continuous_Development_After_Initial_Setup)
@@ -27,6 +32,7 @@
   * [Starting the container with docker-compose](#Starting_the_container_with_docker_compose)
   * [Device Docker Clean Up](#Device_Docker_Clean_Up)
   * [Development when device is not connected to host build machine](#When_device_is_not_connected)
+  * [Adding custom user configurations to deploy container](#Adding_custom_user_configurations)
 * [Docker Container Renaming](#Docker_Container_Renaming)
   * [Rename Docker Device Container](#Rename_Docker_Device_Container)
 * [Release Variant - Manual Commands Instead Of Scripts](#Manual_Commands_Instead_Of_Scripts)
@@ -37,6 +43,7 @@
   * [Load QIMSDK Deploy Image](#Load_QIMSDK_Deploy_Image)
   * [Run QIMSDK Deploy Container](#Run_QIMSDK_Deploy_Container)
   * [Execute QIMSDK Deploy Container](#Execute_QIMSDK_Deploy_Container)
+* [Documentation References](#Documentation_References)
 
 <div id="Prerequisites">
 
@@ -101,6 +108,43 @@ This is done to prevent "System limit for number of file watchers reached" error
 fs.inotify.max_user_instances=8192
 fs.inotify.max_user_watches=542288
 ```
+
+<div id="Swap_Image_Creation">
+
+### Host System Swap Image allocation and creation
+
+In order to build the Docker image files your host system is expected to have at least 64 GB of RAM and a swap image of at least half the available RAM plus some small meaningful reserve.
+
+For example, if you have 64 GB of RAM, the recommended swap image file size is at least 32 GB.
+
+If you set a reserve of 8 GB, the total RAM + swap + reserved memory size amounts to 104 GB in this case.
+
+#### Check whether you might have swap space enabled as follows:
+
+```bash
+sudo swapon --show
+```
+
+#### If the swap is missing or being too small, do create a new swap file as follows:
+
+```bash
+MEM_AVAIL=$(grep MemAvailable /proc/meminfo | awk '{printf "%.0f\n", $2/1024/1024}')
+let MEM_SWAP="$MEM_AVAIL / 2 + 8"
+sudo swapoff /swap.img
+sudo fallocate -l "${MEM_SWAP}G" /swap.img
+sudo chmod 600 /swap.img
+sudo mkswap /swap.img
+sudo swapon /swap.img
+edit /etc/default/grub
+	GRUB_CMDLINE_LINUX_DEFAULT="text cgroup_enable=memory swapaccount=1"
+sudo update-grub
+edit /etc/fstab and add the following line at the end of the file
+	/swap.img	none	swap	sw	0	0
+```
+
+Save and close all of the previously opened system files above, then reboot the system.
+
+Now check the size of the newly created and mounted swap image matches the above settings.
 
 <div id="Docker_Host_System">
 
@@ -250,6 +294,202 @@ docker ps -a
 docker start <container_name>
 ```
 
+<div id="Cgroup_Memory_Limits">
+
+### Query and examine the Host System cgroup memory limits
+
+#### Check there are not any active cgroup Linux host cpu and memory utilization restrictions in place.
+
+```bash
+sudo systemctl list-unit-files | grep -Ei docker
+sudo systemctl status docker.service
+cat /sys/fs/cgroup/system.slice/docker.service/
+cat /sys/fs/cgroup/system.slice/docker.service/memory.max
+cat /sys/fs/cgroup/system.slice/docker.service/memory.swap.max
+```
+
+Check the above docker.service cgroup memory configuration file entries have 'max' set as the value being read back.
+
+<div id="Adjust_Host_VM_Settings">
+
+### Adjust the Host system VM settings (optional)
+
+#### If your Host system is equipped with 64GB RAM or less, tweak your system VM page swap and dentry and inode cache reclaim behavior as follows:
+
+```bash
+edit the /etc/sysctl.conf file
+    vm.swappiness=10
+    vm.vfs_cache_pressure=400
+    vm.min_free_kbytes=262144
+```
+#### Argumentation:
+
+1. **vm.swappiness tuning**
+
+    - Higher values tend to command more aggressive application memory page swapping, while lower values favour keeping application pages in memory for as long as possible.
+
+    - The default vm.swappiness parameter value is 60 on recent Ubuntu/Debian OS flavours, which might not fit our Docker build environment well, especially on systems low on available RAM, hence the recommendation for a more relaxed setting of 10.
+
+2. **vm.vfs_cache_pressure tuning**
+
+    - Intermittent high VFS pressure as a result of the creation of many small temporarily used files and folders during package installation might cause the host system OS to start premature swapping of the memory pages, associated with these cached dentries and inodes to disk even though the amount of available RAM might still be sufficient for holding these in memory.
+
+    - The default value of the vfs_cache_pressure tunable tends to be 100 on recent Linux-kernel based operating systems with the kernel's dentry and inode cache reclaim rate being fair compared to the pagecache and swapcache reclaim rate.
+
+    - Decreasing the value instructs the kernel to prefer retaining the dentry and inode caches for long, while increasing the value tells the kernel to reclaim the dentry and inode caches sooner than later.
+
+    - Setting the vm.vfs_cache_pressure value to 400 might relax the dentry and inode cache managemnt by freeing the cached pages early and ensuring the system might not run out of memory faster during periods of high CPU multithreaded utilization and excessive memory load.
+
+3. **vm.min_free_kbytes tuning**
+
+    - In heavy multi-stage Docker build environments with lots of buildx threads spawned, the Host OS might have its available RAM memory exhausted quite fast.
+
+    - In order to allow for the OS to manage its own processes and have breathing room for housekeeping and more stable memory management, it is essesntial to instruct the OS to reserve a number of virtual memory free pages for each lowmem zone in the system.
+
+    - The amount of this mandatory VM free memory watermark is typically set by the vm.min_free_kbytes tunable.
+
+    - A value too low might make the system more prone to deadlocks under high CPU and memory utilization loads, while a value too high might cause premature and unwanted OOM service killings taking place.
+
+    - Therefore, in order to achieve a better free memory balancing under excessive system load, the proposed value adjustment of 262144 KB setting has been made.
+
+<div id="Configure_Host_ADB_and_SSH_Settings">
+
+### Configure Host System ADB and SSH settings
+
+#### Target Device connected to Host System via adb
+
+1. Connect the device to the host system through the USB Type-C connector.
+
+  ```bash
+    lsusb
+  ```
+
+2. Note the reported PID and VID for your device
+3. Install the packaged Android udev rules and adb platform tools, if not already present
+
+  The `android-sdk-platform-tools-common` package ships a maintained udev rules
+  file (`/lib/udev/rules.d/51-android.rules`) that already covers the VID/PID of
+  virtually all common Android/Qualcomm devices and assigns the USB device nodes
+  to the `plugdev` group. This avoids having to hand-author a per-device udev rule.
+
+  ```bash
+    sudo apt update
+    sudo apt install adb fastboot android-sdk-platform-tools-common
+  ```
+4. Add your user to the `plugdev` group so it can access the device nodes
+
+  > **Note:** Being in `plugdev` has no effect on its own — the packaged udev
+  > rules above are what assign the USB device nodes to the `plugdev` group, and
+  > your membership in that group is what grants you non-root access.
+
+  ```bash
+    sudo usermod -aG plugdev $USER
+  ```
+5. Reload the udev rules and log out/in (or reboot) for the group change to take effect:
+  ```bash
+    sudo udevadm control --reload-rules && sudo udevadm trigger
+  ```
+6. Plug and unplug your device
+7. Start the adb server
+  ```bash
+    adb start-server
+  ```
+8. Check your device is discoverable and accessible
+  ```bash
+    adb devices
+  ```
+
+> **Note:** A manual per-device udev rule is only required when your target
+> device's VID/PID is not covered by the packaged rules (custom or engineering
+> Qualcomm devices sometimes are not). In that case, create
+> `/etc/udev/rules.d/99-my-target-device-usb.rules` with the following content,
+> adjusting the VID and PID to match your target device, then repeat steps 5-8:
+>
+> ```bash
+> SUBSYSTEMS=="usb", ATTRS{idVendor}=="<VID>", ATTRS{idProduct}=="<PID>", MODE="0664", GROUP="plugdev"
+> ```
+
+> **Note: **
+>
+> These steps imply an Ubuntu Host. Other systems might have different configuration specifics.
+
+#### Target Device connected to Host System via ssh
+
+1. Ensure your Host System is equipped with a USB to Ethernet adapter
+2. Configure the Host System Ethernet adapter and adjust the Ethernet adapter name and IP address to match your setup:
+  ```bash
+    ip a
+    export QIMSDK_HOST_USB_ETH_ADAPTER="<adapter_id>"
+    export QIMSDK_HOST_USB_ETH_ADAPTER_IP_ADDR="XXX.XXX.XX.Y/24"
+    export QIMSDK_TARGET_USB_ETH_IP_ADDR="XXX.XXX.XX.X"
+    export QIMSDK_HOST_USB_ETH_NETPLAN_FILE="/etc/netplan/XX-network-manager-all.yaml"
+
+    sudo ip addr add "${QIMSDK_HOST_USB_ETH_ADAPTER_IP_ADDR}" dev "${QIMSDK_HOST_USB_ETH_ADAPTER}"
+    sudo ip link set "${QIMSDK_HOST_USB_ETH_ADAPTER}" up
+
+    sudo nano "${QIMSDK_HOST_USB_ETH_NETPLAN_FILE}"
+    # Add the following section to the existing settings
+    ethernets:
+      ${QIMSDK_HOST_USB_ETH_ADAPTER}:
+        dhcp4: false
+        addresses:
+          - ${QIMSDK_HOST_USB_ETH_ADAPTER_IP_ADDR}
+        optional: true
+    # Save and apply the configuration changes
+    sudo netplan apply
+  ```
+3. Configure the target device Ethernet settings
+  ```bash
+    export QIMSDK_TARGET_USB_ETH_IP_ADDR="XXX.XXX.XX.X/24"
+    export QIMSDK_TARGET_ETH_NETPLAN_FILE="/etc/netplan/XX-netcfg.yaml"
+    export QIMSDK_TARGET_USB_ADAPTER="<your_device>"
+
+    sudo ip addr add ${QIMSDK_TARGET_USB_ETH_IP_ADDR} dev ${QIMSDK_TARGET_USB_ADAPTER}
+    sudo ip link set ${QIMSDK_TARGET_USB_ADAPTER} up
+    sudo apt update
+    sudo systemctl status ssh
+    sudo systemctl enable --now ssh
+    sudo tee "${QIMSDK_TARGET_ETH_NETPLAN_FILE}" > /dev/null << EOF
+network:
+  version: 2
+  ethernets:
+    ${QIMSDK_TARGET_USB_ADAPTER}:
+      addresses:
+        - ${QIMSDK_TARGET_USB_ETH_IP_ADDR}
+EOF
+    sudo netplan apply
+  ```
+4. Configure the Host System SSH settings
+  ```bash
+    export QIMSDK_HOST_SSH_CONFIG_FILE=~/.ssh/config
+    export QIMSDK_HOST_SSH_TARGET_FOLDER="~/.ssh/target_dev"
+    export QIMSDK_TARGET_DEVICE_HOST_NAME="<testdev>"
+    mkdir -p "${QIMSDK_HOST_SSH_TARGET_FOLDER}"
+    ssh-keygen -t rsa -b 4096 -C "uno-ssh" -f ${QIMSDK_HOST_SSH_TARGET_FOLDER}/id_rsa
+    ssh-copy-id -i ${QIMSDK_HOST_SSH_TARGET_FOLDER}/id_rsa.pub ubuntu@${QIMSDK_TARGET_USB_ETH_IP_ADDR}
+
+    tee -a "${QIMSDK_HOST_SSH_CONFIG_FILE}" > /dev/null << EOF
+
+Host ${QIMSDK_TARGET_DEVICE_HOST_NAME}
+HostName ${QIMSDK_TARGET_USB_ETH_IP_ADDR}
+ User ubuntu
+ IdentityFile ${QIMSDK_HOST_SSH_TARGET_FOLDER}/id_rsa
+ PubkeyAcceptedKeyTypes +ssh-rsa
+
+EOF
+  ```
+5. Enable passwordless ssh login to the target device
+  ```bash
+    ssh-keygen -f '~/.ssh/known_hosts' -R '$  {QIMSDK_TARGET_USB_ETH_IP_ADDR}'
+    ssh-copy-id -i ${QIMSDK_HOST_SSH_TARGET_FOLDER}/id_rsa.pub -o StrictHostKeyChecking=no ubuntu@${QIMSDK_TARGET_USB_ETH_IP_ADDR}
+  ```
+6. Test the SSH connection to the target device
+  ```bash
+    export QIMSDK_SSH_OPTS=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10        \
+            -o LogLevel=ERROR)
+    export QIMSDK_TARGET_DEVICE_HOST_NAME="<testdev>"
+    ssh "${QIMSDK_SSH_OPTS[@]}" ${QIMSDK_TARGET_DEVICE_HOST_NAME} "uname -a"
+  ```
 <div id="Docker_Images">
 
 ## Docker Images
@@ -322,11 +562,15 @@ Config json files *(config.json)* must contain the following data:
  1. ***MANDATORY*** - **Additional_tag_container** - Additional tag for debug container - allows for personalization of the names of the docker containers according to their purpose - allows to avoid container conflict if more than one user on the same machine.
  2. ***MANDATORY*** - **Additional_tag_image** - Additional tag for docker image - allows for personalization of the names of the docker images according to their purpose - allows to avoid image conflicts if more than one user on the same machine.
  3. ***MANDATORY*** - **Docker_image_path** - Absolute path to remote ssh or local destination to sync docker images or artifacts.
- 4. ***MANDATORY*** -  **Target_device_ID** - adb device ID of the target device qimsdk is to be installed on. Any faux value can still be provided and compilation will carry on.
+ 4. ***MANDATORY*** -  **Target_device_ID** - adb device ID, or an IPv4 network address of the target device qimsdk is to be installed on. Any faux value can still be provided and compilation will carry on.
  5. ***OPTIONAL*** -  **QAIRT_SDK_version** - Version of the Qualcomm AI Runtime SDK to be used in the container. If field is left open - QAIRT functionalities will be disabled.
  6. ***MANDATORY*** - **camera_service_Source_Dir** - PATH to camera-service sources directory, which contains open-source repo needed to enable camera functionality.
  7. ***MANDATORY*** - **IM_SDK_Source_Dir** - PATH to IM SDK sources directory, which contains all gst plugins. ***Note: Path provided must point to gst-plugins-imsdk directory! Code checked out on local branch main will be built. Ensure desired code is checked out on main branch before proceeding with debug variant QIMSDK build!***
- 8. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir is wanted to be mapped to the build container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
+ 8. ***MANDATORY*** - **solutions_microservices_Source_dir** - PATH to solutions-microservices sources directory, which contains microservices apps code. ***Note: Path provided must point to solutions-microservices directory! Code checked out on local branch iot-solutions.lnx.1.0 will be built. Ensure desired code is checked out on iot-solutions.lnx.1.0 branch before proceeding with debug variant QIMSDK build!***
+ 9. ***OPTIONAL*** - **camera_service_git_tag** - Specifies the commit ID or tag for the camera-service project. ***Note: If not provided, the latest (TIP) version will be used!***
+ 10. ***OPTIONAL*** - **IM_SDK_Source_git_tag** - Specifies the commit ID or tag for the IM SDK sources directory. ***Note: If not provided, the latest (TIP) version will be used!***
+ 11. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir is wanted to be mapped to the build container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
+ 12. ***OPTIONAL*** - **MAX_build_cpu_threads** - If having a resource-constrained Host System with low amount of RAM, setting a value, lower to \$(nproc) might help trigger the build with lower CPU utilization, hence lower memory pressure. The default value if left unset is \$(nproc).
 
 Target specific json files *(\<target-name\>.json)* must contain the following data:
  1. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
@@ -350,7 +594,7 @@ source scripts-dbg/docker_env_setup.sh
 
 The developer generally needs to build the deploy image, load it to the device and run the QIMSDK deploy container.
 
-- qimsdk-device-prepare - Prepare device after reboot
+- qimsdk-device-prepare                \<target_device_id> - Prepare device after reboot
 - qimsdk-docker-build-image            \<path-to-config-json> - Alter QIMSDK Build Image to use gst code and meta layers provided by user in config json. Afterwards, build QIMSDK Build Image and Build QIMSDK Deploy Image with needed artifacts from build image.
 - qimsdk-docker-device-update-image    \<path-to-config-json> - Update QIMSDK Deploy Image to the device
 - qimsdk-docker-device-save-image      \<path-to-config-json> - Save QIMSDK Deploy Image as a tar file, compose file and run command
@@ -363,6 +607,10 @@ The developer generally needs to build the deploy image, load it to the device a
 - qimsdk-docker-device-shell           \<path-to-config-json> - Start shell in the docker container on the device
 - qimsdk-docker-device-images-cleanup  \<path-to-config-json> - Docker device images clean up
 - qimsdk-docker-host-images-cleanup                           - Docker host images clean up
+
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
+
+> **Note:** Please note that the `qimsdk-docker-device-run-container` function here assumes the `QIMSDK_USER_CONTENTS_ROOT` environment variable is set to: /etc and the target to container mapping implies /etc as the model root directory.
 
 <div id="Docker_Debug_Container_Side_Helper_Scripts">
 
@@ -391,6 +639,43 @@ These functions are available immediately inside development container:
  - qimsdk-dbg-push-artifacts - Push release variant artifacts to device with specified id in configuration json file
  - qimsdk-dbg-push-artifacts-dbg - Push debug variant artifacts  to device with specified id in configuration json file
 
+<div id="Host_System_OOM_Debugging">
+
+### Troubleshoot Docker Image OOM Build errors
+
+#### Troubleshooting OOM and VFS high memory pressure Host System conditions:
+
+1. Collect and analyze docker.service journalctl logs
+
+```bash
+journalctl --user --unit=docker.service
+```
+
+2. Analyze the Host System syslog and scan for any OOM and VM page fault log traces:
+
+```bash
+sudo cat /var/log/syslog | grep -E "oom-killer|oom_kill_process|OOM killer|lowmem_reserve|Out of memory:|oom-kill:constraint|systemd-oomd.service|active_anon|hugepages_free|pages in swap cache|pages RAM"
+```
+
+3. Monitor the RAM and swap space allocation and utilization using your favourite tool during the Docker build file process, for example:
+
+```bash
+sudo apt install smem
+...
+while true;                                                             \
+do                                                                      \
+    echo "--- $(date '+%Y-%m-%d %H:%M:%S') ---" >> swap_usage_log.txt;  \
+    sudo smem -t -k -p -s swap >> swap_usage_log.txt;                   \
+    sleep 10;                                                           \
+done
+...
+Ctrl+C
+...
+cat swap_usage_log.txt | grep -E "^[ ]{2,}[0-9]{2,}[0-9MG \.]{1,}$(M|G)"
+```
+
+4. Attempt to reduce the maximum number of Docker builde threads during image compilation, if deemed necessary
+
 <div id="Development_Workflow">
 
 ## Development Workflow
@@ -406,17 +691,19 @@ These functions are available immediately inside development container:
 ***Please note that adb is single instance. All adb servers in other containers or host OS MUST be killed***
 
 ```bash
-qimsdk-device-prepare
+qimsdk-device-prepare <target_device_id>
 adb disable-verity
 adb reboot
 ```
+
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
 
 #### Prepare Device After Reboot
 
 ***Please note that this step needs to be invoked only once after device, connected to local PC, is started***
 
 ```bash
-qimsdk-device-prepare
+qimsdk-device-prepare <target_device_id>
 ```
 
 <div id="Continuous_Development_After_Initial_Setup">
@@ -468,7 +755,7 @@ Prepare the environment on remote machine with device connected to it
 # Remote machine with device connected to it
 ############################################
 # Prepare Device For Work
-qimsdk-device-prepare
+qimsdk-device-prepare <target_device_id>
 ```
 
 #### Continuous Development
@@ -484,10 +771,62 @@ qimsdk-docker-build-image <path-to-config-json>
 qimsdk-docker-device-save-image <path-to-config-json>
 ```
 
-Load docker image and run the container on remote machine with device connected to it
+Load the docker image and run the container on the remote machine with the target device connected to it.
+
+Any required platform resources like GPU, DSP, video device nodes and any other system folders/volumes need to be propagated and explicitly exposed to the Docker container.
+
+This is achieved with the help of:
+
+* uploading a matching target-specfic CDI file;
+* uploading a matching target-specific ENV file;
+* creating all of the required target folders used for the local model data storage;
+* uploading the model-specific data accordingly;
+* setting the appropriate target model data file and folder access permissions;
+* listing the model-specific platform to container folder/volume mappings in the container run command.
+
+A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
+
+In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
+
+> **Note:** CDI files are located in: qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json;
+
+The CDI file needed for a specific hardware platform needs to be copied to the /etc/cdi/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
 
 ```bash
-# Remote machine with device connected to it
+adb shell "mkdir -p /etc/cdi"
+adb shell "chmod 755 /etc/cdi"
+```
+
+> **Note:** the ENV files are located in: qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env;
+
+The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
+
+```bash
+adb shell "mkdir -p /etc/docker/env"
+adb shell "chmod 755 /etc/docker/env"
+```
+
+For example, if working on the qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be:
+
+> qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json.
+
+The correct .env file would be:
+> qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+
+```bash
+#### Upload (push) the corresponding CDI json to the device
+adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
+adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
+```
+
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
+
+```bash
+# Remote machine with a device connected to it
 ############################################
 # Load docker image from Docker_image_path
 qimsdk-docker-device-load-image <path-to-config-json>
@@ -500,8 +839,8 @@ qimsdk-docker-device-run-container <path-to-config-json>
 ### Local Device With Verity Check
 
 - Scenario is:
-  - Locally connected device
-  - Device with verity check
+  - Locally connected device: supporting adb and/or ssh network connectivity
+  - Device with verity check disabled, if present
   - Incremental Build
 
 #### Initial Setup
@@ -510,16 +849,70 @@ Prepare the environment
 
 ```bash
 # Disable device verity check
-qimsdk-device-prepare
+qimsdk-device-prepare <target_device_id>
 adb disable-verity
 adb reboot
 # Prepare Device For Work
-qimsdk-device-prepare
+qimsdk-device-prepare <target_device_id>
 ```
+
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
 
 #### Continuous Development
 
 Build docker image, update image to the device, run device container
+
+Any required platform resources like GPU, DSP, video device nodes and any other system folders/volumes need to be propagated and explicitly exposed to the Docker container.
+
+This is achieved with the help of:
+
+* uploading a matching target-specfic CDI file;
+* uploading a matching target-specific ENV file;
+* creating all of the required target folders used for the local model data storage;
+* uploading the model-specific data accordingly;
+* setting the appropriate target model data file and folder access permissions;
+* listing the model-specific platform to container folder/volume mappings in the container run command.
+
+A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
+
+In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
+
+> **Note:** CDI files are located in: qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json;
+
+The CDI file needed for a specific hardware platform needs to be copied to the /etc/cdi/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
+
+```bash
+adb shell "mkdir -p /etc/cdi"
+adb shell "chmod 755 /etc/cdi"
+```
+
+> **Note:** the ENV files are located in: qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env;
+
+The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
+
+```bash
+adb shell "mkdir -p /etc/docker/env"
+adb shell "chmod 755 /etc/docker/env"
+```
+
+For example, if working on the qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be:
+
+> qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json.
+
+The correct .env file would be:
+> qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+
+```bash
+#### Upload (push) the corresponding CDI json to the device
+adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
+adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
+```
+
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
 
 ```bash
 # Build docker image
@@ -587,7 +980,7 @@ Prepare the environment
 
 ```bash
 # Prepare Device For Work
-qimsdk-device-prepare
+qimsdk-device-prepare <target_device_id>
 ```
 
 #### Device Docker Clean Up
@@ -649,6 +1042,58 @@ qimsdk-docker-device-rm-container <path-to-config-json>
 
 4. Run container
 
+Any required platform resources like GPU, DSP, video device nodes and any other system folders/volumes need to be propagated and explicitly exposed to the Docker container.
+
+This is achieved with the help of:
+
+* uploading a matching target-specfic CDI file;
+* uploading a matching target-specific ENV file;
+* creating all of the required target folders used for the local model data storage;
+* uploading the model-specific data accordingly;
+* setting the appropriate target model data file and folder access permissions;
+* listing the model-specific platform to container folder/volume mappings in the container run command.
+
+A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
+
+In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
+
+> **Note:** CDI files are located in: qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json;
+
+The CDI file needed for a specific hardware platform needs to be copied to the /etc/cdi/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
+
+```bash
+adb shell "mkdir -p /etc/cdi"
+adb shell "chmod 755 /etc/cdi"
+```
+
+> **Note:** the ENV files are located in: qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env;
+
+The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
+
+```bash
+adb shell "mkdir -p /etc/docker/env"
+adb shell "chmod 755 /etc/docker/env"
+```
+
+For example, if working on the qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be:
+
+> qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json.
+
+The correct .env file would be:
+> qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+
+```bash
+#### Upload (push) the corresponding CDI json to the device
+adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
+adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
+```
+
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
+
 ```bash
 # Run container
 qimsdk-docker-device-run-container <path-to-config-json>
@@ -658,6 +1103,92 @@ qimsdk-docker-device-run-container <path-to-config-json>
 
 #### Python scripts to load image, run container and build artifacts from Windows
 *Note: Docker_image_path in json file should be path from host machine*
+
+<div id="Adding_custom_user_configurations">
+
+### Adding custom user configurations to deploy container
+
+If qimsdk-debian deploy container user wants to use extra devices or volumes, those can be added to the CDI file.
+One such example is when USB Camera is attached to device, and user would like to use it from inside deploy container:
+
+***These steps need to be run inside device shell***
+
+```bash
+# After attaching USB Camera, v4l devices /dev/video2 and /dev/video3 appear on platform
+$ ls -lah /dev/video*
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video0
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video1
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video2
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video3
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video32
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video33
+
+# Which exactly are the new v4l device nodes to appear can be easily verified by unplugging the USB
+#    Camera and running the command once again. Here we can see that they are /dev/video2 and /dev/video3:
+$ ls -lah /dev/video*
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video0
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video1
+crw-rw---- 1 root video 81, 2 Sep 17 14:22 /dev/video32
+crw-rw---- 1 root video 81, 3 Sep 17 14:22 /dev/video33
+
+# Add following lines to the /etc/cdi/qimsdk.json file in the deviceNodes section using an editor of choice:
+vi /etc/cdi/qimsdk.json
+```
+
+```json
+{
+    "deviceNodes": [
+    ...
+          },
+          {
+            "path": "/dev/video2",
+            "uid": 0,
+            "gid": 44
+          },
+          {
+            "path": "/dev/video3",
+            "uid": 0,
+            "gid": 44
+          },
+          {
+    ...
+```
+
+```bash
+# For QLI platforms — content stored under the root home directory
+export QIMSDK_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export QIMSDK_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export QIMSDK_USER_CONTENTS_ROOT=/etc
+
+# After that's done, the container needs to be removed and a new one needs to be run, if already running
+docker rm -f qimsdk
+
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qimsdk.env \
+  --device qualcomm.com/device=qimsdk \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/home/qimsdk/media \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/home/qimsdk/models \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/home/qimsdk/labels \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/home/qimsdk/configs \
+  -h qimsdk --name qimsdk <desired-image-name>
+```
+
+> **Note:** When the `QIMSDK_USER_CONTENTS_ROOT` environment variable value is `/etc`** (the model content shall be mounted into the `/etc/` folder inside the container):
+
+```bash
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qimsdk.env \
+  --device qualcomm.com/device=qimsdk \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/etc/media \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/etc/models \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/etc/labels \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/etc/configs \
+  -h qimsdk --name qimsdk <desired-image-name>
+```
 
 <div id="Docker_Container_Renaming">
 
@@ -732,17 +1263,157 @@ docker load -i /tmp/qimsdk.tar
 <div id="Run_QIMSDK_Deploy_Container">
 
 ### Run QIMSDK Deploy Container
-  <h3 style="color:red">
-    <b>Create a shell file with the following content:</b>
-  </h3>
+
+Any required platform resources like GPU, DSP, video device nodes and any other system folders/volumes need to be propagated and explicitly exposed to the Docker container.
+
+This is achieved with the help of:
+
+* uploading a matching target-specfic CDI file;
+* uploading a matching target-specific ENV file;
+* creating all of the required target folders used for the local model data storage;
+* uploading the model-specific data accordingly;
+* setting the appropriate target model data file and folder access permissions;
+* listing the model-specific platform to container folder/volume mappings in the container run command.
+
+A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
+
+In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
+
+> **Note:** CDI files are located in: qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json;
+
+The CDI file needed for a specific hardware platform needs to be copied to the /etc/cdi/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
+
+```bash
+adb shell "mkdir -p /etc/cdi"
+adb shell "chmod 755 /etc/cdi"
+```
+
+> **Note:** the ENV files are located in: qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env;
+
+The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
+
+Please create this directory first on the target device, if it does not exist as follows:
+
+```bash
+adb shell "mkdir -p /etc/docker/env"
+adb shell "chmod 755 /etc/docker/env"
+```
+
+For example, if working on the qcs6490 hardware target with QLI 1.X platform, the correct CDI json would be:
+
+> qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json.
+
+The correct .env file would be:
+> qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env
+
+```bash
+#### Upload (push) the corresponding CDI json to the device
+adb push qimsdk-debian/cdi/qcs6490-qli-1x-qimsdk.json /etc/cdi/qimsdk.json
+adb push qimsdk-debian/env/qcs6490-qli-1x-qimsdk.env /etc/docker/env/qimsdk.env
+```
+
+> **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
+
+<div id="Platform_model_file_and_folder_setup">
+
+#### Sample file directory setup requirements
+The following directories must be created under the user’s home directory to store test files:
+
+> **Note:** The `HOME` directory depends on the target platform OS:
+> - `/root` on Qualcomm QLI platforms
+> - `/home/ubuntu` on Qualcomm Ubuntu platforms
+
+Set the root path for the user content by exporting one of the following environment variables in a platform terminal, depending on your platform and preference:
+
+```bash
+# For QLI platforms — content stored under the root home directory
+export QIMSDK_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export QIMSDK_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export QIMSDK_USER_CONTENTS_ROOT=/etc
+```
+
+Then create the required directories:
+
+```bash
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/media
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/models
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/labels
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/configs
+```
+
+Apply the correct permissions to each directory and its contents.
+> **Note:** Use `sudo` when the `QIMSDK_USER_CONTENTS_ROOT` value is set to `/etc` for any non-root platform user:
+
+```bash
+# media
+find ${QIMSDK_USER_CONTENTS_ROOT}/media/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/media/ -type f -exec chmod 644 {} \;
+
+# models
+find ${QIMSDK_USER_CONTENTS_ROOT}/models/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/models/ -type f -exec chmod 644 {} \;
+
+# labels
+find ${QIMSDK_USER_CONTENTS_ROOT}/labels/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/labels/ -type f -exec chmod 644 {} \;
+
+# configs
+find ${QIMSDK_USER_CONTENTS_ROOT}/configs/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/configs/ -type f -exec chmod 644 {} \;
+```
+
+> **Note:** The platform model folder naming and layout must follow the structure defined in the [#Sample file directory setup requirements](#Platform_model_file_and_folder_setup) section!
+
+> **Important Notice:** Any deviation from this exact folder layout and folder naming convention might result in your models failing to be correctly identified, located, loaded and utilized due to a potential violation of any target device SELinux policy restrictions in place!
+
+**Before running the arm64 deploy container, please upload your models and model-specific data into these newly created platform model data folders.**
+
+<h3 style="color:red">
+  <b>Create a shell file with the following content:</b>
+</h3>
 
 ```bash
 ### adb shell
-docker run -it -d --net host                                                                       \
---device /dev/video0 --device /dev/video1 --device /dev/video2 --device /dev/video3                \
---device /dev/dri/card0 --device /dev/dri/renderD128 -v /run/user/1000:/run/user/1000              \
--v /etc/labels:/etc/labels -v /etc/media:/etc/media -v /etc/models:/etc/models                     \
--h qimsdk --name <desired-container-name> <generated-image-name>
+```bash
+# For QLI platforms — content stored under the root home directory
+export QIMSDK_USER_CONTENTS_ROOT=/root
+
+# For Ubuntu platforms — content stored under the ubuntu home directory
+export QIMSDK_USER_CONTENTS_ROOT=/home/ubuntu
+
+# For any platform — content stored under /etc, independent of the OS type
+export QIMSDK_USER_CONTENTS_ROOT=/etc
+
+# After that's done, the container needs to be removed and a new one needs to be run, if already running
+docker rm -f qimsdk
+
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qimsdk.env \
+  --device qualcomm.com/device=qimsdk \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/home/qimsdk/media \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/home/qimsdk/models \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/home/qimsdk/labels \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/home/qimsdk/configs \
+  -h qimsdk --name <desired-container-name> <generated-image-name>
+```
+
+> **Note:** When the `QIMSDK_USER_CONTENTS_ROOT` environment variable value is `/etc`** (the model content shall be mounted into the `/etc/` folder inside the container):
+
+```bash
+adb shell docker run -it -d --net host \
+  --env-file /etc/docker/env/qimsdk.env \
+  --device qualcomm.com/device=qimsdk \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/etc/media \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/etc/models \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/etc/labels \
+  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/etc/configs \
+  -h qimsdk --name <desired-container-name> <generated-image-name>
 ```
 
 <div id="Execute_QIMSDK_Deploy_Container">
@@ -760,3 +1431,13 @@ docker exec -ti <desired-container-name> bash
 docker rmi $(docker images | grep "^<none>" | awk '{print $3}' )
 docker builder prune -a -f
 ```
+
+<div id="Documentation_References">
+
+## Documentation References
+
+### Useful pointers for further information:
+
+1. https://docs.docker.com/build/buildkit/configure/
+2. https://docs.docker.com/engine/daemon/troubleshoot/#kernel-cgroup-swap-limit-capabilities
+3. https://www.kernel.org/doc/html/v6.6/admin-guide/sysctl/vm.html

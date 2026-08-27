@@ -46,11 +46,18 @@ function qimsdk-setup-crosscompilation() {
     export LD_LIBRARY_PATH="/usr/aarch64-linux-gnu/lib/:/usr/lib/aarch64-linux-gnu/"
     export LIBRARY_PATH="/usr/aarch64-linux-gnu/lib/:/usr/lib/aarch64-linux-gnu/"
     export PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig"
+    # Ensure users respect the optional QIMSDK_MAX_JOBS cpu jobs limitation
+    export CMAKE_BUILD_PARALLEL_LEVEL=${QIMSDK_MAX_JOBS:-$(nproc)}
 }
 
 # git am wrapper function
 #   $1 - Path to patch file
 function qimsdk-apply-patch() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATCH_FILE=${1}
 
     # Legal notices are present in QTI specific .patch files, so they could gain legal approval

@@ -12,6 +12,11 @@ function qimsdk-strip-trailing-slashes() {
 # get first subdir after SOURCE_PATH
 # Uses env vars: QIMSDK_SRC_DIR, QIMSDK_DOWNLOAD_DIR
 function qimsdk-get-project() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local SOURCE_PATH="${1}"
     local BASES=("${QIMSDK_SRC_DIR}" "${QIMSDK_DOWNLOAD_DIR}")
     local DIR BASE REST FIRST
@@ -48,6 +53,11 @@ function qimsdk-get-project() {
 #    ${2} - TARGET - CMake Target
 #    ${3..} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
 function qimsdk-cmake-configure() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local SOURCE_PATH=${1}
     local TARGET=${2}
 
@@ -108,6 +118,11 @@ function qimsdk-cmake-configure() {
 # Compile qimsdk CMake Target
 #    ${1} - TARGET - CMake Target
 function qimsdk-cmake-compile() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local TARGET=${1}
 
     [ ! -d ${QIMSDK_BUILD_DIR}/${TARGET} ]                                                      && {
@@ -119,7 +134,6 @@ function qimsdk-cmake-compile() {
 
     (
         qimsdk-setup-crosscompilation
-
         cd ${QIMSDK_BUILD_DIR}/${TARGET}
 
         set -o pipefail
@@ -129,7 +143,7 @@ function qimsdk-cmake-compile() {
         ln -fs ${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}_${DATE}.log                              \
                 ${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}.log
 
-        cmake --build . -j                                                                        |&
+        cmake --build . -j${CMAKE_BUILD_PARALLEL_LEVEL:-$(nproc)}                                 |&
                 tee "${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}_${DATE}.log"
     ) || {
         print-red "FAILED: qimsdk-cmake-compile-${TARGET}: cmake compile failed !!!"
@@ -144,6 +158,11 @@ function qimsdk-cmake-compile() {
 #    ${1} - TARGET - CMake Target
 #    ${2} - INSTALL_PATH - Path used for install prefix
 function qimsdk-cmake-install() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local TARGET=${1}
     local INSTALL_PATH=${2}
 
@@ -171,10 +190,11 @@ function qimsdk-cmake-install() {
 
         cmake --install . --prefix ${QIMSDK_INSTALL_DEBUG_DIR}/usr/                               |&
                 tee ${LOG_FILE_NAME_DBG}                                                        && \
-        cmake --install . --prefix ${INSTALL_PATH} --strip                                        |&
-                tee ${LOG_FILE_NAME}                                                              |\
-                grep -E 'Up-to-date:|Installing:|configuration:' | tail -n +2                     |\
-                cut -d ' ' -f 3 | xargs -i rsync -aR {} ${QIMSDK_INSTALL_DIR}/ -f"- *.h"
+        cmake --install . --prefix "${INSTALL_PATH}" --strip                                      |&
+                tee "${LOG_FILE_NAME}"                                                          && \
+        rsync -aR --whole-file                                                                     \
+                --files-from=<(grep -vE '\.(h|cmake|pc|inc|a)$' install_manifest.txt)              \
+                / "${QIMSDK_INSTALL_DIR}/"
     ) || {
         print-red "FAILED: qimsdk-cmake-install-${TARGET}: cmake install failed !!!"
         return -1
@@ -190,11 +210,12 @@ function qimsdk-cmake-install() {
 # Wrapper function to configure, compile, install & clean qimsdk debian/rules Target
 function qimsdk-debian-rules-build() {
     (
-        set -e
-
         # Cross architecture
         export DEB_HOST_ARCH=arm64
-        export DEB_BUILD_OPTIONS="parallel=$(nproc)"
+        # Ensure users respect the optional QIMSDK_MAX_JOBS cpu jobs limitation
+        export CMAKE_BUILD_PARALLEL_LEVEL=${QIMSDK_MAX_JOBS:-$(nproc)}
+        # Skip tests: Docker build lacks GPU for GL tests and QEMU affects audio timing
+        export DEB_BUILD_OPTIONS="parallel=${CMAKE_BUILD_PARALLEL_LEVEL:-$(nproc)} nocheck"
 
         # GCC/G++ cross toolchain (optional but helps many builds)
         export CC=aarch64-linux-gnu-gcc
@@ -218,6 +239,15 @@ function qimsdk-debian-rules-build() {
                 ${QIMSDK_DOWNLOAD_DIR}/libgstreamer-*.deb                                          \
                 ${QIMSDK_DOWNLOAD_DIR}/gir1.2-gst-*.deb || {
             echo "FAILED: qimsdk-debian-rules-build: dpkg installation failed!"
+            apt-get remove -y $(dpkg-deb -f ${QIMSDK_DOWNLOAD_DIR}/gstreamer1.0-*.deb Package)  || {
+                echo "$(dpkg-deb -f ${QIMSDK_DOWNLOAD_DIR}/gstreamer1.0-*.deb Package) remove error!"
+            }
+            apt-get remove -y $(dpkg-deb -f ${QIMSDK_DOWNLOAD_DIR}/libgstreamer-*.deb Package)  || {
+                echo "$(dpkg-deb -f ${QIMSDK_DOWNLOAD_DIR}/libgstreamer-*.deb Package) remove error!"
+            }
+            apt-get remove -y $(dpkg-deb -f ${QIMSDK_DOWNLOAD_DIR}/gir1.2-gst-*.deb Package)    || {
+                echo "$(dpkg-deb -f ${QIMSDK_DOWNLOAD_DIR}/gir1.2-gst-*.deb Package) remove error!"
+            }
             return 1
         }
 
@@ -230,6 +260,11 @@ function qimsdk-debian-rules-build() {
 #    ${2} - INSTALL_PATH - Path used for install prefix
 #    ${3..} - CMAKE_CUSTOM_CONFIG_FLAGS - plugin specific flags to pass to CMake command
 function qimsdk-cmake-build() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local SOURCE_PATH=${1}
     local INSTALL_PATH=${2}
     local T=$(qimsdk-get-project ${SOURCE_PATH})
@@ -273,7 +308,7 @@ qimsdk-debian-rules-build-gst-plugins-bad() {
 function qimsdk-debian-rules-clean-gst-plugins-base() {
     (
         cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base1.0-${GST_PLUGINS_BASE_VERSION}
-        DEB_BUILD_OPTIONS=parallel=$(nproc) debian/rules clean
+        DEB_BUILD_OPTIONS=parallel=${QIMSDK_MAX_JOBS:-$(nproc)} debian/rules clean
     )
 
     print-green "${FUNCNAME} completed successfully!"
@@ -283,7 +318,7 @@ function qimsdk-debian-rules-clean-gst-plugins-base() {
 function qimsdk-debian-rules-clean-gst-plugins-good() {
     (
         cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-good1.0-${GST_PLUGINS_GOOD_VERSION}
-        DEB_BUILD_OPTIONS=parallel=$(nproc) debian/rules clean
+        DEB_BUILD_OPTIONS=parallel=${QIMSDK_MAX_JOBS:-$(nproc)} debian/rules clean
     )
 
     print-green "${FUNCNAME} completed successfully!"
@@ -293,10 +328,22 @@ function qimsdk-debian-rules-clean-gst-plugins-good() {
 function qimsdk-debian-rules-clean-gst-plugins-bad() {
     (
         cd ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-bad1.0-${GST_PLUGINS_BAD_VERSION}
-        DEB_BUILD_OPTIONS=parallel=$(nproc) debian/rules clean
+        DEB_BUILD_OPTIONS=parallel=${QIMSDK_MAX_JOBS:-$(nproc)} debian/rules clean
     )
 
     print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Build camera metadata
+function qimsdk-cmake-build-camera-metadata() {
+    qimsdk-cmake-build ${QIMSDK_DOWNLOAD_DIR}/media /usr                                        && \
+        print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Clean camera metadata
+function qimsdk-cmake-clean-metadata() {
+    rm -rf ${QIMSDK_BUILD_DIR}/media                                                            && \
+        print-green "${FUNCNAME} completed successfully!"
 }
 
 # CMake Build camera-service
@@ -315,6 +362,9 @@ function qimsdk-cmake-clean-camera-service () {
 # CMake Build abseil-cpp
 qimsdk-cmake-build-abseil-cpp() {
     qimsdk-cmake-build ${QIMSDK_ABSEIL_CPP_DIR} /usr `
+            `-DBUILD_SHARED_LIBS=ON `
+            `-DABSL_BUILD_STATIC=OFF `
+            `-DABSL_ENABLE_INSTALL=ON `
             `-DABSL_USE_GOOGLETEST_HEAD=OFF `
             `-DCMAKE_SYSTEM_NAME=Linux `
             `-DCMAKE_SYSTEM_PROCESSOR=aarch64 `
@@ -330,17 +380,17 @@ function qimsdk-cmake-clean-abseil-cpp() {
 }
 
 # CMake Build flatbuffers
-qimsdk-cmake-build-flatbuffers-v24-3-25() {
-    qimsdk-cmake-build ${QIMSDK_FLATBUFFERS_24_3_25_SRC_DIR} `
-            `${QIMSDK_FLATBUFFERS_24_3_25_INSTALL_DIR} `
+function qimsdk-cmake-build-flatbuffers-v23-5-26() {
+    qimsdk-cmake-build ${QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR} `
+            `${QIMSDK_FLATBUFFERS_23_5_26_INSTALL_DIR} `
             `-DFLATBUFFERS_BUILD_TESTS=OFF `
             `-DFLATBUFFERS_BUILD_SHAREDLIB=OFF                                                  && \
         print-green "${FUNCNAME} completed successfully!"
 }
 
 # CMake Clean flatbuffers
-function qimsdk-cmake-clean-flatbuffers-v24-3-25() {
-    rm -rf ${QIMSDK_BUILD_DIR}/flatbuffersflatbuffers_24.3.25                                   && \
+function qimsdk-cmake-clean-flatbuffers-v23-5-26() {
+    rm -rf ${QIMSDK_BUILD_DIR}/flatbuffersflatbuffers_23.4.26                                   && \
             print-green "${FUNCNAME} completed successfully!"
 }
 
@@ -360,11 +410,9 @@ function qimsdk-cmake-build-tflite() {
                 `-DCPUINFO_SUPPORTED_PLATFORM=ON `
                 `-DCMAKE_SYSTEM_PROCESSOR=arm64 `
                 `-DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc `
-                `-DTFLITE_HOST_TOOLS_DIR=${QIMSDK_FLATBUFFERS_24_3_25_INSTALL_DIR}/bin `
                 `-DTF_MAJOR_VERSION=${QIMSDK_TF_LITE_MAJOR} `
                 `-DTF_MINOR_VERSION=${QIMSDK_TF_LITE_MINOR} `
                 `-DTF_PATCH_VERSION=${QIMSDK_TF_LITE_PATCH} `
-                `-DTF_VERSION_SUFFIX= `
                 `-DTFLITE_ENABLE_INSTALL=ON `
                 `-DTFLITE_ENABLE_LABEL_IMAGE=ON `
                 `-DTFLITE_ENABLE_BENCHMARK_MODEL=ON `
@@ -449,7 +497,11 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
             `-DENABLE_GST_PLUGIN_MSGBROKER=ON `
             # TODO remove VHDR_MODES_ENABLE after qmmf src is cleaned up from compile time flags
             `-DVHDR_MODES_ENABLE=ON `
-            `-DENABLE_GST_PLUGIN_QMMFSRC=ON                                                     && \
+            `-DENABLE_GST_PLUGIN_QMMFSRC=ON `
+            `-DENABLE_GST_PLUGIN_SMARTVENCBIN=ON `
+            `-DENABLE_GST_PLUGIN_URIDECODEBIN=ON `
+            `-DENABLE_GST_SAMPLE_APPS=ON `
+            `-DENABLE_GST_SAMPLE_APPS_CAMERA=ON                                                 && \
         print-green "${FUNCNAME} completed successfully!"
 }
 
@@ -461,16 +513,30 @@ function qimsdk-cmake-clean-gst-plugins-imsdk() {
     print-green "${FUNCNAME} completed successfully!"
 }
 
+# CMake Build solutions-microservices
+qimsdk-cmake-build-solutions-microservices() {
+    qimsdk-cmake-build ${QIMSDK_SRC_DIR}/solutions-microservices/microservices/qimsdk /usr      && \
+        print-green "${FUNCNAME} completed successfully!"
+}
+
+# CMake Clean solutions-microservices
+function qimsdk-cmake-clean-solutions-microservices() {
+    rm -rf ${QIMSDK_BUILD_DIR}/solutions-microservices                                          && \
+            print-green "${FUNCNAME} completed successfully!"
+}
+
 # Configure and build gst plugins
 function qimsdk-incremental-build() {
     qimsdk-debian-rules-build-gst-plugins-base                                                  && \
             qimsdk-debian-rules-build-gst-plugins-good                                          && \
             qimsdk-debian-rules-build-gst-plugins-bad                                           && \
+            qimsdk-cmake-build-camera-metadata                                                  && \
             qimsdk-cmake-build-camera-service                                                   && \
             qimsdk-cmake-build-abseil-cpp                                                       && \
-            qimsdk-cmake-build-flatbuffers-v24-3-25                                             && \
+            qimsdk-cmake-build-flatbuffers-v23-5-26                                             && \
             qimsdk-cmake-build-tflite                                                           && \
             qimsdk-cmake-build-gst-plugins-imsdk                                                && \
+            qimsdk-cmake-build-solutions-microservices                                          && \
         print-green "QIMSDK GStreamer targets built successfully !!!"
 }
 

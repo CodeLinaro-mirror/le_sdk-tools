@@ -3,20 +3,43 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
+# expand tilde to real path
+#   $1 - (mandatory) path
+function qimsdk-expand-tilde() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local -n INPUT_PATH=${1}
+
+    [[ "$INPUT_PATH" == ~* ]] && {
+        # Swap "~" with ${HOME} variable
+        INPUT_PATH="${INPUT_PATH/#\~/${HOME}}"
+    }
+}
+
 # Parse json configuraiton
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) variable to take container name value
 #   $3 - (mandatory) variable to take image name value
 #   $4 - (mandatory) variable to take camera-service sources of SP
 #   $5 - (mandatory) variable to take Gstreamer sources of SP
-#   $6 - (mandatory) variable to take QAIRT SDK version
+#   $6 - (mandatory) variable to take solutions-microservices sources of SP
+#   $7 - (mandatory) variable to take QAIRT SDK version
 function qimsdk-docker-parse-json() {
+    local QIMSDK_ARG_COUNT_EXPECTED=7
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local -n OUT_QIMSDK_CONTAINER_NAME=${2}
     local -n OUT_QIMSDK_IMAGE_NAME=${3}
     local -n OUT_QIMSDK_CAMERA_SERVICE_SOURCES=${4}
     local -n OUT_QIMSDK_GST_SOURCES=${5}
-    local -n OUT_QIMSDK_QAIRT_SDK_VERSION=${6}
+    local -n OUT_MICROSERVICES_SOURCES=${6}
+    local -n OUT_QIMSDK_QAIRT_SDK_VERSION=${7}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ]                                                           && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -70,7 +93,416 @@ function qimsdk-docker-parse-json() {
         return -1
     }
 
+    OUT_MICROSERVICES_SOURCES=$(echo ${JSON_CONTENT} |                                             \
+            jq '.solutions_microservices_Source_dir' | tr -d '"')
+    OUT_MICROSERVICES_SOURCES=${OUT_MICROSERVICES_SOURCES%/}
+
+    qimsdk-expand-tilde OUT_MICROSERVICES_SOURCES
+
+    [ -d "${OUT_MICROSERVICES_SOURCES}/.git" ]                                                  || \
+            [ -d "${OUT_MICROSERVICES_SOURCES}/microservices" ]                                 || {
+        print-red "Please provide path to solutions-microservices directory in config json!!!"
+        print-red "Directory currently provided: ${OUT_MICROSERVICES_SOURCES}"
+        return -1
+    }
+
     OUT_QIMSDK_QAIRT_SDK_VERSION=$(echo ${JSON_CONTENT} |  jq '.QAIRT_SDK_version' | tr -d '"')
+
+    return 0
+}
+
+# Get container and image from json
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) give container name as argument
+#   $3 - (mandatory) give image name as argument
+function qimsdk-get-container-and-image-name() {
+    local QIMSDK_ARG_COUNT_EXPECTED=3
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_QIMSDK_CONTAINER_NAME=${2}
+    local -n OUT_QIMSDK_IMAGE_NAME=${3}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    local QIMSDK_ADDITIONAL_TAG=$(
+        echo ${JSON_CONTENT} |  jq '.Additional_tag_container' | tr -d '"'
+    )
+
+    [ ! -z "${QIMSDK_ADDITIONAL_TAG}" ] && {
+        QIMSDK_ADDITIONAL_TAG="-${QIMSDK_ADDITIONAL_TAG}"
+    }
+
+    OUT_QIMSDK_CONTAINER_NAME="qimsdk${QIMSDK_ADDITIONAL_TAG}"
+
+    local ADDITIONAL_TAG_IMAGE=$(echo ${JSON_CONTENT} |  jq '.Additional_tag_image' | tr -d '"')
+
+    [ ! -z "${ADDITIONAL_TAG_IMAGE}" ] && {
+        ADDITIONAL_TAG_IMAGE="-${ADDITIONAL_TAG_IMAGE}"
+    }
+
+    OUT_QIMSDK_IMAGE_NAME="qimsdk${ADDITIONAL_TAG_IMAGE}"
+
+    return 0
+}
+
+# Get remote sync destination from json
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) give Docker_image_path as argument
+function qimsdk-get-docker-image-path() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_DOCKER_IMAGE_PATH=${2}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    OUT_DOCKER_IMAGE_PATH=$(echo ${JSON_CONTENT} |  jq '.Docker_image_path' | tr -d '"')
+
+    qimsdk-expand-tilde OUT_DOCKER_IMAGE_PATH
+
+    [ -z "${OUT_DOCKER_IMAGE_PATH}" ] && {
+        print-red "Docker_image_path attribute in config.json is not set !!!"
+        return -1
+    }
+
+    return 0
+}
+
+# Get qimsdk components commit ID or tag
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) give camera service commit ID or tag as argument
+#   $3 - (mandatory) give gst plugins commit ID or tag as argument
+#   $4 - (mandatory) give solutions microservices commit ID or tag as argument
+function qimsdk-get-components-tag() {
+    local QIMSDK_ARG_COUNT_EXPECTED=4
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_QIMSDK_CAMERA_SERVICE_TAG=${2}
+    local -n OUT_QIMSDK_GST_PLUGINS_TAG=${3}
+    local -n OUT_QIMSDK_SOLUTIONS_MICROSERVICES_TAG=${4}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    OUT_QIMSDK_CAMERA_SERVICE_TAG=$(
+        jq -er '.camera_service_git_tag // ""' <<< "${JSON_CONTENT}" 2>/dev/null || echo ""
+    )
+
+    OUT_QIMSDK_GST_PLUGINS_TAG=$(
+        jq -er '.IM_SDK_Source_git_tag // ""' <<< "${JSON_CONTENT}" 2>/dev/null || echo ""
+    )
+
+    OUT_QIMSDK_SOLUTIONS_MICROSERVICES_TAG=$(
+        jq -er '.solutions_microservices_Source_git_tag // ""' <<< "${JSON_CONTENT}"               \
+                2>/dev/null || echo ""
+    )
+
+    return 0
+}
+
+# Get Device ID from json
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) give Device ID as argument
+function qimsdk-get-device-id() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_TARGET_DEVICE_ID=${2}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    OUT_TARGET_DEVICE_ID=$(echo ${JSON_CONTENT} |  jq '.Target_device_ID' | tr -d '"')
+
+    [ -z "${OUT_TARGET_DEVICE_ID}" ] && {
+        print-red "Target_device_ID attribute in config.json is not set !!!"
+        return -1
+    }
+
+    # The device ID may be either an adb device serial number, or a remote
+    # device IPv4 address in dotted-quad (XXX.XXX.XXX.XXX) form. Validate that
+    # it matches one of these two accepted patterns.
+    qimsdk-is-adb-serial "${OUT_TARGET_DEVICE_ID}"                                              || \
+            qimsdk-is-ipv4 "${OUT_TARGET_DEVICE_ID}"                                            || {
+        print-red "Target_device_ID '${OUT_TARGET_DEVICE_ID}' is neither a valid adb serial"
+        print-red "number nor a valid IPv4 address (XXX.XXX.XXX.XXX) !!!"
+        return -1
+    }
+
+    print-green "${FUNCNAME[0]}: OUT_TARGET_DEVICE_ID is: ${OUT_TARGET_DEVICE_ID}"
+
+    return 0
+}
+
+# Remote Sync Wrapper
+# Sync from host to remote and clean-up if success
+#   $1 - (mandatory) SRC: source to sync
+#   $2 - (mandatory) DST: destination where to sync
+function qimsdk-sync-to-remote-and-clean() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local SRC=${1}
+    local DST=${2}
+
+    [[ -d ${DST} || -f ${DST} ]] && {
+        return 0
+    }
+
+    rsync -aP ${SRC} ${DST}
+
+    local rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: rsync -aP ${SRC} ${DST}"
+        return ${rc}
+    }
+
+    rm -f ${SRC}
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: rm ${SRC}"
+        return ${rc}
+    }
+
+    return 0
+}
+
+# Remove
+# Remove argument if its located in tmp of file system
+#   $1 - (mandatory) TEMP: file or dir to remove
+function qimsdk-remove-if-temp() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local TEMP=${1}
+
+    [ -z ${TEMP} ] && {
+        return 0
+    }
+
+    [[ "${TEMP}" == /tmp/* ]] && {
+        rm -rf ${TEMP}
+    }
+
+    return 0
+}
+
+# Generate Docker compose CDI yaml file
+#   $1 - (mandatory) path to Docker compose yaml
+#   $2 - (mandatory) container name from user's config json
+#   $3 - (mandatory) image name from user's config json
+function qimsdk-generate-docker-compose-yaml() {
+    local QIMSDK_ARG_COUNT_EXPECTED=3
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_DOCKER_COMPOSE_YAML=${1}
+    local CONTAINER_NAME=${2}
+    local IMAGE_NAME=${3}
+    local MODEL_ROOT="/etc"
+    declare -a QIMSDK_USER_CONTENTS_DIRS_ARRAY=("media" "models" "labels" "configs")
+
+    yq -n ".name=\"${IMAGE_NAME}\"" > ${PATH_TO_DOCKER_COMPOSE_YAML}                            && \
+            yq -i ".services.qimsdk.image=\"${IMAGE_NAME}\"" ${PATH_TO_DOCKER_COMPOSE_YAML}     && \
+            yq -i ".services.qimsdk.container_name\"${CONTAINER_NAME}\""                           \
+                    ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
+            yq -i ".services.qimsdk.hostname=\"${CONTAINER_NAME}\""                                \
+                    ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
+            yq -i '.services.qimsdk.stdin_open=true' ${PATH_TO_DOCKER_COMPOSE_YAML}             && \
+            yq -i '.services.qimsdk.tty=true' ${PATH_TO_DOCKER_COMPOSE_YAML}                    && \
+            yq -i '.services.qimsdk.restart="always"' ${PATH_TO_DOCKER_COMPOSE_YAML}            && \
+            yq -i '.services.qimsdk.network_mode="host"' ${PATH_TO_DOCKER_COMPOSE_YAML}         && \
+            for I in ${QIMSDK_USER_CONTENTS_DIRS_ARRAY[@]}; do
+                yq -i ".services.qimsdk.volumes += [\"${MODEL_ROOT}/${I}:${MODEL_ROOT}/${I}\"]"    \
+                    ${PATH_TO_DOCKER_COMPOSE_YAML}
+            done                                                                                && \
+            yq -i '.services.qimsdk.env_file=["/etc/docker/env/qimsdk.env"]'                       \
+                    ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
+            yq -i '.services.qimsdk.deploy.resources.reservations.devices[0].driver = "cdi"'       \
+                    ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
+            yq -i '.services.qimsdk.deploy.resources.reservations.devices[0].device_ids[0] =
+                    "qualcomm.com/device=cdi-hw-acc"' ${PATH_TO_DOCKER_COMPOSE_YAML}            && \
+            yq -i '.services.qimsdk.deploy.resources.reservations.devices[0].capabilities =
+                    ["hw-acc"]' "${PATH_TO_DOCKER_COMPOSE_YAML}"                                || {
+        print-red "Failed to generate Docker compose CDI yaml file !!!"
+        rm -rf  ${PATH_TO_DOCKER_COMPOSE_YAML}
+        return -1
+    }
+
+    return 0
+}
+
+# Generate docker run cdi cmd in shell file
+#   $1 - (mandatory) remote path
+#   $2 - (mandatory) container name from user's config json
+#   $3 - (mandatory) image name from user's config json
+function qimsdk-generate-docker-run-cmd() {
+    local QIMSDK_ARG_COUNT_EXPECTED=3
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local RESULT=${1}
+    local CONTAINER_NAME=${2}
+    local IMAGE_NAME=${3}
+    local MODEL_ROOT="/etc"
+
+    echo "docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env `
+            `--device qualcomm.com/device=qimsdk -h ${CONTAINER_NAME} `
+            `-v ${MODEL_ROOT}/media:${MODEL_ROOT}/media `
+            `-v ${MODEL_ROOT}/models:${MODEL_ROOT}/models `
+            `-v ${MODEL_ROOT}/labels:${MODEL_ROOT}/labels `
+            `-v ${MODEL_ROOT}/configs:${MODEL_ROOT}/configs `
+            `--name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}
+
+    local rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: Failed to construct Docker run CDI cmd !!!"
+        return ${rc}
+    }
+
+    return 0
+}
+
+# Get map of host to dbg container to mount src dirs
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) output map
+function qimsdk-get-map-for-dbg-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_DEV_MAP=${2}
+
+    local JSON_CONTENT=$(
+        cat ${PATH_TO_CONFIG_JSON}
+    )
+
+    local DOCKER_IMAGE_PATH="/mnt/work/dev_artifacts"
+    local HOST_DOCKER_IMAGE_PATH=""
+
+    qimsdk-get-docker-image-path ${PATH_TO_CONFIG_JSON} HOST_DOCKER_IMAGE_PATH
+
+    local MAP_SOURCES_TO_DEV_CONTAINER=$(
+        echo ${JSON_CONTENT} |  jq '.MAP_sources_to_dev_container' | tr -d '"'
+    )
+
+    declare -a DEV_MAP_ARR=""
+
+    [[ "${MAP_SOURCES_TO_DEV_CONTAINER}" =~ ^(TRUE|ENABLE|ENABLED)$ ]]                          && {
+
+        local GST_SRC_DIR=$(
+            echo ${JSON_CONTENT} |  jq '.IM_SDK_Source_Dir' | tr -d '"'
+        )
+
+        qimsdk-expand-tilde GST_SRC_DIR
+
+        [[ -z ${GST_SRC_DIR} ]]                                                                 && {
+            return 0
+        }
+
+        [ -d ${GST_SRC_DIR} ] && {
+            DEV_MAP_ARR+="-v ${GST_SRC_DIR}:/mnt/work/src/gst-plugins-imsdk "
+        }
+
+    }
+
+    DEV_MAP_ARR+="-v ${HOST_DOCKER_IMAGE_PATH}:${DOCKER_IMAGE_PATH} "
+
+    OUT_DEV_MAP=${DEV_MAP_ARR}
+
+    return 0
+}
+
+# Argument unsigned 10-digit number checker.
+#   $1 - (mandatory) number argument to be checked
+function qimsdk-is-arg-number() {
+    local ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${ARG_COUNT_EXPECTED}                                           && \
+        print-red "${FUNCNAME[0]}: expects ${ARG_COUNT_EXPECTED} arguments, but got $#!"        && \
+        return -1
+
+    local NUMBER_ARG=${1}
+
+    ! [[ "${NUMBER_ARG}" =~ ^[0-9]{1,10}$ ]]                                                    && \
+        return -1
+
+    return 0
+}
+
+# Get maximum number of build threads from json
+#   $1 - (mandatory) path to target config json
+#   $2 - (output) give number of max build threads, if set
+function qimsdk-get-max-build-jobs() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_QIMSDK_MAX_BUILD_JOBS=${2}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ]                                                           && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    OUT_QIMSDK_MAX_BUILD_JOBS=$(echo ${JSON_CONTENT} |                                             \
+            jq '.MAX_build_cpu_threads' | tr -d '"')
+
+    [[ -n "${OUT_QIMSDK_MAX_BUILD_JOBS}" ]]                                                     && \
+                    qimsdk-is-arg-number "${OUT_QIMSDK_MAX_BUILD_JOBS}"                         && {
+        [[ "${OUT_QIMSDK_MAX_BUILD_JOBS}" -le 0 ]]                                              || \
+                [[ "${OUT_QIMSDK_MAX_BUILD_JOBS}" -gt $(nproc) ]]                               && {
+            print-red "Max build threads argument value set: ${OUT_QIMSDK_MAX_BUILD_JOBS}"
+            print-red "Max build threads argument value must be within: 0 - $(nproc)! Exit!"
+            return -1
+        }                                                                                       || {
+            OUT_QIMSDK_MAX_BUILD_JOBS="${OUT_QIMSDK_MAX_BUILD_JOBS#+}"
+        }
+    }                                                                                           || {
+        OUT_QIMSDK_MAX_BUILD_JOBS=$(nproc)
+    }
 
     return 0
 }
@@ -84,6 +516,11 @@ function qimsdk-docker-parse-json() {
 #   $6 - (mandatory) device ID
 #   $7 - (mandatory) QAIRT SDK version
 function qimsdk-docker-build-initialize() {
+    local QIMSDK_ARG_COUNT_EXPECTED=7
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
 
     local -n QIMSDK_CONTAINER_NAME_PTR=${2}
@@ -95,12 +532,14 @@ function qimsdk-docker-build-initialize() {
 
     local QIMSDK_CAMERA_SERVICE_SOURCES
     local QIMSDK_GST_SOURCES
+    local QIMSDK_MICROSERVICES_SOURCES
 
     qimsdk-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                \
             QIMSDK_CONTAINER_NAME_PTR                                                              \
             QIMSDK_IMAGE_NAME_PTR                                                                  \
             QIMSDK_CAMERA_SERVICE_SOURCES                                                          \
             QIMSDK_GST_SOURCES                                                                     \
+            QIMSDK_MICROSERVICES_SOURCES                                                           \
             QIMSDK_QAIRT_SDK_VERSION_PTR                                                        || {
         print-red "FAILED: qimsdk-docker-parse-json !!!"
         return -1
@@ -133,16 +572,29 @@ function qimsdk-docker-build-initialize() {
         return -1
     }
 
+    git -C ${QIMSDK_MICROSERVICES_SOURCES} branch | grep -q "iot-solutions.lnx.1.0"             || {
+        print-red "ERROR: ${QIMSDK_GST_SOURCES} does not contain local branch: iot-solutions.lnx.1.0 !!!"
+        return -1
+    }
+
     rsync -aL ${QIMSDK_CAMERA_SERVICE_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/camera-service         && \
-            rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-imsdk
+            rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-imsdk         && \
+            rsync -aL ${QIMSDK_MICROSERVICES_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/solutions-microservices
 }
 
 # Qimsdk build qimsdk-debian deploy docker image
 #   $1 - (mandatory) image name
+#   $2 - (mandatory) path to target config json
 function qimsdk-docker-build-qimsdk-debian-deploy-image() {
-    local IMAGE_NAME=${1}
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
 
+    local IMAGE_NAME=${1}
+    local PATH_TO_CONFIG_JSON=${2}
     local PATH_TO_QIMSDK_DEBIAN_DOCKERFILE=${QIMSDK_DOCKER_DIR}
+    local QIMSDK_MAX_BUILD_JOBS
 
     [ ! -d ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} ]                                                && {
         print-red "No such directory: ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE}!"
@@ -151,6 +603,11 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
 
     [ -z ${IMAGE_NAME} ]                                                                        && {
         print-red "Image name is empty!"
+        return -1
+    }
+
+    ! qimsdk-get-max-build-jobs ${PATH_TO_CONFIG_JSON} QIMSDK_MAX_BUILD_JOBS                    && {
+        print-red "Incorrect QIMSDK_MAX_BUILD_JOBS argument value!"
         return -1
     }
 
@@ -170,6 +627,7 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
         DOCKER_BUILDKIT=1 docker build                                                             \
                 --progress=plain --target qimsdk_deploy_arm64                                      \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian-deploy                 \
+                --build-arg QIMSDK_ARG_MAX_JOBS=${QIMSDK_MAX_BUILD_JOBS}                           \
                 -f ${DOCKERFILE}.work_deploy                                                    || {
             rm -f ${DOCKERFILE}.work_deploy
             print-red "Build ${IMAGE_NAME}-debian-deploy image failed !!!"
@@ -182,9 +640,21 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
 
 # Qimsdk build qimsdk-debian docker image
 #   $1 - (mandatory) image name
+#   $2 - (mandatory) QAIRT SDK VERSION
+#   $3 - (mandatory) path to target config json
 function qimsdk-docker-build-qimsdk-debian-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local IMAGE_NAME=${1}
     local QIMSDK_QAIRT_SDK_VERSION=${2}
+    local PATH_TO_CONFIG_JSON=${3}
+    local QIMSDK_CAMERA_SERVICE_TAG
+    local QIMSDK_GST_PLUGINS_TAG
+    local QIMSDK_SOLUTIONS_MICROSERVICES_TAG
+    local QIMSDK_MAX_BUILD_JOBS
 
     local PATH_TO_QIMSDK_DEBIAN_DOCKERFILE=${QIMSDK_DOCKER_DIR}
 
@@ -195,6 +665,17 @@ function qimsdk-docker-build-qimsdk-debian-image() {
 
     [ -z ${IMAGE_NAME} ]                                                                        && {
         print-red "Image name is empty!"
+        return -1
+    }
+
+    ! qimsdk-get-max-build-jobs ${PATH_TO_CONFIG_JSON} QIMSDK_MAX_BUILD_JOBS                    && {
+        print-red "Incorrect QIMSDK_MAX_BUILD_JOBS argument value!"
+        return -1
+    }
+
+    qimsdk-get-components-tag ${PATH_TO_CONFIG_JSON} QIMSDK_CAMERA_SERVICE_TAG                     \
+        QIMSDK_GST_PLUGINS_TAG QIMSDK_SOLUTIONS_MICROSERVICES_TAG                               || {
+        print-red "FAILED: qimsdk-get-components-tag !!!"
         return -1
     }
 
@@ -210,6 +691,10 @@ function qimsdk-docker-build-qimsdk-debian-image() {
 
         DOCKER_BUILDKIT=1 docker build                                                             \
                 --build-arg QIMSDK_ARG_QNP_VERSION=${QIMSDK_QAIRT_SDK_VERSION}                     \
+                --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=${QIMSDK_CAMERA_SERVICE_TAG}             \
+                --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=${QIMSDK_GST_PLUGINS_TAG}                   \
+                --build-arg QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG=${QIMSDK_SOLUTIONS_MICROSERVICES_TAG} \
+                --build-arg QIMSDK_ARG_MAX_JOBS=${QIMSDK_MAX_BUILD_JOBS}                           \
                 --progress=plain --target qimsdk_build                                             \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian                        \
                 -f ${DOCKERFILE}.work                                                           || {
@@ -225,6 +710,11 @@ function qimsdk-docker-build-qimsdk-debian-image() {
 # Build device docker image based on Dockerfile in ${QIMSDK_DOCKER_DIR} directory
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-build-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -241,7 +731,7 @@ function qimsdk-docker-build-image() {
         return -1
     }
 
-    qimsdk-docker-build-qimsdk-debian-deploy-image ${QIMSDK_IMAGE_NAME}                         || {
+    qimsdk-docker-build-qimsdk-debian-deploy-image ${QIMSDK_IMAGE_NAME} ${PATH_TO_CONFIG_JSON}  || {
         print-red "FAILED: qimsdk-docker-build-qimsdk-debian-deploy-image !!!"
         return -1
     }
@@ -254,12 +744,18 @@ function qimsdk-docker-build-image() {
 # Build dbg dev docker image based on Dockerfile in ${QIMSDK_DOCKER_DIR} directory
 #   $1 - (mandatory) path to target config json
 function qimsdk-dbg-docker-build-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
     local DOCKER_IMAGE_PATH
     local QIMSDK_DEVICE_ID
     local QIMSDK_QAIRT_SDK_VERSION
+    local QIMSDK_MAX_BUILD_JOBS
 
     local QIMSDK_TMP_FOLDER="${QIMSDK_DOCKER_DIR}/tmp"
     mkdir -p ${QIMSDK_TMP_FOLDER}
@@ -276,18 +772,22 @@ function qimsdk-dbg-docker-build-image() {
         return -1
     }
 
+    ! qimsdk-get-max-build-jobs ${PATH_TO_CONFIG_JSON} QIMSDK_MAX_BUILD_JOBS                    && {
+        print-red "Incorrect QIMSDK_MAX_BUILD_JOBS argument value!"
+        return -1
+    }
+
     DOCKER_BUILDKIT=1 docker build                                                                 \
-            --build-arg QIMSDK_ARG_DOCKER_IMAGE_PATH=${DOCKER_IMAGE_PATH}                          \
-            --build-arg QIMSDK_ARG_DEVICE_ID=${QIMSDK_DEVICE_ID}                                   \
-            --build-arg QIMSDK_ARG_CONTAINER_NAME=${QIMSDK_CONTAINER_NAME}                         \
-            --progress=plain --target qimsdk_dbg_image -f Dockerfile.dbg                           \
+            --build-arg QIMSDK_ARG_MAX_JOBS=${QIMSDK_MAX_BUILD_JOBS}                               \
+            --progress=plain --target qimsdk_dbg_image -f ${QIMSDK_DOCKER_DIR}/Dockerfile.dbg      \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}                                        || {
         print-red "Build image failed !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -1
     }
 
-    qimsdk-docker-build-qimsdk-debian-image ${QIMSDK_IMAGE_NAME} ${QIMSDK_QAIRT_SDK_VERSION}    || {
+    qimsdk-docker-build-qimsdk-debian-image ${QIMSDK_IMAGE_NAME} ${QIMSDK_QAIRT_SDK_VERSION}       \
+            ${PATH_TO_CONFIG_JSON}                                                              || {
         print-red "FAILED: qimsdk-docker-build-qimsdk-debian-image !!!"
         rm -rf ${QIMSDK_TMP_FOLDER}
         return -1
@@ -303,6 +803,11 @@ function qimsdk-dbg-docker-build-image() {
 # Update selected device image to the device
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-update-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -329,24 +834,22 @@ function qimsdk-docker-device-update-image() {
     }
 
     (
-        export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
-
-        [ -z ${ANDROID_SERIAL} ]                                                                && {
-            print-red "Android serial is not set !!!"
+        [ -z "${QIMSDK_DEVICE_ID}" ]                                                            && {
+            print-red "Device ID is not set !!!"
             rm ${FILE_NAME}
 
             return -1
         }
 
-        qimsdk-device-command "mkdir -p /tmp/data/docker_images" ${QIMSDK_DEVICE_ID}            || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "mkdir -p /tmp/data/docker_images"          || {
             print-red "FAILED: qimsdk-device-command !!!"
             rm ${FILE_NAME}
 
             return -1
         }
 
-        adb push ${FILE_NAME} /tmp/data/docker_images                                           || {
-            print-red "FAILED: adb push ${FILE_NAME} /tmp/data/docker_images !!!"
+        qimsdk-cmd "${QIMSDK_DEVICE_ID}" push ${FILE_NAME} /tmp/data/docker_images              || {
+            print-red "FAILED: push ${FILE_NAME} /tmp/data/docker_images !!!"
             rm ${FILE_NAME}
 
             return -1
@@ -354,13 +857,13 @@ function qimsdk-docker-device-update-image() {
 
         rm ${FILE_NAME}
 
-        qimsdk-device-command "docker load -i /tmp/data/docker_images/${FILE_NAME}"                \
-                ${QIMSDK_DEVICE_ID}                                                             || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                \
+                "docker load -i /tmp/data/docker_images/${FILE_NAME}"                           || {
             print-red "Device load image failed: docker load failed !!!"
             return -1
         }
 
-        qimsdk-device-command "rm /tmp/data/docker_images/${FILE_NAME}" ${QIMSDK_DEVICE_ID}     || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm /tmp/data/docker_images/${FILE_NAME}"   || {
             print-red "Device failed to remove ${FILE_NAME} !!!"
             return -1
         }
@@ -377,6 +880,11 @@ function qimsdk-docker-device-update-image() {
 # Save selected device image
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-save-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -425,47 +933,35 @@ function qimsdk-docker-device-save-image() {
         return -1
     }
 
-    for DEVICE_JSON in ${QIMSDK_DOCKER_DIR}/targets/target_*.json; do
+    qimsdk-generate-docker-run-cmd ${COMMON_PATH}/docker_run.sh                                    \
+            ${QIMSDK_CONTAINER_NAME}                                                               \
+            ${QIMSDK_IMAGE_NAME}-debian-deploy                                                  || {
+        print-red "Generate ${COMMON_PATH}/docker_run.sh file failed !!!"
+        rm -f ${COMMON_PATH}/docker_run.sh
+        return -1
+    }
 
-        local SUFFIX_NAME="$(basename "${DEVICE_JSON%.json}")"
-        SUFFIX_NAME="${SUFFIX_NAME#target_}"
+    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run.sh                                   \
+            ${DOCKER_IMAGE_PATH}                                                                || {
+        print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+        rm -f ${COMMON_PATH}/docker_run.sh
+        return -1
+    }
 
-        qimsdk-generate-docker-run-cmd ${DEVICE_JSON}                                              \
-                ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                                        \
-                ${QIMSDK_CONTAINER_NAME}                                                           \
-                ${QIMSDK_IMAGE_NAME}-debian-deploy                                              || {
-            print-red "Generate ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh file failed !!!"
-            rm -f ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh
+    qimsdk-generate-docker-compose-yaml ${COMMON_PATH}/docker-compose.yml                          \
+            ${QIMSDK_CONTAINER_NAME}                                                               \
+            ${QIMSDK_IMAGE_NAME}-debian-deploy                                                  || {
+        print-red "Generate qimsdk docker compose CDI file failed !!!"
+        rm -f ${COMMON_PATH}/docker-compose.yml
+        return -1
+    }
 
-            return -1
-        }
-
-        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh                \
-                ${DOCKER_IMAGE_PATH}                                                            || {
-            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-            rm -f ${COMMON_PATH}/docker_run_${SUFFIX_NAME}.sh
-
-            return -1
-        }
-
-        qimsdk-generate-docker-compose-cdi-yaml ${DEVICE_JSON}                                     \
-                ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml                               \
-                ${QIMSDK_CONTAINER_NAME}                                                           \
-                ${QIMSDK_IMAGE_NAME}-debian-deploy                                              || {
-            print-red "Generate qimsdk docker compose CDI file failed !!!"
-            rm -f ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml
-
-            return -1
-        }
-
-        qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml       \
-                ${DOCKER_IMAGE_PATH}                                                            || {
-            print-red "FAILED: qimsdk-sync-to-remote-and-clean"
-            rm -f ${COMMON_PATH}/docker-compose-cdi-${SUFFIX_NAME}.yml
-
-            return -1
-        }
-    done
+    qimsdk-sync-to-remote-and-clean ${COMMON_PATH}/docker-compose.yml                              \
+            ${DOCKER_IMAGE_PATH}                                                                || {
+        print-red "FAILED: qimsdk-sync-to-remote-and-clean"
+        rm -f ${COMMON_PATH}/docker-compose.yml
+        return -1
+    }
 
     print-green "Device save image successful !!!"
 
@@ -475,6 +971,11 @@ function qimsdk-docker-device-save-image() {
 # Load selected device image
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-load-image() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -523,24 +1024,22 @@ function qimsdk-docker-device-load-image() {
     }
 
     (
-        export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
-
-        [ -z ${ANDROID_SERIAL} ]                                                                && {
-            print-red "Android serial is not set !!!"
+        [ -z "${QIMSDK_DEVICE_ID}" ]                                                            && {
+            print-red "Device ID is not set !!!"
             qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
             return -1
         }
 
-        qimsdk-device-command "mkdir -p /tmp/data/docker_images" ${QIMSDK_DEVICE_ID}            || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "mkdir -p /tmp/data/docker_images"          || {
             print-red "FAILED: qimsdk-device-command !!!"
             qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
             return -1
         }
 
-        adb push ${LOCAL_DOCKER_IMAGE} /tmp/data/docker_images                                  || {
-            print-red "FAILED: adb push ${LOCAL_DOCKER_IMAGE}                                      \
+        qimsdk-cmd "${QIMSDK_DEVICE_ID}" push ${LOCAL_DOCKER_IMAGE} /tmp/data/docker_images     || {
+            print-red "FAILED: push ${LOCAL_DOCKER_IMAGE}                                          \
                     /tmp/data/docker_images !!!"
 
             qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
@@ -549,13 +1048,13 @@ function qimsdk-docker-device-load-image() {
 
         qimsdk-remove-if-temp ${LOCAL_DOCKER_IMAGE}
 
-        qimsdk-device-command "docker load -i /tmp/data/docker_images/${FILE_NAME}"                \
-                ${QIMSDK_DEVICE_ID}                                                             || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                \
+                "docker load -i /tmp/data/docker_images/${FILE_NAME}"                           || {
             print-red "Device load image failed: docker load failed !!!"
             return -1
         }
 
-        qimsdk-device-command "rm /tmp/data/docker_images/${FILE_NAME}" ${QIMSDK_DEVICE_ID}     || {
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm /tmp/data/docker_images/${FILE_NAME}"   || {
             print-red "Device failed to remove ${FILE_NAME} !!!"
             return -1
         }
@@ -574,14 +1073,31 @@ function qimsdk-docker-device-load-image() {
 # Run dbg dev container
 #   $1 - (mandatory) path to target config json
 function qimsdk-dbg-docker-run-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
+    local DOCKER_IMAGE_PATH
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
+    local QIMSDK_DEVICE_ID
+
+    qimsdk-get-docker-image-path ${PATH_TO_CONFIG_JSON} DOCKER_IMAGE_PATH                       || {
+        print-red "FAILED: qimsdk-get-docker-image-path !!!"
+        return -1
+    }
 
     qimsdk-get-container-and-image-name ${PATH_TO_CONFIG_JSON}                                     \
             QIMSDK_CONTAINER_NAME                                                                  \
             QIMSDK_IMAGE_NAME                                                                   || {
         print-red "FAILED: qimsdk-get-container-and-image-name !!!"
+        return -1
+    }
+
+    qimsdk-get-device-id ${PATH_TO_CONFIG_JSON} QIMSDK_DEVICE_ID                                || {
+        print-red "FAILED: qimsdk-get-device-id  !!!"
         return -1
     }
 
@@ -594,6 +1110,8 @@ function qimsdk-dbg-docker-run-container() {
     [ -d /dev/bus/usbd ] && USB_DEVICE="--device /dev/bus/usb"
 
     docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME}_dbg                                   \
+            --env QIMSDK_DEVICE_ID=${QIMSDK_DEVICE_ID}                                             \
+            --env QIMSDK_CONTAINER_NAME=${QIMSDK_CONTAINER_NAME}                                   \
             --name ${QIMSDK_CONTAINER_NAME}_dbg                                                    \
             ${USB_DEVICE} ${DEVELOPMENT_MAP}                                                       \
             ${QIMSDK_IMAGE_NAME}-debian bash                                                    || {
@@ -647,6 +1165,11 @@ function qimsdk-dbg-docker-run-container() {
 # Run selected device container
 #   $1 - (mandatory) path to target config json
 function qimsdk-device-docker-run-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -658,7 +1181,7 @@ function qimsdk-device-docker-run-container() {
         return -1
     }
 
-    docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME} --user qimsdk                         \
+    docker run -it -d --net host -h ${QIMSDK_CONTAINER_NAME}                                       \
             --name ${QIMSDK_CONTAINER_NAME} ${QIMSDK_IMAGE_NAME}-debian-deploy bash             || {
         print-red "Run device container failed on pc emulator !!!"
         return -1
@@ -694,6 +1217,11 @@ function qimsdk-device-docker-run-container() {
 # Run selected device container in cdi mode
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-run-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -712,68 +1240,42 @@ function qimsdk-docker-device-run-container() {
     }
 
     (
-        export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
-
-        local MACHINE=$(adb shell "cat /sys/devices/soc0/machine" | tr -d '\r')                 || {
-            print-red "FAILED: adb shell "cat /sys/devices/soc0/machine"  !!!"
+        local MACHINE=$(qimsdk-cmd "${QIMSDK_DEVICE_ID}"                                           \
+                shell "cat /sys/devices/soc0/machine" | tr -d '\r')                             || {
+            print-red "FAILED: reading /sys/devices/soc0/machine !!!"
             return -1
         }
 
-        local MEDIA_DIRS=("labels" "media" "models")
+        local MEDIA_DIRS=("labels" "media" "models" "configs")
 
         for idx in ${!MEDIA_DIRS[@]}; do
-            qimsdk-device-command "mkdir -m 777 -p /etc/${MEDIA_DIRS[$idx]}"                    || {
+            qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                            \
+                        "mkdir -m 777 -p /etc/${MEDIA_DIRS[$idx]}"                              || {
                 print-red "FAILED: /etc/${MEDIA_DIRS[$idx]} can not be created in device !!!"
                 return -1
             }
         done
 
-        local TARGET_PLATFORM=""
-
         local TMP_RUN_CMD_DIR=$(mktemp -d)
 
-        for DEVICE_JSON in ${QIMSDK_DOCKER_DIR}/targets/target_*.json; do
-
-            local SUFFIX_NAME="$(basename "${DEVICE_JSON%.json}")"
-            SUFFIX_NAME="${SUFFIX_NAME#target_}"
-
-            qimsdk-generate-docker-run-cmd ${DEVICE_JSON}                                          \
-                    ${TMP_RUN_CMD_DIR}/docker_run_${SUFFIX_NAME}.sh                                \
-                    ${QIMSDK_CONTAINER_NAME}                                                       \
-                    ${QIMSDK_IMAGE_NAME}-debian-deploy                                          || {
-                print-red "Generate ${TMP_RUN_CMD_DIR}/docker_run_${SUFFIX_NAME}.sh `
-                    `file failed !!!"
-                rm -rf ${TMP_RUN_CMD_DIR}
-
-                return -1
-            }
-
-            declare -A SOC_LIST=$(cat ${DEVICE_JSON} | jq '.Soc[]' | tr -d '"')
-
-            for SOC in ${SOC_LIST[@]}; do
-                [[ ${MACHINE} == ${SOC} ]]                                                      && {
-                    TARGET_PLATFORM="${SUFFIX_NAME}"
-                    # Break out of both loops
-                    break 2
-                }
-            done
-        done
-
-        [ -z ${TARGET_PLATFORM} ]                                                               && {
-            print-red "Target platform is not set !!!"
+        qimsdk-generate-docker-run-cmd ${TMP_RUN_CMD_DIR}/docker_run.sh                            \
+                ${QIMSDK_CONTAINER_NAME}                                                           \
+                ${QIMSDK_IMAGE_NAME}-debian-deploy                                              || {
+            print-red "Generate ${TMP_RUN_CMD_DIR}/docker_run.sh file failed !!!"
+            rm -rf ${TMP_RUN_CMD_DIR}
             return -1
         }
 
-        adb push ${TMP_RUN_CMD_DIR}/docker_run_${TARGET_PLATFORM}.sh /tmp/                      && \
-        qimsdk-device-command "source /tmp/docker_run_${TARGET_PLATFORM}.sh"                    || {
+        qimsdk-cmd "${QIMSDK_DEVICE_ID}" push ${TMP_RUN_CMD_DIR}/docker_run.sh /tmp/            && \
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "source /tmp/docker_run.sh"                 || {
             rm -rf ${TMP_RUN_CMD_DIR}
-            qimsdk-device-command "rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh"
+            qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm -rf /tmp/docker_run.sh"
             echo "qimsdk-docker-device-run-container failed !!!"
             return -1
         }
 
         rm -rf ${TMP_RUN_CMD_DIR}
-        qimsdk-device-command "rm -rf /tmp/docker_run_${TARGET_PLATFORM}.sh"
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm -rf /tmp/docker_run.sh"
     )                                                                                           || {
         print-red "Device run container failed !!!"
         return -1
@@ -787,6 +1289,11 @@ function qimsdk-docker-device-run-container() {
 # Remove selected device container
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-rm-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -804,7 +1311,7 @@ function qimsdk-docker-device-rm-container() {
         return -1
     }
 
-    qimsdk-device-command "docker rm ${QIMSDK_CONTAINER_NAME}" ${QIMSDK_DEVICE_ID}              || {
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker rm ${QIMSDK_CONTAINER_NAME}"            || {
         print-red "Device rm container failed !!!"
         return -1
     }
@@ -817,6 +1324,11 @@ function qimsdk-docker-device-rm-container() {
 # Start selected device container
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-start-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -834,7 +1346,7 @@ function qimsdk-docker-device-start-container() {
         return -1
     }
 
-    qimsdk-device-command "docker start ${QIMSDK_CONTAINER_NAME}" ${QIMSDK_DEVICE_ID}           || {
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker start ${QIMSDK_CONTAINER_NAME}"         || {
         print-red "Device start container failed !!!"
         return -1
     }
@@ -847,6 +1359,11 @@ function qimsdk-docker-device-start-container() {
 # Stop selected device container
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-stop-container() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -864,7 +1381,7 @@ function qimsdk-docker-device-stop-container() {
         return -1
     }
 
-    qimsdk-device-command "docker stop ${QIMSDK_CONTAINER_NAME}" ${QIMSDK_DEVICE_ID}            || {
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker stop ${QIMSDK_CONTAINER_NAME}"          || {
         print-red "Device stop container failed !!!"
         return -1
     }
@@ -878,6 +1395,11 @@ function qimsdk-docker-device-stop-container() {
 #   $1 - (mandatory) path to target config json
 #   $2 - (optional) command to execute
 function qimsdk-docker-device-command() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local CMD=${2}
     local QIMSDK_CONTAINER_NAME
@@ -896,8 +1418,8 @@ function qimsdk-docker-device-command() {
         return -1
     }
 
-    qimsdk-device-command "docker exec ${QIMSDK_CONTAINER_NAME} bash -c ${CMD}"                    \
-            ${QIMSDK_DEVICE_ID}                                                                 || {
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                    \
+            "docker exec ${QIMSDK_CONTAINER_NAME} bash -c ${CMD}"                               || {
         print-red "FAILED: qimsdk-device-command !!!"
         return -1
     }
@@ -908,6 +1430,11 @@ function qimsdk-docker-device-command() {
 # Start shell in the docker container on the device
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-shell() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_CONTAINER_NAME
     local QIMSDK_IMAGE_NAME
@@ -925,12 +1452,33 @@ function qimsdk-docker-device-shell() {
         return -1
     }
 
-    adb -s ${QIMSDK_DEVICE_ID} shell -t "docker exec -it ${QIMSDK_CONTAINER_NAME} bash"
+    local TRANSPORT
+    qimsdk-device-transport "${QIMSDK_DEVICE_ID}" TRANSPORT                                     || {
+        print-red "FAILED: qimsdk-device-transport !!!"
+        return -1
+    }
+
+    if [ "${TRANSPORT}" = "adb" ]; then
+        adb -s ${QIMSDK_DEVICE_ID} shell -t "docker exec -it ${QIMSDK_CONTAINER_NAME} bash"
+    else
+        # Connect using the bare device ID as the ssh target and let the host's
+        # ~/.ssh/config govern the user, hostname and identity (passwordless,
+        # key-based access).
+        local -a SSH_OPTS
+        qimsdk-ssh-opts SSH_OPTS
+        ssh -t "${SSH_OPTS[@]}" "${QIMSDK_DEVICE_ID}"                                              \
+                "docker exec -it ${QIMSDK_CONTAINER_NAME} bash"
+    fi
 }
 
 # Docker device images clean up
 #   $1 - (mandatory) path to target config json
 function qimsdk-docker-device-images-cleanup() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local QIMSDK_DEVICE_ID
 
@@ -940,10 +1488,10 @@ function qimsdk-docker-device-images-cleanup() {
     }
 
     local DEVICE_DOCKER_IMAGES=$(
-        qimsdk-device-command "docker images -f 'dangling=true' -q" ${QIMSDK_DEVICE_ID}
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker images -f 'dangling=true' -q"
     )
 
-    qimsdk-device-command "docker rmi ${DEVICE_DOCKER_IMAGES}" ${QIMSDK_DEVICE_ID}              || {
+    qimsdk-device-command "${QIMSDK_DEVICE_ID}" "docker rmi ${DEVICE_DOCKER_IMAGES}"            || {
         print-red "FAILED: qimsdk-device-command !!!"
         return -1
     }
@@ -976,6 +1524,11 @@ function qimsdk-docker-host-images-cleanup() {
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) artifacts variant - release or debug
 function qimsdk-dbg-load-artifacts-variant() {
+    local QIMSDK_ARG_COUNT_EXPECTED=2
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     local VARIANT=${2}
     local QIMSDK_CONTAINER_NAME
@@ -1008,34 +1561,35 @@ function qimsdk-dbg-load-artifacts-variant() {
     qimsdk-get-device-id ${PATH_TO_CONFIG_JSON} QIMSDK_DEVICE_ID
 
     (
-        export ANDROID_SERIAL=${QIMSDK_DEVICE_ID}
-
-        [ -z ${ANDROID_SERIAL} ]                                                                && {
-            print-red "Android serial is not set !!!"
-            rm ${FILE_NAME}
+        [ -z "${QIMSDK_DEVICE_ID}" ]                                                            && {
+            print-red "Device ID is not set !!!"
+            rm -f qimsdk_dev_artifacts_${VARIANT}.tar
 
             return -1
         }
 
         rsync -aP ${DOCKER_IMAGE_PATH}/qimsdk_dev_artifacts_${VARIANT}.tar .                    && \
-                qimsdk-device-command "mkdir -p /tmp/qti/development" ${QIMSDK_DEVICE_ID}       && \
-                adb push qimsdk_dev_artifacts_${VARIANT}.tar /tmp/qti/development/              && \
-                qimsdk-device-command "cd /tmp/qti/development && `
+                qimsdk-device-command "${QIMSDK_DEVICE_ID}" "mkdir -p /tmp/qti/development"     && \
+                qimsdk-cmd "${QIMSDK_DEVICE_ID}" push qimsdk_dev_artifacts_${VARIANT}.tar          \
+                        /tmp/qti/development/                                                   && \
+                qimsdk-device-command "${QIMSDK_DEVICE_ID}" "cd /tmp/qti/development && `
                         `tar -xf /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar && `
-                        `docker cp usr ${QIMSDK_CONTAINER_NAME}:/" ${QIMSDK_DEVICE_ID}          && \
-                qimsdk-device-command "rm -rf /tmp/qti/development/usr"                            \
-                        ${QIMSDK_DEVICE_ID}                                                     || {
+                        `docker cp usr ${QIMSDK_CONTAINER_NAME}:/"                              && \
+                qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                        \
+                        "rm -rf /tmp/qti/development/usr"                                       || {
             print-red "Artifacts load failed !!!"
 
-            qimsdk-device-command "rm -rf /tmp/qti/development/usr"
-            qimsdk-device-command "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
+            qimsdk-device-command "${QIMSDK_DEVICE_ID}" "rm -rf /tmp/qti/development/usr"
+            qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                            \
+                    "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
 
             rm -f qimsdk_dev_artifacts_${VARIANT}.tar
 
             return -1
         }
 
-        qimsdk-device-command "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
+        qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                                \
+                "rm -f /tmp/qti/development/qimsdk_dev_artifacts_${VARIANT}.tar"
         rm -f qimsdk_dev_artifacts_${VARIANT}.tar
     )
 
@@ -1045,6 +1599,11 @@ function qimsdk-dbg-load-artifacts-variant() {
 # Load release artifacts from Docker_image_path provided in config json file.
 #   $1 - (mandatory) path to target config json
 function qimsdk-dbg-load-artifacts() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     qimsdk-dbg-load-artifacts-variant ${PATH_TO_CONFIG_JSON} release
 }
@@ -1052,12 +1611,17 @@ function qimsdk-dbg-load-artifacts() {
 # Load debug artifacts from Docker_image_path provided in config json file.
 #   $1 - (mandatory) path to target config json
 function qimsdk-dbg-load-artifacts-dbg() {
+    local QIMSDK_ARG_COUNT_EXPECTED=1
+    ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
+        print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
+        return -1
+
     local PATH_TO_CONFIG_JSON=${1}
     qimsdk-dbg-load-artifacts-variant ${PATH_TO_CONFIG_JSON} debug
 }
 
-QIMSDK_DOCKER_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )"/.. && pwd )"
-
+# Abosulute path to the Docker source directory
+QIMSDK_DOCKER_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )"/.. && pwd )"
 source ${QIMSDK_DOCKER_DIR}/scripts-dbg/common.sh
 
 print-green "Docker build environment setup"
