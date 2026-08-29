@@ -66,6 +66,22 @@
             ]
           },
           {
+            "hostPath": "/usr/lib/dsp/cdsp/libc++.so.1",
+            "containerPath": "/usr/lib/dsp/cdsp/libc++.so.1",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/lib/dsp/cdsp/libc++abi.so.1",
+            "containerPath": "/usr/lib/dsp/cdsp/libc++abi.so.1",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
             "hostPath": "/usr/lib/dsp/cdsp1/fastrpc_shell_4",
             "containerPath": "/usr/lib/dsp/cdsp1/fastrpc_shell_4",
             "options": [
@@ -76,6 +92,22 @@
           {
             "hostPath": "/usr/lib/dsp/cdsp1/fastrpc_shell_unsigned_4",
             "containerPath": "/usr/lib/dsp/cdsp1/fastrpc_shell_unsigned_4",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/lib/dsp/cdsp1/libc++.so.1",
+            "containerPath": "/usr/lib/dsp/cdsp1/libc++.so.1",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/lib/dsp/cdsp1/libc++abi.so.1",
+            "containerPath": "/usr/lib/dsp/cdsp1/libc++abi.so.1",
             "options": [
               "rbind",
               "rw"
