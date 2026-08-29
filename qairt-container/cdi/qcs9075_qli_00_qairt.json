@@ -82,6 +82,38 @@
             ]
           },
           {
+            "hostPath": "/usr/share/qcom/sa8775p/Qualcomm/SA8775P-RIDE/dsp/cdsp/libc++.so.1",
+            "containerPath": "/usr/lib/dsp/cdsp/libc++.so.1",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/share/qcom/sa8775p/Qualcomm/SA8775P-RIDE/dsp/cdsp/libc++abi.so.1",
+            "containerPath": "/usr/lib/dsp/cdsp/libc++abi.so.1",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/share/qcom/sa8775p/Qualcomm/SA8775P-RIDE/dsp/cdsp1/libc++.so.1",
+            "containerPath": "/usr/lib/dsp/cdsp1/libc++.so.1",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/share/qcom/sa8775p/Qualcomm/SA8775P-RIDE/dsp/cdsp1/libc++abi.so.1",
+            "containerPath": "/usr/lib/dsp/cdsp1/libc++abi.so.1",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
             "hostPath": "/sys/firmware/devicetree/base/model",
             "containerPath": "/run/device-model",
             "options": [
