@@ -78,7 +78,29 @@ Building qairt_deploy_arm64: minimal set of runtime binaries needed to execute u
 ```bash
 docker build --build-arg QAIRT_ARG_SDK_VERSION=<version, e.g. 2.39.0.250925> --target qairt_deploy_arm64 -t <desired-image-name> .
 ```
-In the docker build command above, provide the version of QAIRT SDK that you want to install, e.g. *--build-arg QAIRT_ARG_SDK_VERSION=2.39.0.250925*. If this argument is not provided, docker build will fail.
+In the docker build command above, user should pass the version of QAIRT SDK to be installed in the container, e.g. *--build-arg QAIRT_ARG_SDK_VERSION=2.39.0.250925*. If this argument is not provided, docker build will fail.
+
+#### Optional Build Arguments
+
+- **QAIRT_ARG_MAX_JOBS**: Optional parameter to specify the maximum number of CPU threads to be used during the Docker build stage. This helps control CPU utilization during compilation. Valid values: 1 - $(nproc).
+
+Example with CPU limitation:
+```bash
+docker build \
+  --build-arg QAIRT_ARG_SDK_VERSION=2.39.0.250925 \
+  --build-arg QAIRT_ARG_MAX_JOBS=4 \
+  --target qairt_deploy_arm64 \
+  -t <desired-image-name> .
+```
+
+When using the build script with a target configuration JSON file, user can add the optional `MAX_build_cpu_threads` parameter to the JSON file to control CPU usage:
+
+```json
+{
+  "QAIRT_version": "2.47.0.260601",
+  "MAX_build_cpu_threads": 4
+}
+```
 
 <div id="Running_the_container">
 
@@ -146,13 +168,13 @@ Example directory structure:
 - `$HOME/downloads/qairt/models`
 - `$HOME/downloads/qairt/labels`
 
-**Before running the qairt arm64 deploy container, please upload your models and model-specific data into these newly created directories.**
+**Before running the qairt arm64 deploy container, please upload the models and model-specific data into these newly created directories.**
 
 <div id="Run_the_qairt_deploy_container">
 
 ### Commands to run the qairt device deploy container:
 
-> **Note:** If your platform and OS combo do not support adb connectivity, please use the onboard Ethernet/WLAN network to access the device over ssh and adapt the execution of the commands listed below accordingly.
+> **Note:** If the platform and OS combo do not support adb connectivity, please use the onboard Ethernet/WLAN network to access the device over ssh and adapt the execution of the commands listed below accordingly.
 
 Set the root path for the user content:
 
