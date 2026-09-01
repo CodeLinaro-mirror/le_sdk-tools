@@ -841,15 +841,20 @@ FROM qimsdk_deploy_arm64 AS qimsdk_deploy_py_arm64
 # Installing dependencies, needed in order for gst python apps to work runtime:
 #  python3 basic dependencies:    python3 python3-pip python3-venv python3-gi pygobject
 #  pygobject dependencies:        gobject-introspection libgirepository-2.0-dev libcairo2-dev
-#                                 python3-dev libgirepository1.0-dev
+#                                 python3-dev libgirepository1.0-dev python3-opencv python3-yaml
+#  gstreamer python bindings:     python3-gst-1.0
 # NOTE: The reason for installing dev packages (python3-dev, libcairo2-dev, libgirepository1.0-dev)
 # is that runtime, when executing the pip install command, the pip install for the PyGObject package
 # has a dependency on the pkgconfig files of python, gobject-introspection and cairo. It also has a
 # dependency on python.h headers - These are found in these dev packages.
+# NOTE: 'python3-gst-1.0' must come from apt and NOT from pip - it is a Debian package name with no
+# PyPI equivalent. It provides the gi 'Gst' override module (Gst.Fraction, Gst.ValueArray, the
+# buffer.map() tuple return, ...) which plain PyGObject from PyPI does not ship.
 RUN apt-get update                                                                              && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
             python3 python3-dev python3-pip python3-venv python3-gi gobject-introspection          \
-            libgirepository-2.0-dev libcairo2-dev libgirepository1.0-dev                        && \
+            libgirepository-2.0-dev libcairo2-dev libgirepository1.0-dev python3-gst-1.0           \
+            python3-opencv python3-yaml                                                         && \
     apt -y upgrade                                                                              && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
@@ -858,44 +863,12 @@ RUN apt-get update                                                              
 # Switch user to create qimsdk user owned python venv
 USER qimsdk
 
-ENV QIMSDK_PYTHON_VENV_PATH=/home/qimsdk/.venv
-
-# Install python packages and set up venv to use system packages
-#  packages, needed for python use-cases installed via pip:
-#    pygobject     - needed for gobject introspection
-#    opencv-python - needed for gst-python
-#    PyYAML        - needed by the qimsdk App Builder SDK (qimsdk.Pipeline.from_yaml)
-# Also, add a requirements.txt file containing pip packages' versions for debug purposes
-RUN python3 -m venv ${QIMSDK_PYTHON_VENV_PATH}                                                  && \
-    PY_GOBJECT_VER=$(apt policy python3-gi 2>/dev/null                                           | \
-            sed -n 's/.*Installed: \([0-9.]*\).*/\1/p')                                         && \
-    ${QIMSDK_PYTHON_VENV_PATH}/bin/pip install PyGObject==${PY_GOBJECT_VER} opencv-python          \
-            PyYAML                                                                              && \
-    ${QIMSDK_PYTHON_VENV_PATH}/bin/pip freeze --local > ${QIMSDK_PYTHON_VENV_PATH}/requirements.txt
-
-# Expose ONLY the App Builder SDK ('qimsdk') to the otherwise fully isolated venv.
-# The build stage installs it system-wide into /usr/lib/python3/dist-packages, which an isolated
-#   venv deliberately keeps off sys.path - hence 'import qimsdk' would fail with
-#   ModuleNotFoundError. Rather than opening up the whole of dist-packages via
-#   --system-site-packages, a single symlink is placed into the venv's own site-packages.
-# This keeps pip's view of the venv unchanged: pip does not track the symlink as an installed
-#   distribution, so it will never try to upgrade or uninstall the system-owned 'qimsdk' files,
-#   and system python3 keeps working independently of the venv.
-RUN QIMSDK_VENV_SITE_PACKAGES=$(${QIMSDK_PYTHON_VENV_PATH}/bin/python3 -c                          \
-            "import sysconfig; print(sysconfig.get_paths()['purelib'])")                        && \
-    ln -sfn /usr/lib/python3/dist-packages/qimsdk "${QIMSDK_VENV_SITE_PACKAGES}/qimsdk"
-
-# Sanity check: fail the image build early if the App Builder SDK python package is not importable
-RUN ${QIMSDK_PYTHON_VENV_PATH}/bin/python3 -c "import qimsdk; print('qimsdk', qimsdk.__version__)"
+# QIMSDK_PYTHON_LOGS_PATH needed for proper operation of the reference python app builder scripts
+ENV QIMSDK_PYTHON_LOGS_PATH=/home/qimsdk/Downloads
+RUN mkdir -p ${QIMSDK_PYTHON_LOGS_PATH}
 
 # Switch user back to root to resume regular operation
 USER root
-
-# Run shell into python .venv so that python dependencies are always available in deploy container
-# Copy .bash_aliases file to be executed for qimsdk user shell
-RUN echo "source ${QIMSDK_PYTHON_VENV_PATH}/bin/activate" >> /root/.bash_aliases                && \
-    cp /root/.bash_aliases /home/qimsdk/.bash_aliases                                           && \
-    chown -R qimsdk:qcom /home/qimsdk/.bash_aliases
 
 # Create an image where a detached container can run indefinitely
 ENTRYPOINT ["/bin/entrypoint.sh"]
