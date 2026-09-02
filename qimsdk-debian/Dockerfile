@@ -711,12 +711,19 @@ COPY --from=qimsdk_build /mnt/work/downloads/debs ${QIMSDK_DEB_DIR}
 #    runtime dependency:          libyaml-cpp0.8
 #  WebRTC runtime dependency:     gstreamer1.0-nice
 #  Mesa Vulkan drivers:           mesa-vulkan-drivers
+#  gst-plugin-mlonnx (qtimlonnx) and
+#    gst-plugin-camsrc (qticamsrc)
+#    runtime dependency:          libprotobuf32t64
+#    NOTE: the build stage only installs libprotobuf-dev:arm64, which satisfies compilation but
+#    leaves the deploy image without the protobuf runtime, so both plugins fail to load with
+#    "libprotobuf.so.32: cannot open shared object file". The soname is version tied, so this
+#    package name has to be revisited whenever the Debian protobuf major version changes.
 RUN apt-get update                                                                              && \
     DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends           \
             adduser gosu bash-completion nano libhiredis1.1.0 ${QIMSDK_DEB_DIR}/*.deb              \
             gstreamer1.0-tools libgstrtspserver-1.0-0 libopencv-imgproc410 libxv1                  \
             gstreamer1.0-nice libpulse0 librdkafka1 gstreamer1.0-plugins-ugly gir1.2-gst-1.0       \
-            libyaml-0-2 mesa-vulkan-drivers libyaml-cpp0.8                                      && \
+            libyaml-0-2 mesa-vulkan-drivers libyaml-cpp0.8 libprotobuf32t64                     && \
     apt -y upgrade                                                                              && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
@@ -819,6 +826,30 @@ COPY --from=qimsdk_build ${QIMSDK_INSTALL_DIR}/usr /usr
 
 # Copy /etc directory to device image
 COPY --from=qimsdk_build ${QIMSDK_INSTALL_DIR}/etc /etc
+
+# Guard: fail the image build if any bundled GStreamer plugin has unresolved shared libraries.
+#   The plugins are cross compiled in the build stage against '-dev' packages, but the deploy
+#   stage installs only the runtime ones, so it is easy for a plugin to ship with a dependency
+#   that was never installed here. GStreamer degrades silently in that case: gst-plugin-scanner
+#   logs a warning and simply omits the element, so the failure only shows up on device as a
+#   confusing "no such element" much later. Checking with ldd right after the plugins are copied
+#   turns that into an explicit build failure naming the plugin and the missing library.
+#   'ldd' comes from libc-bin and is present in debian:trixie-slim, so no extra package is needed.
+RUN QIMSDK_PLUGIN_DIR=/usr/lib/aarch64-linux-gnu/gstreamer-1.0                                  && \
+    QIMSDK_PLUGIN_BROKEN=0                                                                      && \
+    QIMSDK_PLUGIN_CHECKED=0                                                                     && \
+    for QIMSDK_PLUGIN in "${QIMSDK_PLUGIN_DIR}"/*.so; do                                           \
+        [ -e "${QIMSDK_PLUGIN}" ] || continue;                                                     \
+        QIMSDK_PLUGIN_CHECKED=$((QIMSDK_PLUGIN_CHECKED + 1));                                      \
+        QIMSDK_PLUGIN_MISSING=$(ldd "${QIMSDK_PLUGIN}" 2>/dev/null | grep "not found" || true);    \
+        [ -n "${QIMSDK_PLUGIN_MISSING}" ] || continue;                                             \
+        echo "ERROR: $(basename "${QIMSDK_PLUGIN}") has unresolved shared libraries:" >&2;         \
+        echo "${QIMSDK_PLUGIN_MISSING}" >&2;                                                       \
+        QIMSDK_PLUGIN_BROKEN=$((QIMSDK_PLUGIN_BROKEN + 1));                                        \
+    done                                                                                        && \
+    echo "Checked ${QIMSDK_PLUGIN_CHECKED} plugin(s), ${QIMSDK_PLUGIN_BROKEN} broken"           && \
+    [ "${QIMSDK_PLUGIN_CHECKED}" -gt 0 ]                                                        && \
+    [ "${QIMSDK_PLUGIN_BROKEN}" -eq 0 ]
 
 # Change workdir to user home
 WORKDIR /home/qimsdk
