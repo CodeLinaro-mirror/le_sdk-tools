@@ -127,10 +127,11 @@ RUN install -d -m 0755 /etc/apt/keyrings                                        
     echo "deb-src [signed-by=/etc/apt/keyrings/qcom-ppa.gpg] https://ppa.launchpadcontent.net/ubuntu-qcom-iot/qcom-ppa/ubuntu noble main" \
             > /etc/apt/sources.list.d/qcom-ppa-src.list
 
-# Update and clean, fetch dma buf heap and GStreamer base, good and bad plugins
+# Update and clean, fetch dma buf heap and GStreamer base, good, bad plugins and python3.13
 RUN DEBIAN_FRONTEND=noninteractive apt-get update                                               && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    apt source gst-plugins-base1.0 gst-plugins-good1.0 gst-plugins-bad1.0 qcom-libdmabufheap    && \
+    apt source gst-plugins-base1.0 gst-plugins-good1.0 gst-plugins-bad1.0 qcom-libdmabufheap       \
+                python3.13                                                                      && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
     rm -rf /var/lib/apt/lists* /var/tmp/*
@@ -355,18 +356,38 @@ COPY --chmod=755 g-ir-scripts/ /usr/bin/
 #   python3.13-dev:arm64 apt package. Installing this package leads to deleting necessary packages
 #   needed build time. The following RUN command solves the overwriting problem
 RUN cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-        apt update && apt-get source python3.13                                                 && \
-        cd $(ls -d python3.13-* | head -n1)                                                     && \
-        mkdir build && cd build                                                                 && \
+    cd $(ls -d python3.13-* | head -n1)                                                         && \
+    mkdir build                                                                                 && \
+    cd build                                                                                    && \
+    BUILD_ARCH="$(dpkg --print-architecture)"                                                   && \
+    TARGET_ARCH=arm64                                                                           && \
+    TARGET_TRIPLET=aarch64-linux-gnu                                                            && \
+    PREFIX="${QIMSDK_INSTALL_DIR}/usr"                                                          && \
+    LIBDIR="${PREFIX}/lib/${TARGET_TRIPLET}"                                                    && \
+    [ "${BUILD_ARCH}" = "${TARGET_ARCH}" ]                                                    && { \
+        CC=gcc                                                                                  && \
+        AR=ar                                                                                   && \
+        RANLIB=ranlib                                                                           && \
+        CONFIGURE_ARGS="";                                                                         \
+    } || {                                                                                         \
+        CC=${TARGET_TRIPLET}-gcc                                                                && \
+        AR=${TARGET_TRIPLET}-ar                                                                 && \
+        RANLIB=${TARGET_TRIPLET}-ranlib                                                         && \
+        CONFIGURE_ARGS="--host=${TARGET_TRIPLET} --build=$(gcc -dumpmachine) --with-build-python"; \
+    }                                                                                           && \
+    CFLAGS='-UMACHINE_NAME_PATH -DMACHINE_NAME_PATH=\"/run/device-model\"'                         \
+        CC="${CC}" AR="${AR}" RANLIB="${RANLIB}"                                                   \
+        ac_cv_file__dev_ptmx=yes                                                                   \
+        ac_cv_file__dev_ptc=no                                                                     \
         ../configure --enable-loadable-sqlite-extensions                                           \
                 --with-ssl-default-suites=openssl --without-ensurepip                              \
                 --with-system-expat --with-system-libmpdec=no                                      \
                 --with-wheel-pkg-dir=/usr/share/python-wheels/                                     \
                 --with-computed-gotos --enable-ipv6 --prefix=/usr                                  \
                 --libdir=/usr/lib/$DEB_HOST_MULTIARCH --with-dtrace                                \
-                --host=aarch64-linux-gnu --build=aarch64-linux-gnu                              && \
-        mkdir -p /usr/include/aarch64-linux-gnu/python3.13/                                     && \
-        mv pyconfig.h /usr/include/aarch64-linux-gnu/python3.13/
+                ${CONFIGURE_ARGS}                                                               && \
+    mkdir -p /usr/include/aarch64-linux-gnu/python3.13/                                         && \
+    mv pyconfig.h /usr/include/aarch64-linux-gnu/python3.13/
 
 # Initialize environment variables
 ENV QIMSDK_SRC_DIR=${QIMSDK_BASE_DIR}/src
