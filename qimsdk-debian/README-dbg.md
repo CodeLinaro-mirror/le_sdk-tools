@@ -659,7 +659,8 @@ And in order to load the artifacts into the python deploy container:
 
 These functions are available immediately inside development container:
 
- - qimsdk-cmake-build-qimsdk - Incremental build all qimsdk src
+ - qimsdk-cmake-build-qimsdk-base - Incremental build of the base qimsdk src only (`-DENABLE_GST_PLUGIN_BASE=ON`). Must be run before qimsdk-cmake-build-qimsdk on a clean tree, as the other plugins depend on its installed headers
+ - qimsdk-cmake-build-qimsdk - Incremental build all qimsdk src plugins.
  - qimsdk-help-build - Display all cmake functions to build/clean any gst plugin
  - qimsdk-incremental-build - Incremental build of all gst plugins
  - qimsdk-dbg-save-artifacts - Save release variant artifacts to specified Docker_image_path in configuration json file. They can then be loaded using the load functions in the environment
@@ -989,6 +990,17 @@ function qimsdk-cmake-build-qimsdk() {
         print-green "${FUNCNAME} completed successfully!"
 }
 ```
+
+> **Note:** The base QCOM GStreamer plugins are expected **not** to be built by `qimsdk-cmake-build-qimsdk`; They are built separately and beforehand by `qimsdk-cmake-build-qimsdk-base`, which configures the same source tree in its own build directory so the base headers are installed before the dependent plugins compile.
+>
+> Consequently, when building by hand on a clean tree, run both, in this order:
+>
+> ```bash
+> qimsdk-cmake-build-qimsdk-base
+> qimsdk-cmake-build-qimsdk
+> ```
+>
+> To clean the base build, use `qimsdk-cmake-clean-qimsdk-base`. It removes the `qimsdk-base` build directory together with the `qimsdk-base` source symlink; your mapped `qimsdk/` sources are never touched.
 
 <div id="Starting_the_container_with_docker_compose">
 
