@@ -260,15 +260,18 @@ COPY --from=qairt_builder --chown=qairt:qcom                                    
 
 RUN ln -s /usr/lib ${QAIRT_SDK_ROOT}/lib/aarch64-oe-linux-gcc11.2
 
-RUN grep -q '"debian"' ${QAIRT_SDK_ROOT}/lib/python/qti/aisw/core/model_level_api/utils/__init__.py || \
-    sed -i '/oe_identifiers/ s/"ubuntu"[[:space:]]*]/"ubuntu", "debian"]/' \
-        ${QAIRT_SDK_ROOT}/lib/python/qti/aisw/core/model_level_api/utils/__init__.py && \
-    grep -q '"debian"' ${QAIRT_SDK_ROOT}/lib/python/qti/aisw/genai/__init__.py || \
-    sed -i '/oe_identifiers/ s/"ubuntu"[[:space:]]*]/"ubuntu", "debian"]/' \
-        ${QAIRT_SDK_ROOT}/lib/python/qti/aisw/genai/__init__.py && \
-    grep -q '"debian"' ${QAIRT_SDK_ROOT}/lib/python/qairt/__init__.py || \
-    sed -i '/oe_identifiers/ s/"ubuntu"[[:space:]]*]/"ubuntu", "debian"]/' \
-        ${QAIRT_SDK_ROOT}/lib/python/qairt/__init__.py
+# Debian support not added in QAIRT SDK. Add "debian" support manually.
+
+RUN FILES="                                                                                        \
+    ${QAIRT_SDK_ROOT}/lib/python/qti/aisw/core/model_level_api/utils/__init__.py                   \
+    ${QAIRT_SDK_ROOT}/lib/python/qti/aisw/genai/__init__.py                                        \
+    ${QAIRT_SDK_ROOT}/lib/python/qairt/__init__.py"                                             && \
+    for f in $FILES; do                                                                            \
+        # From SDK 2.50, "qairt" python scripts are removed, check first if the file exists.       \
+        [ -f "$f" ] || continue;                                                                   \
+        grep -q '"debian"' "$f"                                                                 || \
+            sed -i '/oe_identifiers/ s/"ubuntu"[[:space:]]*]/"ubuntu", "debian"]/' "$f";           \
+    done
 
 # Fix ownership
 RUN chown -R qairt:qcom ${QAIRT_BASE_DIR}
