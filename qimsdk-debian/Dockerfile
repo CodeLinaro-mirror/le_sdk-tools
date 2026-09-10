@@ -483,7 +483,8 @@ RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                   
     tar xvf qimsdk-smartvenc_${SMART_VENC_VERSION}_arm64.tar.gz                                 && \
     cp -r qimsdk-smartvenc-${SMART_VENC_VERSION}/libqimsdk-smartvenc1/arm64/usr /               && \
     cp -r qimsdk-smartvenc-${SMART_VENC_VERSION}/libqimsdk-smartvenc-dev/arm64/usr /            && \
-    cp -r qimsdk-smartvenc-${SMART_VENC_VERSION}/libqimsdk-smartvenc1/arm64/usr/* ${QIMSDK_INSTALL_LIB_DIR}/ && \
+    cp -r qimsdk-smartvenc-${SMART_VENC_VERSION}/libqimsdk-smartvenc1/arm64/usr                    \
+        ${QIMSDK_INSTALL_DIR}/                                                                  && \
     rm -rf qimsdk-smartvenc-${SMART_VENC_VERSION} qimsdk-smartvenc_*_arm64.tar.gz
 
 # Download prebuilt libraries for the Qualcomm FastCV library and copy them to the target container
