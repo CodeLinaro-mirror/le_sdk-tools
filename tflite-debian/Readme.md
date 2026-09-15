@@ -141,56 +141,23 @@ sudo chmod 755 /etc/docker/env
 <div id="Platform_model_file_and_folder_setup">
 
 ### Platform model file and folder setup
-The following directories must be created under the user’s home directory to store test files:
 
-> **Note:** The `HOME` directory depends on the target platform OS:
-> - `/root` on Qualcomm QLI platforms
-> - `/home/ubuntu` on Qualcomm Ubuntu platforms
-
-Set the root path for the user content by exporting one of the following environment variables in a platform terminal, depending on your platform and preference:
+Set the root path for the user content by exporting the following environment variable in a platform terminal:
 
 ```bash
-# For QLI platforms — content stored under the root home directory
-export TFLITE_USER_CONTENTS_ROOT=/root
-
-# For Ubuntu platforms — content stored under the ubuntu home directory
-export TFLITE_USER_CONTENTS_ROOT=/home/ubuntu
-
-# For any platform — content stored under /etc, independent of the OS type
-export TFLITE_USER_CONTENTS_ROOT=/etc
+# Standard path for TFLite content under user's home directory
+export TFLITE_USER_CONTENTS_ROOT=$HOME/downloads/tflite
 ```
 
-Then create the required directories:
+Then create the required directory structure:
 
 ```bash
 mkdir -p ${TFLITE_USER_CONTENTS_ROOT}/media
 mkdir -p ${TFLITE_USER_CONTENTS_ROOT}/models
 mkdir -p ${TFLITE_USER_CONTENTS_ROOT}/labels
-mkdir -p ${TFLITE_USER_CONTENTS_ROOT}/configs
 ```
 
-Apply the correct permissions to each directory and its contents.
-> **Note:** Use `sudo` when the `TFLITE_USER_CONTENTS_ROOT` value is set to `/etc` for any non-root platform user:
-
-```bash
-# media
-find ${TFLITE_USER_CONTENTS_ROOT}/media/ -type d -exec chmod 755 {} \;
-find ${TFLITE_USER_CONTENTS_ROOT}/media/ -type f -exec chmod 644 {} \;
-
-# models
-find ${TFLITE_USER_CONTENTS_ROOT}/models/ -type d -exec chmod 755 {} \;
-find ${TFLITE_USER_CONTENTS_ROOT}/models/ -type f -exec chmod 644 {} \;
-
-# labels
-find ${TFLITE_USER_CONTENTS_ROOT}/labels/ -type d -exec chmod 755 {} \;
-find ${TFLITE_USER_CONTENTS_ROOT}/labels/ -type f -exec chmod 644 {} \;
-
-# configs
-find ${TFLITE_USER_CONTENTS_ROOT}/configs/ -type d -exec chmod 755 {} \;
-find ${TFLITE_USER_CONTENTS_ROOT}/configs/ -type f -exec chmod 644 {} \;
-```
-
-**Before running the tflite arm64 deploy container, please upload your models and model-specific data into these newly created platform model data folders.**
+**Before running the tflite arm64 deploy container, please upload your models and model-specific data into these directories.**
 
 <div id="Run_the_qairt_deploy_container">
 
@@ -198,29 +165,21 @@ find ${TFLITE_USER_CONTENTS_ROOT}/configs/ -type f -exec chmod 644 {} \;
 
 > **Note:** If your platform and OS combo do not support adb connectivity, please use the onboard Ethernet/WLAN network to access the device over ssh and adapt the execution of the commands listed below accordingly.
 
-Set the root path for the user content by exporting one of the following environment variables in a platform terminal, depending on your platform and preference:
+Set the root path for the user content by exporting the following environment variable in a platform terminal:
 
 ```bash
-# For QLI platforms — content stored under the root home directory
-export TFLITE_USER_CONTENTS_ROOT=/root
-
-# For Ubuntu platforms — content stored under the ubuntu home directory
-export TFLITE_USER_CONTENTS_ROOT=/home/ubuntu
-
-# For any platform — content stored under /etc, independent of the OS type
-export TFLITE_USER_CONTENTS_ROOT=/etc
+# Standard path for TFLite content under user's home directory
+export TFLITE_USER_CONTENTS_ROOT=$HOME/downloads/tflite
 ```
 
-Push the CDI and ENV files and run the container.
+Push the CDI and ENV files to the device:
 
 ```bash
 adb push tflite-debian/cdi/<hardware>-<platform>-tflite.json /etc/cdi/tflite.json
 adb push tflite-debian/env/<hardware>-<platform>-tflite.env /etc/docker/env/tflite.env
 ```
 
->**Note:** When the `TFLITE_USER_CONTENTS_ROOT` environment variable value is `/root` or `/home/ubuntu`** (the model content shall be mounted into the `/home/tflite/` folder inside the container):
-
-Push the deploy Docker image to the device and load it
+Push the deploy Docker image to the device and load it:
 
 ```bash
 export TFLITE_DEVICE_TEST_PATH="<target_device_path>"
@@ -230,29 +189,13 @@ adb push "${TFLITE_DOCKER_IMAGE}" "${TFLITE_DEVICE_TEST_PATH}/${TFLITE_DOCKER_IM
 adb shell docker load -i "${TFLITE_DEVICE_TEST_PATH}/${TFLITE_DOCKER_IMAGE}"
 ```
 
-Now run the deploy Docker container
+Now run the deploy Docker container:
 
 ```bash
 adb shell docker run -it -d --net host \
   --env-file /etc/docker/env/tflite.env \
   --device qualcomm.com/device=tflite \
-  -v ${TFLITE_USER_CONTENTS_ROOT}/media:/home/tflite/media \
-  -v ${TFLITE_USER_CONTENTS_ROOT}/models:/home/tflite/models \
-  -v ${TFLITE_USER_CONTENTS_ROOT}/labels:/home/tflite/labels \
-  -v ${TFLITE_USER_CONTENTS_ROOT}/configs:/home/tflite/configs \
-  -h tflite --name tflite <desired-image-name>
-```
-
-> **Note:** When the `TFLITE_USER_CONTENTS_ROOT` environment variable value is `/etc`** (the model content shall be mounted into the `/etc/` folder inside the container):
-
-```bash
-adb shell docker run -it -d --net host \
-  --env-file /etc/docker/env/tflite.env \
-  --device qualcomm.com/device=tflite \
-  -v ${TFLITE_USER_CONTENTS_ROOT}/media:/etc/media \
-  -v ${TFLITE_USER_CONTENTS_ROOT}/models:/etc/models \
-  -v ${TFLITE_USER_CONTENTS_ROOT}/labels:/etc/labels \
-  -v ${TFLITE_USER_CONTENTS_ROOT}/configs:/etc/configs \
+  -v ${TFLITE_USER_CONTENTS_ROOT}:/home/tflite/downloads/tflite \
   -h tflite --name tflite <desired-image-name>
 ```
 
