@@ -144,7 +144,7 @@ function tflite-cmake-compile() {
         ln -fs ${TFLITE_LOGS_DIR}/cmake_compile_${TARGET}_${DATE}.log                              \
                 ${TFLITE_LOGS_DIR}/cmake_compile_${TARGET}.log
 
-        cmake --build . -j                                                                        |&
+        cmake --build . -j${CMAKE_BUILD_PARALLEL_LEVEL:-$(nproc)}                                 |&
                 tee "${TFLITE_LOGS_DIR}/cmake_compile_${TARGET}_${DATE}.log"
     ) || {
         print-red "FAILED: tflite-cmake-compile-${TARGET}: cmake compile failed !!!"

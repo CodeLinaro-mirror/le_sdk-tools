@@ -91,7 +91,31 @@ docker build --target tflite_deploy_arm64 -t <desired-image-name> .
 docker build --build-arg TFLITE_ARG_QNP_VERSION=<version, e.g. 2.39.0.250925> --target tflite_deploy_arm64 -t <desired-image-name> .
 ```
 
-**Note:** The QNN SDK integration is optional. If `TFLITE_ARG_QNP_VERSION` is not provided, the container will build successfully with TensorFlow Lite functionality only (CPU, GPU, and XNNPACK acceleration). To enable QNN delegate support with DSP/HTP acceleration, provide the QNN SDK version.
+#### Build with CPU usage limitation (optional):
+```bash
+docker build --build-arg TFLITE_ARG_MAX_JOBS=<number, e.g. 4> --target tflite_deploy_arm64 -t <desired-image-name> .
+```
+
+#### Build with both QNN SDK and CPU limitation:
+```bash
+docker build \
+  --build-arg TFLITE_ARG_QNP_VERSION=<version, e.g. 2.39.0.250925> \
+  --build-arg TFLITE_ARG_MAX_JOBS=<number, e.g. 4> \
+  --target tflite_deploy_arm64 \
+  -t <desired-image-name> .
+```
+
+**Build Arguments:**
+- `TFLITE_ARG_QNP_VERSION`: (Optional) QNN SDK version for DSP/HTP acceleration support. If not provided, the container builds with TensorFlow Lite functionality only (CPU, GPU, and XNNPACK acceleration).
+- `TFLITE_ARG_MAX_JOBS`: (Optional) Maximum number of CPU threads to use during Docker build operations (git clone, make, cmake). Valid values: 1 to $(nproc). If not provided, all available CPU cores will be used (default behavior).
+
+**Note on CPU Limitation:**
+The `TFLITE_ARG_MAX_JOBS` parameter helps control system resource usage during builds, which is useful for:
+- Systems with limited memory where using all CPU cores may cause out-of-memory errors
+- Shared build servers where you want to limit resource consumption
+- Preventing system slowdown during builds by reserving CPU cores for other tasks
+
+To monitor CPU usage during build, run `htop` or `top` in a separate terminal.
 
 <div id="Running_the_container">
 

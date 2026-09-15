@@ -74,12 +74,17 @@ RUN mkdir -p ${TFLITE_DOWNLOAD_DIR}
 RUN git config --global user.name "username"                                                    && \
     git config --global user.email "email"
 
+# Optional build argument for helping set max CPU thread utilization
+ARG TFLITE_ARG_MAX_JOBS
+ENV TFLITE_MAX_JOBS="${TFLITE_ARG_MAX_JOBS}"
+
 # Clone Tensorflow Lite
 ENV TFLITE_TF_LITE_MAJOR="2"
 ENV TFLITE_TF_LITE_MINOR="16"
 ENV TFLITE_TF_LITE_PATCH="2"
 ENV TFLITE_TF_SRC_DIR=${TFLITE_DOWNLOAD_DIR}/tensorflow
-RUN git config --global http.postBuffer 157286400                                               && \
+RUN git config --global pack.threads "${TFLITE_ARG_MAX_JOBS:-$(nproc)}"                         && \
+    git config --global http.postBuffer 157286400                                               && \
     git clone --progress https://github.com/tensorflow/tensorflow.git --single-branch              \
             --branch r${TFLITE_TF_LITE_MAJOR}.${TFLITE_TF_LITE_MINOR} ${TFLITE_TF_SRC_DIR}
 
@@ -139,7 +144,7 @@ RUN cd "${TFLITE_DOWNLOAD_DIR}"                                                 
             ${CONFIGURE_ARGS}                                                                      \
             --prefix="${PREFIX}"                                                                   \
             --libdir="${LIBDIR}"                                                                && \
-    make -j"$(nproc)"                                                                           && \
+    make -j"${TFLITE_ARG_MAX_JOBS:-$(nproc)}"                                                   && \
     cp ./src/.libs/libcdsprpc.so* ${TFLITE_INSTALL_DIR}/usr/lib/                                && \
     aarch64-linux-gnu-strip ${TFLITE_INSTALL_DIR}/usr/lib/libcdsprpc.so*
 

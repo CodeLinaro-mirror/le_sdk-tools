@@ -46,4 +46,5 @@ function tflite-setup-crosscompilation() {
     export LD_LIBRARY_PATH="/usr/aarch64-linux-gnu/lib/:/usr/lib/aarch64-linux-gnu/"
     export LIBRARY_PATH="/usr/aarch64-linux-gnu/lib/:/usr/lib/aarch64-linux-gnu/"
     export PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig"
+    export CMAKE_BUILD_PARALLEL_LEVEL=${TFLITE_MAX_JOBS:-$(nproc)}
 }
