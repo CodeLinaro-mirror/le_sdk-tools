@@ -54,6 +54,22 @@
             ]
           },
           {
+            "hostPath": "/usr/share/qcom/qcm6490/Thundercomm/RB3gen2/dsp/cdsp/libc++.so.1",
+            "containerPath": "/usr/lib/dsp/cdsp/libc++.so.1",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/share/qcom/qcm6490/Thundercomm/RB3gen2/dsp/cdsp/libc++abi.so.1",
+            "containerPath": "/usr/lib/dsp/cdsp/libc++abi.so.1",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
             "hostPath": "/sys/firmware/devicetree/base/model",
             "containerPath": "/run/device-model",
             "options": [
