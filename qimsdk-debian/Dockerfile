@@ -325,18 +325,16 @@ RUN cd "${QIMSDK_DOWNLOAD_DIR}"                                                 
     aarch64-linux-gnu-strip ${QIMSDK_INSTALL_DIR}/usr/lib/libcdsprpc.so*
 
 # Download prebuilt libraries for the Smart Video Encoder control algorithm and copy them to the target and build container
-ENV SMART_VENC_BUILD_DATE="260112.1"
-ENV SMART_VENC_VERSION="1.0"
+ENV SMART_VENC_BUILD_DATE="260814"
+ENV SMART_VENC_VERSION="1.0.4"
 RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                                      \
-    https://qartifactory-edge.qualcomm.com/artifactory/qsc_releases/software/chip/component/iot-core-algs.lnx.0.0/${SMART_VENC_BUILD_DATE}/prebuilt_yocto/qcom-video-ctrl_${SMART_VENC_VERSION}_armv8-2a.tar.gz && \
+    https://qartifactory-edge.qualcomm.com/artifactory/qsc_releases/software/chip/component/iot-core-algs.lnx.0.0/${SMART_VENC_BUILD_DATE}/prebuilt_trixie/qimsdk-smartvenc_${SMART_VENC_VERSION}_arm64.tar.gz && \
     cd ${QIMSDK_DOWNLOAD_DIR}                                                                   && \
-    mkdir -p ${QIMSDK_DOWNLOAD_DIR}/smart-venc                                                  && \
-    tar xvf qcom-video-ctrl_${SMART_VENC_VERSION}_armv8-2a.tar.gz -C smart-venc                 && \
-    cp -r ${QIMSDK_DOWNLOAD_DIR}/smart-venc/usr /                                               && \
-    cp -r ${QIMSDK_DOWNLOAD_DIR}/smart-venc/etc /                                               && \
-    cp ${QIMSDK_DOWNLOAD_DIR}/smart-venc/usr/lib/lib* ${QIMSDK_INSTALL_LIB_DIR}/                && \
-    cp -r ${QIMSDK_DOWNLOAD_DIR}/smart-venc/etc ${QIMSDK_INSTALL_DIR}/                          && \
-    rm -rf smart-venc qcom-video-ctrl_${SMART_VENC_VERSION}_armv8-2a.tar.gz
+    tar xvf qimsdk-smartvenc_${SMART_VENC_VERSION}_arm64.tar.gz                                 && \
+    cp -r qimsdk-smartvenc-${SMART_VENC_VERSION}/libqimsdk-smartvenc1/arm64/usr /               && \
+    cp -r qimsdk-smartvenc-${SMART_VENC_VERSION}/libqimsdk-smartvenc-dev/arm64/usr /            && \
+    cp -r qimsdk-smartvenc-${SMART_VENC_VERSION}/libqimsdk-smartvenc1/arm64/usr/* ${QIMSDK_INSTALL_LIB_DIR}/ && \
+    rm -rf qimsdk-smartvenc-${SMART_VENC_VERSION} qimsdk-smartvenc_*_arm64.tar.gz
 
 # Download prebuilt libraries for the Qualcomm FastCV library and copy them to the target container
 ENV FASTCV_BUILD_DATE="260222"
