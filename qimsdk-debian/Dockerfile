@@ -675,6 +675,9 @@ RUN ulimit -n 16192
 # Copy installed binaries to device image
 COPY --from=qimsdk_build ${QIMSDK_INSTALL_DIR}/usr /usr
 
+# Copy /etc directory to device image
+COPY --from=qimsdk_build ${QIMSDK_INSTALL_DIR}/etc /etc
+
 # Change workdir to user home
 WORKDIR /home/qimsdk
 
