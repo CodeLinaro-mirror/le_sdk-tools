@@ -15,22 +15,9 @@
           "OCL_ICD_FILENAMES=/usr/lib/aarch64-linux-gnu/libOpenCL_adreno.so.1",
           "__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_adreno.json",
           "DISPLAY_SOCKET=/run/wayland-0",
-          "CAMERA_SOCKET=/run/cam_server/le_camera_socket",
           "AUDIO_SOCKET=/run/pulse/native"
         ],
         "deviceNodes": [
-          {
-            "path": "/dev/video0",
-            "fileMode": 0660,
-            "uid": 0,
-            "gid": 44
-          },
-          {
-            "path": "/dev/video1",
-            "fileMode": 0660,
-            "uid": 0,
-            "gid": 44
-          },
           {
             "path": "/dev/dri/card0",
             "fileMode": 0660,
@@ -69,14 +56,6 @@
           }
         ],
         "mounts": [
-          {
-            "hostPath": "/run/cam_server",
-            "containerPath": "/run/cam_server",
-            "options": [
-              "rbind",
-              "rw"
-            ]
-          },
           {
             "hostPath": "/run/wayland-0",
             "containerPath": "/run/wayland-0",
