@@ -40,6 +40,10 @@ RUN mkdir -p ${QAIRT_DOWNLOAD_DIR} ${QAIRT_INSTALL_DIR} ${QAIRT_LIB_DIR} ${QAIRT
 # Set workdir
 WORKDIR "${QAIRT_BASE_DIR}"
 
+# Optional build argument for helping set max CPU thread utilization
+ARG QAIRT_ARG_MAX_JOBS
+ENV QAIRT_MAX_JOBS="${QAIRT_ARG_MAX_JOBS}"
+
 # Build fastrpc
 RUN cd "${QAIRT_DOWNLOAD_DIR}"                                                                  && \
     git clone --depth 1 https://github.com/quic/fastrpc.git --branch v1.0.6                     && \
@@ -67,7 +71,7 @@ RUN cd "${QAIRT_DOWNLOAD_DIR}"                                                  
             ${CONFIGURE_ARGS}                                                                      \
             --prefix="${PREFIX}"                                                                   \
             --libdir="${LIBDIR}"                                                                && \
-    make -j"$(nproc)"                                                                           && \
+    make -j"${QAIRT_ARG_MAX_JOBS:-$(nproc)}"                                                    && \
     cp ./src/.libs/libcdsprpc.so* ${QAIRT_INSTALL_DIR}/usr/lib/                                 && \
     aarch64-linux-gnu-strip ${QAIRT_INSTALL_DIR}/usr/lib/libcdsprpc.so*
 

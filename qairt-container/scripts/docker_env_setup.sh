@@ -12,6 +12,7 @@ function qairt-docker-parse-json() {
     local -n OUT_QAIRT_SDK_VERSION=$2
     local -n OUT_QAIRT_CONTAINER_NAME=$3
     local -n OUT_QAIRT_IMAGE_NAME=$4
+    local -n OUT_QAIRT_MAX_JOBS=$5
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -42,6 +43,12 @@ function qairt-docker-parse-json() {
 
     OUT_QAIRT_IMAGE_NAME="qairt${ADDITIONAL_TAG_IMAGE}"
 
+    # Parse optional MAX_build_cpu_threads parameter
+    OUT_QAIRT_MAX_JOBS=$(echo ${JSON_CONTENT} | jq '.MAX_build_cpu_threads' | tr -d '"')
+    [ "${OUT_QAIRT_MAX_JOBS}" = "null" ] && {
+        OUT_QAIRT_MAX_JOBS=""
+    }
+
     return 0
 }
 
@@ -52,11 +59,13 @@ function qairt-docker-build-image() {
     local QAIRT_SDK_VERSION
     local QAIRT_CONTAINER_NAME
     local QAIRT_IMAGE_NAME
+    local QAIRT_MAX_JOBS
 
     qairt-docker-parse-json ${PATH_TO_CONFIG_JSON}                                                 \
         QAIRT_SDK_VERSION                                                                          \
         QAIRT_CONTAINER_NAME                                                                       \
-        QAIRT_IMAGE_NAME
+        QAIRT_IMAGE_NAME                                                                           \
+        QAIRT_MAX_JOBS
 
     local rc=$?
     [ $rc -ne 0 ] && {
@@ -67,8 +76,15 @@ function qairt-docker-build-image() {
 
     local QAIRT_BASE_DIR=/mnt/work
 
+    # Build docker command with optional MAX_JOBS argument
+    local BUILD_ARGS="--build-arg QAIRT_ARG_SDK_VERSION=${QAIRT_SDK_VERSION}"
+
+    [ ! -z "${QAIRT_MAX_JOBS}" ] && {
+        BUILD_ARGS="${BUILD_ARGS} --build-arg QAIRT_ARG_MAX_JOBS=${QAIRT_MAX_JOBS}"
+    }
+
     DOCKER_BUILDKIT=1 docker build                                                                 \
-        --build-arg QAIRT_ARG_SDK_VERSION=${QAIRT_SDK_VERSION}                                     \
+        ${BUILD_ARGS}                                                                              \
         --progress=plain --target qairt_deploy_arm64 ${QAIRT_DOCKER_DIR} -t ${QAIRT_IMAGE_NAME}
 
     rc=$?
