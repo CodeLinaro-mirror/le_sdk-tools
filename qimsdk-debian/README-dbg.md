@@ -619,7 +619,9 @@ The developer generally needs to build the deploy image, load it to the device a
 
 > **Note:** Please adapt any adb command calls with ssh command calls for device lacking adb connectivity! Consult the following section for remote target device setup: [Configure Host System ADB and SSH settings](#Configure_Host_ADB_and_SSH_Settings).
 
-> **Note:** Please note that the `qimsdk-docker-device-run-container` function here assumes the `QIMSDK_USER_CONTENTS_ROOT` environment variable is set to: /etc and the target to container mapping implies /etc as the model root directory.
+> **Note:** Please note that the `qimsdk-docker-device-run-container` function here assumes the `QIMSDK_USER_CONTENTS_ROOT` environment variable is set to: the "${HOME}/Downloads/qimsdk_samples" folder and the target to container mapping implies "${HOME}/Downloads/qimsdk_samples" as the model root directory on the target device.
+
+>**Note:** Please ensure the target device filesystem has the "${HOME}/Downloads/qimsdk_samples" folder already created and accessible and the model content is placed inside.
 
 Different commands are used in order to get QIMSDK deploy image and container with gst python support.
 
@@ -1193,38 +1195,16 @@ vi /etc/cdi/qimsdk.json
 ```
 
 ```bash
-# For QLI platforms — content stored under the root home directory
-export QIMSDK_USER_CONTENTS_ROOT=/root
 
-# For Ubuntu platforms — content stored under the ubuntu home directory
-export QIMSDK_USER_CONTENTS_ROOT=/home/ubuntu
-
-# For any platform — content stored under /etc, independent of the OS type
-export QIMSDK_USER_CONTENTS_ROOT=/etc
+# For any platform — content stored under ${HOME}/Downloads/qimsdk_samples, independent of the OS type
+export QIMSDK_USER_CONTENTS_ROOT="${HOME}/Downloads/qimsdk_samples"
 
 # After that's done, the container needs to be removed and a new one needs to be run, if already running
 docker rm -f qimsdk
-
 adb shell docker run -it -d --net host \
   --env-file /etc/docker/env/qimsdk.env \
   --device qualcomm.com/device=qimsdk \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/home/qimsdk/media \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/home/qimsdk/models \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/home/qimsdk/labels \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/home/qimsdk/configs \
-  -h qimsdk --name qimsdk <desired-image-name>
-```
-
-> **Note:** When the `QIMSDK_USER_CONTENTS_ROOT` environment variable value is `/etc`** (the model content shall be mounted into the `/etc/` folder inside the container):
-
-```bash
-adb shell docker run -it -d --net host \
-  --env-file /etc/docker/env/qimsdk.env \
-  --device qualcomm.com/device=qimsdk \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/etc/media \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/etc/models \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/etc/labels \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/etc/configs \
+  -v ${HOME}/Downloads/qimsdk_samples:/home/qimsdk/Downloads/qimsdk_samples \
   -h qimsdk --name qimsdk <desired-image-name>
 ```
 
@@ -1374,22 +1354,17 @@ The following directories must be created under the user’s home directory to s
 > - `/root` on Qualcomm QLI platforms
 > - `/home/ubuntu` on Qualcomm Ubuntu platforms
 
-Set the root path for the user content by exporting one of the following environment variables in a platform terminal, depending on your platform and preference:
+Set the root path for the user content by exporting the following environment variable in a platform terminal:
 
 ```bash
-# For QLI platforms — content stored under the root home directory
-export QIMSDK_USER_CONTENTS_ROOT=/root
-
-# For Ubuntu platforms — content stored under the ubuntu home directory
-export QIMSDK_USER_CONTENTS_ROOT=/home/ubuntu
-
-# For any platform — content stored under /etc, independent of the OS type
-export QIMSDK_USER_CONTENTS_ROOT=/etc
+# For any platform — content stored under ${HOME}/Downloads/qimsdk_samples, independent of the OS type
+export QIMSDK_USER_CONTENTS_ROOT="${HOME}/Downloads/qimsdk_samples"
 ```
 
 Then create the required directories:
 
 ```bash
+mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}
 mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/media
 mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/models
 mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/labels
@@ -1397,23 +1372,22 @@ mkdir -p ${QIMSDK_USER_CONTENTS_ROOT}/configs
 ```
 
 Apply the correct permissions to each directory and its contents.
-> **Note:** Use `sudo` when the `QIMSDK_USER_CONTENTS_ROOT` value is set to `/etc` for any non-root platform user:
 
 ```bash
 # media
-find ${QIMSDK_USER_CONTENTS_ROOT}/media/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/media/ -type d -exec chmod 777 {} \;
 find ${QIMSDK_USER_CONTENTS_ROOT}/media/ -type f -exec chmod 644 {} \;
 
 # models
-find ${QIMSDK_USER_CONTENTS_ROOT}/models/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/models/ -type d -exec chmod 777 {} \;
 find ${QIMSDK_USER_CONTENTS_ROOT}/models/ -type f -exec chmod 644 {} \;
 
 # labels
-find ${QIMSDK_USER_CONTENTS_ROOT}/labels/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/labels/ -type d -exec chmod 777 {} \;
 find ${QIMSDK_USER_CONTENTS_ROOT}/labels/ -type f -exec chmod 644 {} \;
 
 # configs
-find ${QIMSDK_USER_CONTENTS_ROOT}/configs/ -type d -exec chmod 755 {} \;
+find ${QIMSDK_USER_CONTENTS_ROOT}/configs/ -type d -exec chmod 777 {} \;
 find ${QIMSDK_USER_CONTENTS_ROOT}/configs/ -type f -exec chmod 644 {} \;
 ```
 
@@ -1430,38 +1404,17 @@ find ${QIMSDK_USER_CONTENTS_ROOT}/configs/ -type f -exec chmod 644 {} \;
 ```bash
 ### adb shell
 ```bash
-# For QLI platforms — content stored under the root home directory
-export QIMSDK_USER_CONTENTS_ROOT=/root
 
-# For Ubuntu platforms — content stored under the ubuntu home directory
-export QIMSDK_USER_CONTENTS_ROOT=/home/ubuntu
-
-# For any platform — content stored under /etc, independent of the OS type
-export QIMSDK_USER_CONTENTS_ROOT=/etc
+# For any platform — content stored under ${HOME}/Downloads/qimsdk_samples, independent of the OS type
+export QIMSDK_USER_CONTENTS_ROOT="${HOME}/Downloads/qimsdk_samples"
 
 # After that's done, the container needs to be removed and a new one needs to be run, if already running
 docker rm -f qimsdk
-
+export QIMSDK_CONTAINER_HOME="/home/qimsdk"
 adb shell docker run -it -d --net host \
   --env-file /etc/docker/env/qimsdk.env \
   --device qualcomm.com/device=qimsdk \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/home/qimsdk/media \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/home/qimsdk/models \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/home/qimsdk/labels \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/home/qimsdk/configs \
-  -h qimsdk --name <desired-container-name> <generated-image-name>
-```
-
-> **Note:** When the `QIMSDK_USER_CONTENTS_ROOT` environment variable value is `/etc`** (the model content shall be mounted into the `/etc/` folder inside the container):
-
-```bash
-adb shell docker run -it -d --net host \
-  --env-file /etc/docker/env/qimsdk.env \
-  --device qualcomm.com/device=qimsdk \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/media:/etc/media \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/models:/etc/models \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/labels:/etc/labels \
-  -v ${QIMSDK_USER_CONTENTS_ROOT}/configs:/etc/configs \
+  -v ${HOME}/Downloads/qimsdk_samples:${QIMSDK_CONTAINER_HOME}/Downloads/qimsdk_samples \
   -h qimsdk --name <desired-container-name> <generated-image-name>
 ```
 

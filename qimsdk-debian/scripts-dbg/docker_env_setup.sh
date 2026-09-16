@@ -333,12 +333,11 @@ function qimsdk-generate-docker-compose-yaml() {
     local PATH_TO_DOCKER_COMPOSE_YAML=${1}
     local CONTAINER_NAME=${2}
     local IMAGE_NAME=${3}
-    local MODEL_ROOT="/etc"
-    declare -a QIMSDK_USER_CONTENTS_DIRS_ARRAY=("media" "models" "labels" "configs")
+    local MODEL_ROOT_DIR="Downloads/qimsdk_samples"
 
     yq -n ".name=\"${IMAGE_NAME}\"" > ${PATH_TO_DOCKER_COMPOSE_YAML}                            && \
             yq -i ".services.qimsdk.image=\"${IMAGE_NAME}\"" ${PATH_TO_DOCKER_COMPOSE_YAML}     && \
-            yq -i ".services.qimsdk.container_name\"${CONTAINER_NAME}\""                           \
+            yq -i ".services.qimsdk.container_name=\"${CONTAINER_NAME}\""                          \
                     ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
             yq -i ".services.qimsdk.hostname=\"${CONTAINER_NAME}\""                                \
                     ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
@@ -346,16 +345,15 @@ function qimsdk-generate-docker-compose-yaml() {
             yq -i '.services.qimsdk.tty=true' ${PATH_TO_DOCKER_COMPOSE_YAML}                    && \
             yq -i '.services.qimsdk.restart="always"' ${PATH_TO_DOCKER_COMPOSE_YAML}            && \
             yq -i '.services.qimsdk.network_mode="host"' ${PATH_TO_DOCKER_COMPOSE_YAML}         && \
-            for I in ${QIMSDK_USER_CONTENTS_DIRS_ARRAY[@]}; do
-                yq -i ".services.qimsdk.volumes += [\"${MODEL_ROOT}/${I}:${MODEL_ROOT}/${I}\"]"    \
-                    ${PATH_TO_DOCKER_COMPOSE_YAML}
-            done                                                                                && \
+            yq -i ".services.qimsdk.volumes += `                                                   \
+                        ` [\"\${HOME}/${MODEL_ROOT_DIR}:/home/qimsdk/${MODEL_ROOT_DIR}\"]"         \
+                        "${PATH_TO_DOCKER_COMPOSE_YAML}"                                        && \
             yq -i '.services.qimsdk.env_file=["/etc/docker/env/qimsdk.env"]'                       \
                     ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
             yq -i '.services.qimsdk.deploy.resources.reservations.devices[0].driver = "cdi"'       \
                     ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
             yq -i '.services.qimsdk.deploy.resources.reservations.devices[0].device_ids[0] =
-                    "qualcomm.com/device=cdi-hw-acc"' ${PATH_TO_DOCKER_COMPOSE_YAML}            && \
+                    "qualcomm.com/device=qimsdk"' ${PATH_TO_DOCKER_COMPOSE_YAML}                && \
             yq -i '.services.qimsdk.deploy.resources.reservations.devices[0].capabilities =
                     ["hw-acc"]' "${PATH_TO_DOCKER_COMPOSE_YAML}"                                || {
         print-red "Failed to generate Docker compose CDI yaml file !!!"
@@ -379,14 +377,10 @@ function qimsdk-generate-docker-run-cmd() {
     local RESULT=${1}
     local CONTAINER_NAME=${2}
     local IMAGE_NAME=${3}
-    local MODEL_ROOT="/etc"
 
     echo "docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env `
             `--device qualcomm.com/device=qimsdk -h ${CONTAINER_NAME} `
-            `-v ${MODEL_ROOT}/media:${MODEL_ROOT}/media `
-            `-v ${MODEL_ROOT}/models:${MODEL_ROOT}/models `
-            `-v ${MODEL_ROOT}/labels:${MODEL_ROOT}/labels `
-            `-v ${MODEL_ROOT}/configs:${MODEL_ROOT}/configs `
+            `-v \${HOME}/Downloads/qimsdk_samples:/home/qimsdk/Downloads/qimsdk_samples `
             `--name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}
 
     local rc=$?
@@ -1496,8 +1490,9 @@ function qimsdk-docker-device-run-container-variant() {
 
         for idx in ${!MEDIA_DIRS[@]}; do
             qimsdk-device-command "${QIMSDK_DEVICE_ID}"                                            \
-                        "mkdir -m 777 -p /etc/${MEDIA_DIRS[$idx]}"                              || {
-                print-red "FAILED: /etc/${MEDIA_DIRS[$idx]} can not be created in device !!!"
+                        "mkdir -m 777 -p \$HOME/Downloads/qimsdk_samples/${MEDIA_DIRS[$idx]}"   || {
+                print-red "FAILED:\$HOME/Downloads/qimsdk_samples/${MEDIA_DIRS[$idx]} couldn't be `\
+                            `created in device !!!"
                 return -1
             }
         done
