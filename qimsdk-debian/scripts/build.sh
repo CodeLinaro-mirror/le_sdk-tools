@@ -575,21 +575,26 @@ function qimsdk-cmake-clean-onnxruntime-qnn() {
             print-green "${FUNCNAME} completed successfully!"
 }
 
-# Incremental build all gst-plugins-imsdk
-function qimsdk-cmake-build-gst-plugins-imsdk() {
+# Incremental build all qimsdk src
+function qimsdk-cmake-build-qimsdk() {
     (
         local IS_QNP_ENABLED=$( [ -n "${QIMSDK_QNP_VERSION:-}" ] && echo ON || echo OFF )
 
         local ENABLE_GST_PLUGIN_MLQAIRT=$( [ -n "${QIMSDK_QNP_VERSION:-}" ]                     && \
                 [ -d "/usr/include/QAIRT" ] && echo ON || echo OFF )
 
-        # Set ${PYTHON_DIR} for the according python version for this shell
-        #     (needed for site-packages dir during build)
-        export PYTHON_DIR=python3.13
+        # Debian/Ubuntu deviate from upstream Python: distribution-provided modules live in
+        #   'lib/python3/dist-packages', NOT in 'lib/pythonX.Y/site-packages'. The latter is
+        #   not on the default sys.path of the Debian interpreter, so anything installed there
+        #   is invisible to 'import' (ModuleNotFoundError) even though the files exist.
+        # 'lib/python3/dist-packages' is version independent and is also where Debian places
+        #   arch-specific extension modules (e.g. gi/overrides/_gi_gst_qti*.so), so it is the
+        #   correct destination for both the pure-python 'qimsdk' package and the gi overrides.
+        export PYTHON_DIR=python3
 
         # Build qti plugins
-        qimsdk-cmake-build ${QIMSDK_SRC_DIR}/gst-plugins-imsdk /usr `
-                `-DPYTHON_SITEPACKAGES_DIR=lib/${PYTHON_DIR}/site-packages `
+        qimsdk-cmake-build ${QIMSDK_SRC_DIR}/qimsdk /usr `
+                `-DPYTHON_SITEPACKAGES_DIR=lib/${PYTHON_DIR}/dist-packages `
                 `-DENABLE_GST_PLUGIN_BASE=ON `
                 `-DENABLE_GST_PLUGIN_VCOMPOSER=ON `
                 `-DENABLE_GST_PLUGIN_BATCH=ON `
@@ -629,14 +634,17 @@ function qimsdk-cmake-build-gst-plugins-imsdk() {
                 `-DENABLE_GST_PLUGIN_URIDECODEBIN=ON `
                 `-DENABLE_GST_SAMPLE_APPS=ON `
                 `-DENABLE_GST_SAMPLE_APPS_CAMERA=ON `
-                `-DENABLE_GST_PYTHON_EXAMPLES=ON                                                && \
+                `-DENABLE_GST_PYTHON_EXAMPLES=ON `
+                `-DENABLE_GST_PYTHON=ON `
+                `-DENABLE_APP_BUILDER_CPP=ON `
+                `-DENABLE_APP_BUILDER_PYTHON=ON                                                 && \
             print-green "${FUNCNAME} completed successfully!"
     )
 }
 
-# Clean gst-plugins-imsdk
-function qimsdk-cmake-clean-gst-plugins-imsdk() {
-    rm -rf ${QIMSDK_BUILD_DIR}/gst-plugins-imsdk                                                && \
+# Clean qimsdk
+function qimsdk-cmake-clean-qimsdk() {
+    rm -rf ${QIMSDK_BUILD_DIR}/qimsdk                                                           && \
             print-green "${FUNCNAME} completed successfully!"
 }
 
@@ -662,16 +670,16 @@ function qimsdk-incremental-build() {
             qimsdk-cmake-build-abseil-cpp                                                       && \
             qimsdk-cmake-build-flatbuffers-v23-5-26                                             && \
             qimsdk-cmake-build-tflite                                                           && \
-            qimsdk-cmake-build-gst-plugins-imsdk                                                && \
             qimsdk-cmake-build-litert                                                           && \
             qimsdk-cmake-build-onnx                                                             && \
             qimsdk-cmake-build-onnxruntime                                                      && \
             qimsdk-cmake-build-onnxruntime-qnn                                                  && \
+            qimsdk-cmake-build-qimsdk                                                           && \
             qimsdk-cmake-build-solutions-microservices                                          && \
         print-green "QIMSDK GStreamer targets built successfully !!!"
 }
 
 print-green "qimsdk-incremental-build"
 echo "    Incremental build of gst plugins"
-print-green "qimsdk-cmake-build-gst-plugins-imsdk"
-echo "    Incremental build all gst-plugins-imsdk"
+print-green "qimsdk-cmake-build-qimsdk"
+echo "    Incremental build all qimsdk src"

@@ -34,8 +34,8 @@ EOF
 
 #  Python packages:               python-gi-dev python3.13-dev
 
-# build time dependencies, needed for gst-plugins-imsdk compilation:
-# gst-plugins-imsdk is not an apt package, so we need to install its build dependencies manually
+# build time dependencies, needed for qimsdk src compilation:
+# qimsdk is not an apt package, its build dependencies needs to be installed manually
 #   instead of doing it using 'apt-get build-dep'
 #  GCC support libraries:         libc6:arm64 libgcc-s1:arm64 libstdc++6:arm64
 #  gst-plugin-mlaconverter:       libeigen3-dev:arm64
@@ -47,6 +47,7 @@ EOF
 #  gst-plugin-rtspbin:            libgstrtspserver-1.0-dev:arm64
 #  gst-plugin-restricted-zonedbg: libgstreamer-plugins-bad1.0-dev:arm64
 #  gst-plugin-objtracker:         libeigen3-dev:arm64
+#  App Builder SDK (cpp):         libyaml-cpp-dev:arm64
 
 # build time dependencies, needed for fast-rpc compilation:
 #  libyaml-dev:arm64, libbsd-dev:arm64
@@ -75,6 +76,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update                               
             libgstrtspserver-1.0-dev:arm64 libmosquitto-dev:arm64 libcairo-dev:arm64               \
             libjson-glib-dev:arm64 libhiredis-dev:arm64 libgstreamer-plugins-bad1.0-dev:arm64      \
             libdrm-dev:arm64 libgraphene-1.0-dev:arm64 opencl-headers:arm64 libdb-dev:arm64        \
+            libyaml-cpp-dev:arm64                                                               && \
     apt-get build-dep -a arm64 -y gst-plugins-base1.0 gst-plugins-good1.0                       && \
     apt -y upgrade                                                                              && \
     apt-get autoremove -y                                                                       && \
@@ -603,17 +605,17 @@ RUN mkdir -p ${QIMSDK_SRC_DIR}/camera-service                                   
             "${QIMSDK_ARG_CAMERA_SERVICE_TAG:-main}"                                            && \
     git -C ${QIMSDK_SRC_DIR}/camera-service checkout FETCH_HEAD
 
-# gst-plugins-imsdk: fetch
+# qimsdk: fetch
 ARG QIMSDK_ARG_GST_PLUGINS_TAG
-RUN mkdir -p ${QIMSDK_SRC_DIR}/gst-plugins-imsdk                                                && \
-    git -C ${QIMSDK_SRC_DIR}/gst-plugins-imsdk init                                             && \
-    git -C ${QIMSDK_SRC_DIR}/gst-plugins-imsdk                                                     \
-            remote add origin https://github.com/qualcomm/gst-plugins-imsdk.git                 && \
-    git -C ${QIMSDK_SRC_DIR}/gst-plugins-imsdk fetch --depth 1 origin                              \
+RUN mkdir -p ${QIMSDK_SRC_DIR}/qimsdk                                                           && \
+    git -C ${QIMSDK_SRC_DIR}/qimsdk init                                                        && \
+    git -C ${QIMSDK_SRC_DIR}/qimsdk                                                                \
+            remote add origin https://github.com/qualcomm/qimsdk.git                            && \
+    git -C ${QIMSDK_SRC_DIR}/qimsdk fetch --depth 1 origin                                         \
             "${QIMSDK_ARG_GST_PLUGINS_TAG:-main}"                                               && \
-    git -C ${QIMSDK_SRC_DIR}/gst-plugins-imsdk checkout FETCH_HEAD
+    git -C ${QIMSDK_SRC_DIR}/qimsdk checkout FETCH_HEAD
 
-# gst-plugins-imsdk: fetch
+# solutions-microservices: fetch
 ARG QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG
 RUN mkdir -p ${QIMSDK_SRC_DIR}/solutions-microservices                                          && \
     git -C ${QIMSDK_SRC_DIR}/solutions-microservices init                                       && \
@@ -705,6 +707,8 @@ COPY --from=qimsdk_build /mnt/work/downloads/debs ${QIMSDK_DEB_DIR}
 #    rtspsrc usecases:            gstreamer1.0-plugins-ugly
 #  pulseaudio runtime dependency: pulseaudio
 #  fast rpc runtime dependency:   libyaml-0-2:arm64
+#  App Builder SDK (cpp)
+#    runtime dependency:          libyaml-cpp0.8
 #  WebRTC runtime dependency:     gstreamer1.0-nice
 #  Mesa Vulkan drivers:           mesa-vulkan-drivers
 RUN apt-get update                                                                              && \
@@ -712,7 +716,7 @@ RUN apt-get update                                                              
             adduser gosu bash-completion nano libhiredis1.1.0 ${QIMSDK_DEB_DIR}/*.deb              \
             gstreamer1.0-tools libgstrtspserver-1.0-0 libopencv-imgproc410 libxv1                  \
             gstreamer1.0-nice libpulse0 librdkafka1 gstreamer1.0-plugins-ugly gir1.2-gst-1.0       \
-            libyaml-0-2 mesa-vulkan-drivers                                                     && \
+            libyaml-0-2 mesa-vulkan-drivers libyaml-cpp0.8                                      && \
     apt -y upgrade                                                                              && \
     apt-get autoremove -y                                                                       && \
     apt-get clean                                                                               && \
@@ -860,12 +864,29 @@ ENV QIMSDK_PYTHON_VENV_PATH=/home/qimsdk/.venv
 #  packages, needed for python use-cases installed via pip:
 #    pygobject     - needed for gobject introspection
 #    opencv-python - needed for gst-python
+#    PyYAML        - needed by the qimsdk App Builder SDK (qimsdk.Pipeline.from_yaml)
 # Also, add a requirements.txt file containing pip packages' versions for debug purposes
 RUN python3 -m venv ${QIMSDK_PYTHON_VENV_PATH}                                                  && \
     PY_GOBJECT_VER=$(apt policy python3-gi 2>/dev/null                                           | \
             sed -n 's/.*Installed: \([0-9.]*\).*/\1/p')                                         && \
-    ${QIMSDK_PYTHON_VENV_PATH}/bin/pip install PyGObject==${PY_GOBJECT_VER} opencv-python       && \
+    ${QIMSDK_PYTHON_VENV_PATH}/bin/pip install PyGObject==${PY_GOBJECT_VER} opencv-python          \
+            PyYAML                                                                              && \
     ${QIMSDK_PYTHON_VENV_PATH}/bin/pip freeze --local > ${QIMSDK_PYTHON_VENV_PATH}/requirements.txt
+
+# Expose ONLY the App Builder SDK ('qimsdk') to the otherwise fully isolated venv.
+# The build stage installs it system-wide into /usr/lib/python3/dist-packages, which an isolated
+#   venv deliberately keeps off sys.path - hence 'import qimsdk' would fail with
+#   ModuleNotFoundError. Rather than opening up the whole of dist-packages via
+#   --system-site-packages, a single symlink is placed into the venv's own site-packages.
+# This keeps pip's view of the venv unchanged: pip does not track the symlink as an installed
+#   distribution, so it will never try to upgrade or uninstall the system-owned 'qimsdk' files,
+#   and system python3 keeps working independently of the venv.
+RUN QIMSDK_VENV_SITE_PACKAGES=$(${QIMSDK_PYTHON_VENV_PATH}/bin/python3 -c                          \
+            "import sysconfig; print(sysconfig.get_paths()['purelib'])")                        && \
+    ln -sfn /usr/lib/python3/dist-packages/qimsdk "${QIMSDK_VENV_SITE_PACKAGES}/qimsdk"
+
+# Sanity check: fail the image build early if the App Builder SDK python package is not importable
+RUN ${QIMSDK_PYTHON_VENV_PATH}/bin/python3 -c "import qimsdk; print('qimsdk', qimsdk.__version__)"
 
 # Switch user back to root to resume regular operation
 USER root
