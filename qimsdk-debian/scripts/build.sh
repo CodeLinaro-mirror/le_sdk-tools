@@ -147,6 +147,16 @@ function qimsdk-cmake-compile() {
                 tee "${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}_${DATE}.log"
     ) || {
         print-red "FAILED: qimsdk-cmake-compile-${TARGET}: cmake compile failed !!!"
+
+        # With a parallel build the first real error scrolls far above the final
+        #   'gmake: *** [Makefile] Error 2' summary, so re-surface it here to make the log
+        #   actionable without having to dig through the full transcript.
+        print-red "${FUNCNAME[0]}: First errors from cmake_compile_${TARGET}.log:"
+        grep -nEm 20 'error:|Error [0-9]+|cannot find -l|undefined reference|No such file or directory' \
+                "${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}.log" 2>/dev/null                       |
+                head -20
+        print-red "${FUNCNAME[0]}: Full log: ${QIMSDK_LOGS_DIR}/cmake_compile_${TARGET}.log"
+
         return -1
     }
 
@@ -575,7 +585,41 @@ function qimsdk-cmake-clean-onnxruntime-qnn() {
             print-green "${FUNCNAME} completed successfully!"
 }
 
-# Incremental build all qimsdk src
+# Incremental build qimsdk-base src
+function qimsdk-cmake-build-qimsdk-base() {
+    (
+        [ -z "${QIMSDK_SRC_DIR:-}" ]                                                            && {
+            print-red "${FUNCNAME}: QIMSDK_SRC_DIR is not set!"
+            return -1
+        }
+
+        local BASE_SRC="${QIMSDK_SRC_DIR}/qimsdk-base"
+
+        # Never clobber/descend into a real directory left over from older layouts
+        [ -e "${BASE_SRC}" ] && [ ! -L "${BASE_SRC}" ]                                          && {
+            print-red "${BASE_SRC} exists and is not a symlink: refusing to overwrite!"
+            return -1
+        }
+
+        # Build qti plugins base part only.
+        # Make the qimsdk gstplugins compliation rely on building
+        #   the base plugins first and then building the accompanying libraries.
+        # This ensures the actual base header files are installed first
+        #   before the dependent plugins are compiled instead of using those
+        #   from sys root when triggering a parallel compilation of the base
+        #   and the specified plugins previously attempted.
+        ln -sfT "${QIMSDK_SRC_DIR}/qimsdk" "${BASE_SRC}"                                        || {
+            print-red "Failed to link ${BASE_SRC}!"
+            return -1
+        }
+
+        qimsdk-cmake-build "${BASE_SRC}" /usr `
+                `-DENABLE_GST_PLUGIN_BASE=ON                                                    && \
+            print-green "${FUNCNAME} completed successfully!"
+    )
+}
+
+# Incremental build optional qimsdk src
 function qimsdk-cmake-build-qimsdk() {
     (
         local IS_QNP_ENABLED=$( [ -n "${QIMSDK_QNP_VERSION:-}" ] && echo ON || echo OFF )
@@ -593,9 +637,24 @@ function qimsdk-cmake-build-qimsdk() {
         export PYTHON_DIR=python3
 
         # Build qti plugins
+        #
+        # NOTE on ENABLE_GST_PLUGIN_CAMERA_BASE: the base libraries are built separately by
+        #   qimsdk-cmake-build-qimsdk-base (ENABLE_GST_PLUGIN_BASE=ON) and are consumed here
+        #   from the sysroot. 'gstqticamerabase' is the one exception: it is declared
+        #   EXCLUDE_FROM_ALL in gst-plugin-base/gst/camera/CMakeLists.txt, so the base-only
+        #   pass never builds or installs it, and its install() rules are OPTIONAL so that
+        #   pass still succeeds silently.
+        # NOTE on gst-plugin-qmmfsrc 'gstqticamerabase' target link library dependency.
+        #   If ENABLE_GST_PLUGIN_BASE=OFF that target does not exist in this configuration,
+        #   so CMake degrades the dependency to a bare '-lgstqticamerabase' linker flag and
+        #   the link fails with "cannot find -lgstqticamerabase".
+        # Select ENABLE_GST_PLUGIN_BASE=ON untill gst-plugins have their target link library
+        #   dependencies properly sorted out and will allow for clean complilation with
+        #   ENABLE_GST_PLUGIN_BASE=OFF.
         qimsdk-cmake-build ${QIMSDK_SRC_DIR}/qimsdk /usr `
                 `-DPYTHON_SITEPACKAGES_DIR=lib/${PYTHON_DIR}/dist-packages `
                 `-DENABLE_GST_PLUGIN_BASE=ON `
+                `-DENABLE_GST_PLUGIN_CAMERA_BASE=ON `
                 `-DENABLE_GST_PLUGIN_VCOMPOSER=ON `
                 `-DENABLE_GST_PLUGIN_BATCH=ON `
                 `-DENABLE_GST_PLUGIN_METAMUX=ON `
@@ -642,7 +701,31 @@ function qimsdk-cmake-build-qimsdk() {
     )
 }
 
-# Clean qimsdk
+# Clean qimsdk-base
+function qimsdk-cmake-clean-qimsdk-base() {
+
+    local BASE_SRC="${QIMSDK_SRC_DIR}/qimsdk-base"
+
+    rm -rf "${QIMSDK_BUILD_DIR}/qimsdk-base"                                                    || {
+        print-red "Failed to remove ${QIMSDK_BUILD_DIR}/qimsdk-base!"
+        return -1
+    }
+
+    # Only ever unlink the symlink created by qimsdk-cmake-build-qimsdk-base. Never recurse:
+    # 'rm -f' on a symlink removes the link itself, never the qimsdk tree behind it.
+    [ -L "${BASE_SRC}" ]                                                                        && {
+        rm -f "${BASE_SRC}"                                                                     || {
+            print-red "Failed to remove symlink ${BASE_SRC}!"
+            return -1
+        }
+    }
+
+    print-green "${FUNCNAME} completed successfully!"
+
+    return 0
+}
+
+# Clean optional qimsdk
 function qimsdk-cmake-clean-qimsdk() {
     rm -rf ${QIMSDK_BUILD_DIR}/qimsdk                                                           && \
             print-green "${FUNCNAME} completed successfully!"
@@ -674,6 +757,7 @@ function qimsdk-incremental-build() {
             qimsdk-cmake-build-onnx                                                             && \
             qimsdk-cmake-build-onnxruntime                                                      && \
             qimsdk-cmake-build-onnxruntime-qnn                                                  && \
+            qimsdk-cmake-build-qimsdk-base                                                      && \
             qimsdk-cmake-build-qimsdk                                                           && \
             qimsdk-cmake-build-solutions-microservices                                          && \
         print-green "QIMSDK GStreamer targets built successfully !!!"
@@ -681,5 +765,7 @@ function qimsdk-incremental-build() {
 
 print-green "qimsdk-incremental-build"
 echo "    Incremental build of gst plugins"
+print-green "qimsdk-cmake-build-qimsdk-base"
+echo "    Incremental build of qimsdk base src"
 print-green "qimsdk-cmake-build-qimsdk"
-echo "    Incremental build all qimsdk src"
+echo "    Incremental build optional qimsdk src"

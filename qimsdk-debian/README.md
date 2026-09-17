@@ -108,8 +108,10 @@ Handles the compilation and installation of open-source and QCOM GStreamer plugi
 - qimsdk-debian-rules-build-\<name-of-project\> - Builds specific open-source component with custom configuration
 - qimsdk-debian-rules-clean-\<name-of-project\> - Cleans build directory for specific open-source component
 - qimsdk-cmake-build-camera-service - Build and install open-source project needed in order to enable camera functionality.
-- qimsdk-cmake-build-qimsdk - Base QCOM GStreamer plugins that the others depend on are built. If one wishes to add a new GStreamer plugin to build using CMake, simply add the plugin directory name under qimsdk/ source dir to the list.
-- qimsdk-incremental-build - Main entry point that builds all GStreamer components in sequence with success reporting. Also calls qimsdk-cmake-build-qimsdk, to build qimsdk.
+- qimsdk-cmake-build-qimsdk-base - Builds and installs **only** the base QCOM GStreamer plugins that all the others depend on (`-DENABLE_GST_PLUGIN_BASE=ON`). This is a separate CMake configuration of the same `qimsdk/` source tree, reached through a `qimsdk-base` symlink, so that it gets its own build directory and its headers are installed before the dependent plugins are compiled. **This must be run before qimsdk-cmake-build-qimsdk on a clean tree.**
+- qimsdk-cmake-build-qimsdk - Builds a list of QCOM GStreamer plugins in parallel. If one wishes to add a new GStreamer plugin to build using CMake, simply add the plugin directory name under qimsdk/ source dir to the list.
+- qimsdk-cmake-clean-qimsdk-base - Removes the qimsdk-base build directory and the `qimsdk-base` source symlink. It only ever unlinks the symlink, so the `qimsdk/` sources behind it are never touched.
+- qimsdk-incremental-build - Main entry point that builds all GStreamer components in sequence with success reporting. Also calls qimsdk-cmake-build-qimsdk-base followed by qimsdk-cmake-build-qimsdk, to build qimsdk.
 
 <div id="env_setup.sh">
 
@@ -206,6 +208,17 @@ function qimsdk-cmake-build-qimsdk() {
         print-green "${FUNCNAME} completed successfully!"
 }
 ```
+
+> **Note:** The base QCOM GStreamer plugins are expected **not** to be built by `qimsdk-cmake-build-qimsdk`; They are built separately and beforehand by `qimsdk-cmake-build-qimsdk-base`, which configures the same source tree in its own build directory so the base headers are installed before the dependent plugins compile.
+>
+> Consequently, when building by hand on a clean tree, run both, in this order:
+>
+> ```bash
+> qimsdk-cmake-build-qimsdk-base
+> qimsdk-cmake-build-qimsdk
+> ```
+>
+> `qimsdk-incremental-build` already performs both steps in the correct order.
 
 <div id="Running_the_container">
 
