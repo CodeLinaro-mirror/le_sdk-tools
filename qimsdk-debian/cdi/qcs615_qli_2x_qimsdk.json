@@ -73,6 +73,22 @@
             ]
           },
           {
+            "hostPath": "/usr/share/qcom/qcs615/Qualcomm/QCS615-RIDE/dsp/cdsp/libc++.so.1",
+            "containerPath": "/usr/lib/dsp/cdsp/libc++.so.1",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
+            "hostPath": "/usr/share/qcom/qcs615/Qualcomm/QCS615-RIDE/dsp/cdsp/libc++abi.so.1",
+            "containerPath": "/usr/lib/dsp/cdsp/libc++abi.so.1",
+            "options": [
+              "rbind",
+              "rw"
+            ]
+          },
+          {
             "hostPath": "/usr/share/qcom/qcs615/Qualcomm/QCS615-RIDE/dsp/cdsp/fastrpc_shell_3",
             "containerPath": "/usr/lib/dsp/cdsp/fastrpc_shell_3",
             "options": [
