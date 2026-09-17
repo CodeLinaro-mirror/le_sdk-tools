@@ -202,6 +202,20 @@ RUN git config --global pack.threads "${QIMSDK_ARG_MAX_JOBS:-$(nproc)}"         
             r${QIMSDK_TF_LITE_MAJOR}.${QIMSDK_TF_LITE_MINOR}                                    && \
     git -C ${QIMSDK_TF_SRC_DIR} checkout FETCH_HEAD
 
+# Clone LiteRT
+ENV LITERT_MAJOR_VERSION="2"
+ENV LITERT_MINOR_VERSION="1"
+ENV LITERT_PATCH_VERSION="6"
+ENV QIMSDK_LITERT_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/litert
+RUN mkdir -p ${QIMSDK_LITERT_SRC_DIR}                                                           && \
+    git -C ${QIMSDK_LITERT_SRC_DIR} init                                                        && \
+    git -C ${QIMSDK_LITERT_SRC_DIR}                                                                \
+            remote add origin https://github.com/google-ai-edge/LiteRT.git                      && \
+    git -C ${QIMSDK_LITERT_SRC_DIR} fetch --depth 1 origin                                         \
+            v${LITERT_MAJOR_VERSION}.${LITERT_MINOR_VERSION}.${LITERT_PATCH_VERSION}            && \
+    git -C ${QIMSDK_LITERT_SRC_DIR} checkout FETCH_HEAD                                         && \
+    git -C ${QIMSDK_LITERT_SRC_DIR} submodule update --init --recursive --depth 1
+
 # Clone meta-qcom-distro and apply tflite patches for it
 ENV QIMSDK_META_QCOM_DISTRO_DIR=${QIMSDK_DOWNLOAD_DIR}/meta-qcom-distro
 ENV QIMSDK_TFLITE_PATCHES_DIR=${QIMSDK_META_QCOM_DISTRO_DIR}/recipes-ml/tflite/files/tflite
@@ -215,6 +229,17 @@ RUN mkdir -p ${QIMSDK_META_QCOM_DISTRO_DIR}                                     
             am ${QIMSDK_TFLITE_PATCHES_DIR}/0*                                                  && \
     git -C ${QIMSDK_TF_SRC_DIR}                                                                    \
             am ${QIMSDK_TFLITE_PATCHES_DIR}/${QIMSDK_TF_LITE_MAJOR}.${QIMSDK_TF_LITE_MINOR}/0*
+
+# Clone meta-ai and apply litert patches for it
+ENV QIMSDK_META_AI_DIR=${QIMSDK_DOWNLOAD_DIR}/meta-ai
+ENV QIMSDK_LITERT_PATCHES_DIR=${QIMSDK_META_AI_DIR}/recipes-ml/litert/files
+RUN mkdir -p ${QIMSDK_META_AI_DIR}                                                              && \
+    git -C ${QIMSDK_META_AI_DIR} init                                                           && \
+    git -C ${QIMSDK_META_AI_DIR}                                                                   \
+            remote add origin https://github.com/qualcomm-linux/meta-ai.git                     && \
+    git -C ${QIMSDK_META_AI_DIR} fetch --depth 1 origin main                                    && \
+    git -C ${QIMSDK_META_AI_DIR} checkout FETCH_HEAD                                            && \
+    git -C ${QIMSDK_LITERT_SRC_DIR} am ${QIMSDK_LITERT_PATCHES_DIR}/0*.patch
 
 # Clone flatbuffers. Use the exact git tag as specified in tflite dependency
 ENV QIMSDK_FLATBUFFERS_23_5_26_SRC_DIR=${QIMSDK_DOWNLOAD_DIR}/flatbuffers_23.5.26
@@ -327,17 +352,17 @@ RUN cd "${QIMSDK_DOWNLOAD_DIR}"                                                 
     TARGET_TRIPLET=aarch64-linux-gnu                                                            && \
     PREFIX="${QIMSDK_INSTALL_DIR}/usr"                                                          && \
     LIBDIR="${PREFIX}/lib/${TARGET_TRIPLET}"                                                    && \
-    if [ "${BUILD_ARCH}" = "${TARGET_ARCH}" ]; then                                                \
+    [ "${BUILD_ARCH}" = "${TARGET_ARCH}" ]                                                    && { \
         CC=gcc                                                                                  && \
         AR=ar                                                                                   && \
         RANLIB=ranlib                                                                           && \
         CONFIGURE_ARGS="";                                                                         \
-    else                                                                                           \
+    } || {                                                                                         \
         CC=${TARGET_TRIPLET}-gcc                                                                && \
         AR=${TARGET_TRIPLET}-ar                                                                 && \
         RANLIB=${TARGET_TRIPLET}-ranlib                                                         && \
         CONFIGURE_ARGS="--host=${TARGET_TRIPLET}";                                                 \
-    fi                                                                                          && \
+    }                                                                                           && \
     CFLAGS='-UMACHINE_NAME_PATH -DMACHINE_NAME_PATH=\"/run/device-model\"'                         \
         CC="${CC}" AR="${AR}" RANLIB="${RANLIB}"                                                   \
         ./configure                                                                                \
@@ -403,9 +428,9 @@ RUN GST_PLUGINS_BASE_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base*    
 # qnp-sdk: fetch and copy the needed headers
 ARG QIMSDK_ARG_QNP_VERSION
 ENV QIMSDK_QNP_VERSION=${QIMSDK_ARG_QNP_VERSION}
-RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                                      \
+RUN [ -z "$QIMSDK_ARG_QNP_VERSION" ]                                                          && { \
         echo "WARN : QIMSDK_ARG_QNP_VERSION is not provided. Skipping QNN installation." >&2;      \
-    else                                                                                           \
+    } || {                                                                                         \
         export QIMSDK_QNP_SDK=v${QIMSDK_ARG_QNP_VERSION}.zip                                    && \
         export QIMSDK_QNN_LIB_PATH=${QIMSDK_DOWNLOAD_DIR}/qairt/${QIMSDK_ARG_QNP_VERSION}/lib/  && \
         wget -t 10 -T 3600 -P ${QIMSDK_DOWNLOAD_DIR}                                               \
@@ -487,9 +512,8 @@ RUN if [ -z "$QIMSDK_ARG_QNP_VERSION" ]; then                                   
                 -name 'libQairtHtp.so' -o                                                          \
                 -name 'libQairtDspBackendExtensions.so'                                            \
             \)                                                                                     \
-            -exec cp -t "${QIMSDK_INSTALL_LIB_DIR}/" {} +                                       && \
-        rm -rf ${QIMSDK_DOWNLOAD_DIR}/qairt;                                                       \
-    fi
+            -exec cp -t "${QIMSDK_INSTALL_LIB_DIR}/" {} +;                                         \
+    }
 
 # camera-service: fetch
 ARG QIMSDK_ARG_CAMERA_SERVICE_TAG
