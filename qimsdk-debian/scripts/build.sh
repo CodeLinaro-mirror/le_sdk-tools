@@ -240,7 +240,18 @@ function qimsdk-debian-rules-build() {
         export GST_PLUGIN_SCANNER=/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/`
                 `gst-plugin-scanner
 
-        fakeroot debian/rules build binary || {
+        (
+            local TARGET="${PWD##*/}"
+            local DATE=$(date "+%Y_%m_%d-%H_%M_%S")
+            local LOG_FILE_NAME=${QIMSDK_LOGS_DIR}/debian_rules_build_${TARGET}_${DATE}.log
+
+            ln -fs ${LOG_FILE_NAME} ${QIMSDK_LOGS_DIR}/debian_rules_build_${TARGET}.log
+
+            set -o pipefail
+
+            fakeroot debian/rules build binary                                                    |&
+                    tee "${LOG_FILE_NAME}"
+        ) || {
             echo "FAILED: qimsdk-debian-rules-build: debian/rules build failed!"
             return 1
         }
