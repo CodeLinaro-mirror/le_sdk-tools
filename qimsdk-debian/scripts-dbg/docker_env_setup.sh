@@ -88,7 +88,7 @@ function qimsdk-docker-parse-json() {
 
     [ -d "${OUT_QIMSDK_GST_SOURCES}/.git" ]                                                     || \
             [ -d "${OUT_QIMSDK_GST_SOURCES}/gst-plugin-base" ]                                  || {
-        print-red "Please provide path to gst-plugins-imsdk directory in config json!!!"
+        print-red "Please provide path to qimsdk src directory in config json!!!"
         print-red "Directory currently provided: ${OUT_QIMSDK_GST_SOURCES}"
         return -1
     }
@@ -432,7 +432,7 @@ function qimsdk-get-map-for-dbg-container() {
         }
 
         [ -d ${GST_SRC_DIR} ] && {
-            DEV_MAP_ARR+="-v ${GST_SRC_DIR}:/mnt/work/src/gst-plugins-imsdk "
+            DEV_MAP_ARR+="-v ${GST_SRC_DIR}:/mnt/work/src/qimsdk "
         }
 
     }
@@ -570,7 +570,7 @@ function qimsdk-docker-build-initialize() {
     }
 
     rsync -aL ${QIMSDK_CAMERA_SERVICE_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/camera-service         && \
-            rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/gst-plugins-imsdk         && \
+            rsync -aL ${QIMSDK_GST_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/qimsdk                    && \
             rsync -aL ${QIMSDK_MICROSERVICES_SOURCES}/ ${QIMSDK_TMP_FOLDER_PTR}/solutions-microservices
 }
 

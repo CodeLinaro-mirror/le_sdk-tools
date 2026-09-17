@@ -15,18 +15,18 @@ RUN mkdir -p ${QIMSDK_TMP_DIR}
 # Add supported targets files
 COPY targets ${QIMSDK_TMP_DIR}/targets
 
-# camera-service: Add (open-source camera-service repository (gst-plugins-imsdk dependency))
+# camera-service: Add (open-source camera-service repository (qimsdk dependency))
 COPY tmp/camera-service ${QIMSDK_REPO_DOWNLOAD_DIR}/camera-service
 
 RUN echo "[url \"file://${QIMSDK_REPO_DOWNLOAD_DIR}/camera-service\"]                              \
         insteadOf = https://github.com/qualcomm/camera-service.git"                                \
         >> /etc/gitconfig
 
-# gst-plugins-imsdk: Add
-COPY tmp/gst-plugins-imsdk ${QIMSDK_REPO_DOWNLOAD_DIR}/gst-plugins-imsdk
+# qimsdk: Add
+COPY tmp/qimsdk ${QIMSDK_REPO_DOWNLOAD_DIR}/qimsdk
 
-RUN echo "[url \"file://${QIMSDK_REPO_DOWNLOAD_DIR}/gst-plugins-imsdk\"] insteadOf =               \
-        https://github.com/qualcomm/gst-plugins-imsdk.git"                                         \
+RUN echo "[url \"file://${QIMSDK_REPO_DOWNLOAD_DIR}/qimsdk\"] insteadOf =                          \
+        https://github.com/qualcomm/qimsdk.git"                                                    \
         >> /etc/gitconfig
 
 COPY tmp/solutions-microservices ${QIMSDK_REPO_DOWNLOAD_DIR}/solutions-microservices
