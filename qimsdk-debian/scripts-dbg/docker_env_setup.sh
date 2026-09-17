@@ -632,15 +632,17 @@ function qimsdk-docker-build-qimsdk-debian-deploy-image() {
 
 # Qimsdk build qimsdk-debian deploy docker image with python use-case support
 #   $1 - (mandatory) image name
+#   $2 - (mandatory) path to target config json
 function qimsdk-docker-build-qimsdk-debian-deploy-py-image() {
-    local QIMSDK_ARG_COUNT_EXPECTED=1
+    local QIMSDK_ARG_COUNT_EXPECTED=2
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
 
     local IMAGE_NAME=${1}
-
+    local PATH_TO_CONFIG_JSON=${2}
     local PATH_TO_QIMSDK_DEBIAN_DOCKERFILE=${QIMSDK_DOCKER_DIR}
+    local QIMSDK_MAX_BUILD_JOBS
 
     [ ! -d ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} ]                                                && {
         print-red "No such directory: ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE}!"
@@ -649,6 +651,11 @@ function qimsdk-docker-build-qimsdk-debian-deploy-py-image() {
 
     [ -z ${IMAGE_NAME} ]                                                                        && {
         print-red "Image name is empty!"
+        return -1
+    }
+
+    ! qimsdk-get-max-build-jobs ${PATH_TO_CONFIG_JSON} QIMSDK_MAX_BUILD_JOBS                    && {
+        print-red "Incorrect QIMSDK_MAX_BUILD_JOBS argument value!"
         return -1
     }
 
@@ -667,6 +674,7 @@ function qimsdk-docker-build-qimsdk-debian-deploy-py-image() {
 
         DOCKER_BUILDKIT=1 docker build                                                             \
                 --progress=plain --target qimsdk_deploy_py_arm64                                   \
+                --build-arg QIMSDK_ARG_MAX_JOBS=${QIMSDK_MAX_BUILD_JOBS}                           \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian-deploy-py              \
                 -f ${DOCKERFILE}.work_deploy_py                                                 || {
             rm -f ${DOCKERFILE}.work_deploy_py
@@ -683,7 +691,7 @@ function qimsdk-docker-build-qimsdk-debian-deploy-py-image() {
 #   $2 - (mandatory) QAIRT SDK VERSION
 #   $3 - (mandatory) path to target config json
 function qimsdk-docker-build-qimsdk-debian-image() {
-    local QIMSDK_ARG_COUNT_EXPECTED=1
+    local QIMSDK_ARG_COUNT_EXPECTED=3
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
@@ -784,7 +792,8 @@ function qimsdk-docker-build-image-variant() {
     }
 
     [ "${CONTAINER_TYPE}" == "python" ]                                                         && {
-        qimsdk-docker-build-qimsdk-debian-deploy-py-image ${QIMSDK_IMAGE_NAME}                  || {
+        qimsdk-docker-build-qimsdk-debian-deploy-py-image ${QIMSDK_IMAGE_NAME}                     \
+                ${PATH_TO_CONFIG_JSON}                                                          || {
             print-red "FAILED: qimsdk-docker-build-qimsdk-debian-deploy-py-image !!!"
             return -1
         }
