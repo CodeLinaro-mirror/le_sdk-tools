@@ -76,9 +76,6 @@ Prerequisite packages for x86 architecture build systems:
 sudo apt install -y jq tofrodos qemu-user-static qemu-system-arm
 sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
 sudo chmod +x /usr/bin/yq
-wget http://archive.ubuntu.com/ubuntu/pool/universe/q/qemu/qemu-user-static_6.2+dfsg-2ubuntu6_amd64.deb
-sudo dpkg -i qemu-user-static_6.2+dfsg-2ubuntu6_amd64.deb
-rm qemu-user-static_6.2+dfsg-2ubuntu6_amd64.deb
 ```
 
 <h3 style="color:red">
