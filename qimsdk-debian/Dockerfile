@@ -517,6 +517,7 @@ RUN wget -t 2 -T 30 -P ${QIMSDK_DOWNLOAD_DIR}                                   
     rm -rf fastcv ${FASTCV_PACKAGE_NAME}_${FASTCV_VERSION}_${FASTCV_ARCH}.tar.gz
 
 # gst-qti-oss-patches: fetch
+ARG QIMSDK_ARG_GST_QTI_OSS_PATCHES_TAG
 RUN GST_PLUGINS_BASE_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base*                       \
             -maxdepth 1 -type d | head -1 | sed 's/.*-//')                                      && \
     mkdir -p ${QIMSDK_SRC_DIR}/gst-qti-oss-patches                                              && \
@@ -524,7 +525,7 @@ RUN GST_PLUGINS_BASE_VERSION=$(find ${QIMSDK_DOWNLOAD_DIR}/gst-plugins-base*    
     git -C ${QIMSDK_SRC_DIR}/gst-qti-oss-patches                                                   \
             remote add origin https://github.com/qualcomm/gst-qti-oss-patches.git               && \
     git -C ${QIMSDK_SRC_DIR}/gst-qti-oss-patches fetch --depth 1 origin                            \
-            ${GST_PLUGINS_BASE_VERSION}                                                         && \
+            ${QIMSDK_ARG_GST_QTI_OSS_PATCHES_TAG:-${GST_PLUGINS_BASE_VERSION}}                  && \
     git -C ${QIMSDK_SRC_DIR}/gst-qti-oss-patches checkout FETCH_HEAD
 
 # qnp-sdk: fetch and copy the needed headers
