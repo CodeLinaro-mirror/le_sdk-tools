@@ -1251,8 +1251,15 @@ This approach eliminates the need for intermediate debug images and does not req
 
   ```bash
   # Build qimsdk-debian deploy docker image
-  DOCKER_BUILDKIT=1 docker build                                                                   \
-      --progress=plain --target qimsdk_deploy_arm64 <path/to/Dockerfile/directory> -t <generated-image-name>
+  DOCKER_BUILDKIT=1 docker build \
+      --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.47.0.260601> \
+      --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=<camera-service-commit-id> \
+      --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=<gstreamer-plugins-commit-id> \
+      --build-arg QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG=<solutions-microservices-tag> \
+      --build-arg QIMSDK_ARG_GST_QTI_OSS_PATCHES_TAG=<gst-qti-oss-patches-tag> \
+      --build-arg QIMSDK_ARG_MAX_JOBS=<optional_max_cpu_threads> \
+      --target qimsdk_deploy_arm64 \
+      -t <generated-image-name> .
   ```
   </ul>
 
@@ -1263,6 +1270,9 @@ docker build \
   --build-arg QIMSDK_ARG_QNP_VERSION=<version, e.g. 2.47.0.260601> \
   --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=<camera-service-commit-id> \
   --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=<gstreamer-plugins-commit-id> \
+  --build-arg QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG=<solutions-microservices-tag> \
+  --build-arg QIMSDK_ARG_GST_QTI_OSS_PATCHES_TAG=<gst-qti-oss-patches-tag> \
+  --build-arg QIMSDK_ARG_MAX_JOBS=<optional_max_cpu_threads> \
   --target qimsdk_deploy_py_arm64 \
   -t <desired-image-name> .
 ```

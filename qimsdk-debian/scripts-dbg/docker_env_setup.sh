@@ -189,8 +189,9 @@ function qimsdk-get-docker-image-path() {
 #   $2 - (mandatory) give camera service commit ID or tag as argument
 #   $3 - (mandatory) give gst plugins commit ID or tag as argument
 #   $4 - (mandatory) give solutions microservices commit ID or tag as argument
+#   $5 - (mandatory) give gst qti oss patches commit ID or tag as argument
 function qimsdk-get-components-tag() {
-    local QIMSDK_ARG_COUNT_EXPECTED=4
+    local QIMSDK_ARG_COUNT_EXPECTED=5
     ! qimsdk-arg-count-check $# ${QIMSDK_ARG_COUNT_EXPECTED}                                    && \
         print-red "${FUNCNAME[0]}: expects ${QIMSDK_ARG_COUNT_EXPECTED} arguments, but got $#!" && \
         return -1
@@ -199,6 +200,7 @@ function qimsdk-get-components-tag() {
     local -n OUT_QIMSDK_CAMERA_SERVICE_TAG=${2}
     local -n OUT_QIMSDK_GST_PLUGINS_TAG=${3}
     local -n OUT_QIMSDK_SOLUTIONS_MICROSERVICES_TAG=${4}
+    local -n OUT_QIMSDK_GST_QTI_OSS_PATCHES_TAG=${5}
 
     [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
         print-red "Path to target configuration json must be provided as first argument !!!"
@@ -217,6 +219,11 @@ function qimsdk-get-components-tag() {
 
     OUT_QIMSDK_SOLUTIONS_MICROSERVICES_TAG=$(
         jq -er '.solutions_microservices_Source_git_tag // ""' <<< "${JSON_CONTENT}"               \
+                2>/dev/null || echo ""
+    )
+
+    OUT_QIMSDK_GST_QTI_OSS_PATCHES_TAG=$(
+        jq -er '.gst_qti_oss_patches_git_tag // ""' <<< "${JSON_CONTENT}"                          \
                 2>/dev/null || echo ""
     )
 
@@ -702,6 +709,7 @@ function qimsdk-docker-build-qimsdk-debian-image() {
     local QIMSDK_CAMERA_SERVICE_TAG
     local QIMSDK_GST_PLUGINS_TAG
     local QIMSDK_SOLUTIONS_MICROSERVICES_TAG
+    local QIMSDK_GST_QTI_OSS_PATCHES_TAG
     local QIMSDK_MAX_BUILD_JOBS
 
     local PATH_TO_QIMSDK_DEBIAN_DOCKERFILE=${QIMSDK_DOCKER_DIR}
@@ -722,7 +730,8 @@ function qimsdk-docker-build-qimsdk-debian-image() {
     }
 
     qimsdk-get-components-tag ${PATH_TO_CONFIG_JSON} QIMSDK_CAMERA_SERVICE_TAG                     \
-        QIMSDK_GST_PLUGINS_TAG QIMSDK_SOLUTIONS_MICROSERVICES_TAG                               || {
+            QIMSDK_GST_PLUGINS_TAG QIMSDK_SOLUTIONS_MICROSERVICES_TAG                              \
+            QIMSDK_GST_QTI_OSS_PATCHES_TAG                                                      || {
         print-red "FAILED: qimsdk-get-components-tag !!!"
         return -1
     }
@@ -742,6 +751,7 @@ function qimsdk-docker-build-qimsdk-debian-image() {
                 --build-arg QIMSDK_ARG_CAMERA_SERVICE_TAG=${QIMSDK_CAMERA_SERVICE_TAG}             \
                 --build-arg QIMSDK_ARG_GST_PLUGINS_TAG=${QIMSDK_GST_PLUGINS_TAG}                   \
                 --build-arg QIMSDK_ARG_SOLUTIONS_MICROSERVICES_TAG=${QIMSDK_SOLUTIONS_MICROSERVICES_TAG} \
+                --build-arg QIMSDK_ARG_GST_QTI_OSS_PATCHES_TAG=${QIMSDK_GST_QTI_OSS_PATCHES_TAG}   \
                 --build-arg QIMSDK_ARG_MAX_JOBS=${QIMSDK_MAX_BUILD_JOBS}                           \
                 --progress=plain --target qimsdk_build                                             \
                 ${PATH_TO_QIMSDK_DEBIAN_DOCKERFILE} -t ${IMAGE_NAME}-debian                        \

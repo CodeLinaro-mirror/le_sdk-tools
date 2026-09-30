@@ -12,6 +12,7 @@
     "camera_service_git_tag" : "<optional-git-tag-for-camera-service>",
     "IM_SDK_Source_git_tag" : "<optional-git-tag-for-qimsdk-src>",
     "solutions_microservices_Source_git_tag" : "<optional-git-tag-for-solutions-microservices>",
+    "gst_qti_oss_patches_git_tag" : "<optional-git-tag-for-gst-qti-oss-patches>",
 
     "MAP_sources_to_dev_container" : "FALSE",
     "MAX_build_cpu_threads": "<optional-number-of-jobs>"
