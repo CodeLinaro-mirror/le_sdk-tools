@@ -315,6 +315,8 @@ RUN mkdir -p /usr/share/qcom/conf.d                                             
         echo '    DSP_LIBRARY_PATH: v75';                                                          \
         echo '  Qualcomm Technologies, Inc. Monaco EVK:';                                          \
         echo '    DSP_LIBRARY_PATH: v75';                                                          \
+        echo '  Qualcomm Technologies, Inc. IQ8 8275 Pro SKU EVK:';                                \
+        echo '    DSP_LIBRARY_PATH: v75';                                                          \
         echo '  Qualcomm Technologies, Inc. Monaco Monza addons:';                                 \
         echo '    DSP_LIBRARY_PATH: v75';                                                          \
         echo '  Qualcomm Technologies, Inc. QCS8300 Ride:';                                        \
