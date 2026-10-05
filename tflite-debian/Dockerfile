@@ -119,7 +119,7 @@ COPY cmake ${TFLITE_DOWNLOAD_DIR}/cmake
 
 # Build fastrpc
 RUN cd "${TFLITE_DOWNLOAD_DIR}"                                                                 && \
-    git clone --depth 1 https://github.com/quic/fastrpc.git --branch v1.0.6                     && \
+    git clone --depth 1 https://github.com/quic/fastrpc.git --branch v1.0.8                     && \
     cd fastrpc                                                                                  && \
     autoreconf -is                                                                              && \
     BUILD_ARCH="$(dpkg --print-architecture)"                                                   && \

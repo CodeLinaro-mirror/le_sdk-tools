@@ -444,7 +444,7 @@ RUN cd "${QIMSDK_DOWNLOAD_DIR}"                                                 
     mkdir -p fastrpc                                                                            && \
     git -C fastrpc init                                                                         && \
     git -C fastrpc remote add origin https://github.com/quic/fastrpc.git                        && \
-    git -C fastrpc fetch --depth 1 origin v1.0.7                                                && \
+    git -C fastrpc fetch --depth 1 origin v1.0.8                                                && \
     git -C fastrpc checkout FETCH_HEAD                                                          && \
     cd fastrpc                                                                                  && \
     autoreconf -is                                                                              && \
