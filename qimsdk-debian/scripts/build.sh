@@ -249,7 +249,7 @@ function qimsdk-debian-rules-build() {
 
             set -o pipefail
 
-            fakeroot debian/rules build binary                                                    |&
+            debian/rules build binary                                                             |&
                     tee "${LOG_FILE_NAME}"
         ) || {
             echo "FAILED: qimsdk-debian-rules-build: debian/rules build failed!"
