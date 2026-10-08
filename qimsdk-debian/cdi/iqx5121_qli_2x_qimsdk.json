@@ -19,19 +19,6 @@
         ],
         "deviceNodes": [
           {
-            "path": "/dev/video32",
-            "fileMode": 0660,
-            "uid": 0,
-            "gid": 44
-          },
-
-          {
-            "path": "/dev/video33",
-            "fileMode": 0660,
-            "uid": 0,
-            "gid": 44
-          },
-          {
             "path": "/dev/dri/renderD128",
             "fileMode": 0660,
             "uid": 0,
