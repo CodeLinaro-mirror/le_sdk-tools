@@ -852,6 +852,14 @@ COPY --from=qimsdk_build ${QIMSDK_INSTALL_DIR}/usr /usr
 # Copy /etc directory to device image
 COPY --from=qimsdk_build ${QIMSDK_INSTALL_DIR}/etc /etc
 
+# Due to permission issues, sample apps are moved to $HOME/.config/qimsdk_samples directory.
+# Onwer ship is changed to qimsdk so that user can modify the configuration file in the
+# container itself.
+ENV XDG_CONFIG_HOME=/home/qimsdk/.config
+RUN mkdir -p ${XDG_CONFIG_HOME}/qimsdk_samples                                                  && \
+    mv /etc/configs/* ${XDG_CONFIG_HOME}/qimsdk_samples/                                        && \
+    chown -R qimsdk:qcom ${XDG_CONFIG_HOME}
+
 # Guard: fail the image build if any bundled GStreamer plugin has unresolved shared libraries.
 #   The plugins are cross compiled in the build stage against '-dev' packages, but the deploy
 #   stage installs only the runtime ones, so it is easy for a plugin to ship with a dependency
