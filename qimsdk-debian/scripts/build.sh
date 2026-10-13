@@ -702,6 +702,8 @@ function qimsdk-cmake-build-qimsdk() {
                 `-DENABLE_GST_PLUGIN_QMMFSRC=ON `
                 `-DENABLE_GST_PLUGIN_SMARTVENCBIN=ON `
                 `-DENABLE_GST_PLUGIN_URIDECODEBIN=ON `
+                `-DENABLE_GST_PLUGIN_TOOLS=ON `
+                `-DENABLE_GST_PLUGIN_MLTOOLS=ON `
                 `-DENABLE_GST_SAMPLE_APPS=ON `
                 `-DENABLE_GST_SAMPLE_APPS_CAMERA=ON `
                 `-DENABLE_GST_PYTHON_EXAMPLES=ON `
