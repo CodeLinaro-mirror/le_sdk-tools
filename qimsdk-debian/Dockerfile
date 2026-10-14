@@ -788,6 +788,10 @@ RUN mkdir -p /usr/share/qcom/conf.d                                             
         echo '    DSP_LIBRARY_PATH: v66';                                                          \
         echo '  Qualcomm Technologies, Inc. QCS615 Ride (IQ-615 Beta EVK):';                       \
         echo '    DSP_LIBRARY_PATH: v66';                                                          \
+        echo '  Qualcomm Technologies, Inc. Shikra IQS EVK:';                                      \
+        echo '    DSP_LIBRARY_PATH: v66';                                                          \
+        echo '  Qualcomm Technologies, Inc. Shikra CQS EVK:';                                      \
+        echo '    DSP_LIBRARY_PATH: v66';                                                          \
         echo '  Qualcomm Technologies, Inc. Robotics RB3gen2:';                                    \
         echo '    DSP_LIBRARY_PATH: v68';                                                          \
         echo '  Qualcomm Technologies, Inc. Robotics RB3gen2 addons vision mezz platform:';        \
@@ -811,8 +815,6 @@ RUN mkdir -p /usr/share/qcom/conf.d                                             
         echo '  Qualcomm Technologies, Inc. Hamoa IoT EVK:';                                       \
         echo '    DSP_LIBRARY_PATH: v73';                                                          \
         echo '  Qualcomm Technologies, Inc. Purwa IoT EVK:';                                       \
-        echo '    DSP_LIBRARY_PATH: v73';                                                          \
-        echo '  Qualcomm Technologies, Inc. Shikra CQS EVK:';                                      \
         echo '    DSP_LIBRARY_PATH: v73';                                                          \
         echo '  Qualcomm Technologies, Inc. SM8750 MTP:';                                          \
         echo '    DSP_LIBRARY_PATH: v73';                                                          \
