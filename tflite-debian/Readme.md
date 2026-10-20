@@ -130,15 +130,12 @@ Any required platform resources like GPU, DSP, video device nodes and any other 
 This is achieved with the help of:
 
 * uploading a matching target-specfic CDI file;
-* uploading a matching target-specific ENV file;
 * creating all of the required target folders used for the local model data storage;
 * uploading the model-specific data accordingly;
 * setting the appropriate target model data file and folder access permissions;
 * listing the model-specific platform to container folder/volume mappings in the container run command.
 
 A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
-
-In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
 
 > **Note:** CDI files are located in and named: `tflite-debian/cdi/\<hardware\>-\<platform\>-tflite.json`;
 
@@ -149,17 +146,6 @@ Please create this directory first, if it does not exist as follows:
 ```bash
 sudo mkdir -p /etc/cdi
 sudo chmod 755 /etc/cdi
-```
-
-> **Note:** the ENV files are located in and named: `tflite-debian/env/\<hardware\>-\<platform\>-qairt.env`;
-
-The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
-
-Please create this directory first, if it does not exist as follows:
-
-```bash
-sudo mkdir -p /etc/docker/env
-sudo chmod 755 /etc/docker/env
 ```
 
 <div id="Platform_model_file_and_folder_setup">
@@ -196,11 +182,10 @@ Set the root path for the user content by exporting the following environment va
 export TFLITE_USER_CONTENTS_ROOT=$HOME/downloads/tflite
 ```
 
-Push the CDI and ENV files to the device:
+Push the CDI file to the device:
 
 ```bash
 adb push tflite-debian/cdi/<hardware>-<platform>-tflite.json /etc/cdi/tflite.json
-adb push tflite-debian/env/<hardware>-<platform>-tflite.env /etc/docker/env/tflite.env
 ```
 
 Push the deploy Docker image to the device and load it:
@@ -217,7 +202,6 @@ Now run the deploy Docker container:
 
 ```bash
 adb shell docker run -it -d --net host \
-  --env-file /etc/docker/env/tflite.env \
   --device qualcomm.com/device=tflite \
   -v ${TFLITE_USER_CONTENTS_ROOT}:/home/tflite/downloads/tflite \
   -h tflite --name tflite <desired-image-name>
@@ -227,10 +211,6 @@ adb shell docker run -it -d --net host \
 - GPU device access (`/dev/kgsl-3d0`)
 - DMA heap access (`/dev/dma_heap/system`)
 - FastRPC DSP access (`/dev/fastrpc-cdsp`)
-- Environment variables for GPU acceleration:
-  - `VK_DRIVER_FILES` - Vulkan driver configuration
-  - `OCL_ICD_FILENAMES` - OpenCL driver path
-  - `__EGL_VENDOR_LIBRARY_FILENAMES` - EGL vendor library
 - Platform-specific DSP library mounts (e.g., `/usr/lib/dsp`)
 - Device model information mount (`/run/device-model`)
 

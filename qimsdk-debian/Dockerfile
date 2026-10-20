@@ -8,23 +8,22 @@ RUN sed -Ei 's/^Types: deb$/Types: deb deb-src/'  /etc/apt/sources.list.d/debian
 RUN dpkg --add-architecture arm64
 
 # Enable Backports repo, grab mesa from there
-COPY <<EOF /etc/apt/sources.list.d/trixie-backports.sources
-Types: deb deb-src
-URIs: http://deb.debian.org/debian
-Suites: trixie-backports
-Components: main
-Enabled: yes
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-EOF
-
-COPY <<EOF /etc/apt/preferences.d/debian-backports.pref
-# for binary packages built from these source packages, score the version from
-# Debian backports higher as to get hardware enabled or better hardware support
-
-Package: src:mesa:any
-Pin: release n=trixie-backports
-Pin-Priority: 900
-EOF
+RUN {                                                                                              \
+        echo 'Types: deb deb-src';                                                                 \
+        echo 'URIs: http://deb.debian.org/debian';                                                 \
+        echo 'Suites: trixie-backports';                                                           \
+        echo 'Components: main';                                                                   \
+        echo 'Enabled: yes';                                                                       \
+        echo 'Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg';                          \
+    } > /etc/apt/sources.list.d/trixie-backports.sources                                        && \
+    {                                                                                              \
+        echo '# for binary packages built from these source packages, score the version from';     \
+        echo '# Debian backports higher as to get hardware enabled or better hardware support';    \
+        echo '';                                                                                   \
+        echo 'Package: src:mesa:any';                                                              \
+        echo 'Pin: release n=trixie-backports';                                                    \
+        echo 'Pin-Priority: 900';                                                                  \
+    } > /etc/apt/preferences.d/debian-backports.pref
 
 # Packages installed for the native arch, needed to establish the debian/rules build system:
 #   fakeroot git tar unzip ssh rsync bash-completion jq cmake android-tools-adb wget pipx
@@ -691,23 +690,22 @@ ENV QIMSDK_INSTALL_DIR=${QIMSDK_BASE_DIR}/deploy
 ENV QIMSDK_DEB_DIR=${QIMSDK_BASE_DIR}/downloads/debs
 
 # Enable Backports repo, grab mesa from there
-COPY <<EOF /etc/apt/sources.list.d/trixie-backports.sources
-Types: deb deb-src
-URIs: http://deb.debian.org/debian
-Suites: trixie-backports
-Components: main
-Enabled: yes
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-EOF
-
-COPY <<EOF /etc/apt/preferences.d/debian-backports.pref
-# for binary packages built from these source packages, score the version from
-# Debian backports higher as to get hardware enabled or better hardware support
-
-Package: src:mesa:any
-Pin: release n=trixie-backports
-Pin-Priority: 900
-EOF
+RUN {                                                                                              \
+        echo 'Types: deb deb-src';                                                                 \
+        echo 'URIs: http://deb.debian.org/debian';                                                 \
+        echo 'Suites: trixie-backports';                                                           \
+        echo 'Components: main';                                                                   \
+        echo 'Enabled: yes';                                                                       \
+        echo 'Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg';                          \
+    } > /etc/apt/sources.list.d/trixie-backports.sources                                        && \
+    {                                                                                              \
+        echo '# for binary packages built from these source packages, score the version from';     \
+        echo '# Debian backports higher as to get hardware enabled or better hardware support';    \
+        echo '';                                                                                   \
+        echo 'Package: src:mesa:any';                                                              \
+        echo 'Pin: release n=trixie-backports';                                                    \
+        echo 'Pin-Priority: 900';                                                                  \
+    } > /etc/apt/preferences.d/debian-backports.pref
 
 # Copy deb packages to device image
 COPY --from=qimsdk_build /mnt/work/downloads/debs ${QIMSDK_DEB_DIR}
@@ -881,6 +879,39 @@ WORKDIR /home/qimsdk
 
 # Add line to .bashrc to source .bash_aliases file on every shell execution
 RUN echo '[ -f ~/.bash_aliases ] && . ~/.bash_aliases\n' >> /root/.bashrc
+
+# Audio, Camera, Display, OpenCL, GStreamer environment variables
+ENV XDG_RUNTIME_DIR=/run/user/1000
+ENV AUDIO_SOCKET=${XDG_RUNTIME_DIR}/pulse/native
+ENV CAMERA_SOCKET=/run/cam_server/le_camera_socket
+ENV WAYLAND_DISPLAY=wayland-0
+ENV DISPLAY_SOCKET=${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}
+ENV OCL_ICD_FILENAMES=/usr/lib/aarch64-linux-gnu/libOpenCL_adreno.so.1
+ENV GST_DEBUG_NO_COLOR=1
+ENV GST_DEBUG=2
+ENV GST_PLUGIN_SCANNER=/usr/lib/aarch64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner
+
+# Add GPU/Vulkan environment initialization
+RUN {                                                                                              \
+        echo '#!/bin/sh';                                                                          \
+        echo '';                                                                                   \
+        echo '# GPU/Vulkan configuration';                                                         \
+        echo 'if [ -e /dev/kgsl-3d0 ]; then';                                                      \
+        echo '    export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/adrenovk.json';                   \
+        echo '    export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_adreno.json'; \
+        echo 'else';                                                                               \
+        echo '    export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/freedreno_icd.json';              \
+        echo '    export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json'; \
+        echo 'fi';                                                                                 \
+        echo '';                                                                                   \
+    } > /etc/profile.d/qimsdk-gpu.sh                                                            && \
+    chmod 644 /etc/profile.d/qimsdk-gpu.sh
+
+# Source qimsdk-gpu for root bash sessions
+RUN echo '[ -f /etc/profile.d/qimsdk-gpu.sh ] && . /etc/profile.d/qimsdk-gpu.sh' >> /root/.bashrc
+
+# Source qimsdk-gpu for qimsdk bash sessions
+RUN echo '[ -f /etc/profile.d/qimsdk-gpu.sh ] && . /etc/profile.d/qimsdk-gpu.sh' >> /home/qimsdk/.bashrc
 
 # Copy entrypoint files which allow us to drop priveleges after resolving socket ownership
 COPY entrypoint.sh /bin/entrypoint.sh

@@ -278,6 +278,31 @@ RUN FILES="                                                                     
 # Fix ownership
 RUN chown -R qairt:qcom ${QAIRT_BASE_DIR}
 
+# Environment variables
+ENV OCL_ICD_FILENAMES=/usr/lib/aarch64-linux-gnu/libOpenCL_adreno.so.1
+
+# Add GPU/Vulkan environment initialization
+RUN {                                                                                              \
+        echo '#!/bin/sh';                                                                          \
+        echo '';                                                                                   \
+        echo '# GPU/Vulkan configuration';                                                         \
+        echo 'if [ -e /dev/kgsl-3d0 ]; then';                                                      \
+        echo '    export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/adrenovk.json';                   \
+        echo '    export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_adreno.json'; \
+        echo 'else';                                                                               \
+        echo '    export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/freedreno_icd.json';              \
+        echo '    export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json'; \
+        echo 'fi';                                                                                 \
+        echo '';                                                                                   \
+    } > /etc/profile.d/qairt-gpu.sh                                                             && \
+    chmod 644 /etc/profile.d/qairt-gpu.sh
+
+# Source qairt-gpu for root bash sessions
+RUN echo '[ -f /etc/profile.d/qairt-gpu.sh ] && . /etc/profile.d/qairt-gpu.sh' >> /root/.bashrc
+
+# Source qairt-gpu for qairt bash sessions
+RUN echo '[ -f /etc/profile.d/qairt-gpu.sh ] && . /etc/profile.d/qairt-gpu.sh' >> /home/qairt/.bashrc
+
 # Change user to qairt
 USER qairt
 
