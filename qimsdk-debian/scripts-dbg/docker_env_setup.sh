@@ -355,8 +355,6 @@ function qimsdk-generate-docker-compose-yaml() {
             yq -i ".services.qimsdk.volumes += `                                                   \
                         ` [\"\${HOME}/${MODEL_ROOT_DIR}:/home/qimsdk/${MODEL_ROOT_DIR}\"]"         \
                         "${PATH_TO_DOCKER_COMPOSE_YAML}"                                        && \
-            yq -i '.services.qimsdk.env_file=["/etc/docker/env/qimsdk.env"]'                       \
-                    ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
             yq -i '.services.qimsdk.deploy.resources.reservations.devices[0].driver = "cdi"'       \
                     ${PATH_TO_DOCKER_COMPOSE_YAML}                                              && \
             yq -i '.services.qimsdk.deploy.resources.reservations.devices[0].device_ids[0] =
@@ -385,7 +383,7 @@ function qimsdk-generate-docker-run-cmd() {
     local CONTAINER_NAME=${2}
     local IMAGE_NAME=${3}
 
-    echo "docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env `
+    echo "docker run -it -d --net host `
             `--device qualcomm.com/device=qimsdk -h ${CONTAINER_NAME} `
             `-v \${HOME}/Downloads/qimsdk_samples:/home/qimsdk/Downloads/qimsdk_samples `
             `--name ${CONTAINER_NAME} ${IMAGE_NAME}" > ${RESULT}

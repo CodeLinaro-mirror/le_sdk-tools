@@ -332,14 +332,11 @@ Any required platform resources like GPU, DSP, video device nodes and any other 
 This is achieved with the help of:
 
 * uploading a matching target-specfic CDI file;
-* uploading a matching target-specific ENV file;
 * creating all of the required target folders used for the local model data storage;
 * uploading the model-specific data accordingly;
 * mounting the top-level directory which has contents such as media, models that are used in the container.
 
 A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
-
-In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
 
 > **Note:** CDI files are located in and named: `qairt-container/cdi/\<hardware\>-\<platform\>-qairt.json`;
 
@@ -352,16 +349,6 @@ sudo mkdir -p /etc/cdi
 sudo chmod 755 /etc/cdi
 ```
 
-> **Note:** the ENV files are located in and named: `qairt-container/env/\<hardware\>-\<platform\>-qairt.env`;
-
-The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
-
-Please create this directory first, if it does not exist as follows:
-
-```bash
-sudo mkdir -p /etc/docker/env
-sudo chmod 755 /etc/docker/env
-```
 <div id="CI_platform_model_setup">
 
 ### Continuous Development - platform model file and folder setup
@@ -418,7 +405,6 @@ Commands to run the deploy container:
 
 ```bash
 adb shell docker run -it -d --net host \
-  --env-file /etc/docker/env/qairt.env \
   --device qualcomm.com/device=qairt \
   -v ${QAIRT_USER_CONTENTS_ROOT}:/home/qairt/downloads/qairt \
   -h qairt --name qairt <desired-image-name>
@@ -449,7 +435,6 @@ qairt-docker-device-run-container <path-to-config-json>
 ```
 
 <div id="Developing_Python_Scripts">
-
 
 ## Python Binding Scripts Development
 
