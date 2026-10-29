@@ -235,15 +235,12 @@ Any required platform resources like GPU, DSP, video device nodes and any other 
 This is achieved with the help of:
 
 * uploading a matching target-specfic CDI file;
-* uploading a matching target-specific ENV file;
 * creating all of the required target folders used for the local model data storage;
 * uploading the model-specific data accordingly;
 * setting the appropriate target model data file and folder access permissions;
 * listing the model-specific platform to container folder/volume mappings in the container run command.
 
 A few of these platform device/folder/volume bindings are specified through CDI files - one for each supported target platform and OS combination.
-
-In view of the basic Docker design principles, a corresponding ENV (environment variable - *.env) file is also needed for exposing the environment variable values of interest inside the device container as well.
 
 > **Note:** CDI files are located in: qimsdk-debian/cdi/\<hardware\>-\<platform\>-qimsdk.json;
 
@@ -254,17 +251,6 @@ Please create this directory first, if it does not exist as follows:
 ```bash
 sudo mkdir -p /etc/cdi
 sudo chmod 755 /etc/cdi
-```
-
-> **Note:** the ENV files are located in: qimsdk-debian/env/\<hardware\>-\<platform\>-qimsdk.env;
-
-The ENV file needed for a specific hardware platform needs to be copied to the /etc/docker/env/ directory on the target device storage.
-
-Please create this directory first, if it does not exist as follows:
-
-```bash
-sudo mkdir -p /etc/docker/env
-sudo chmod 755 /etc/docker/env
 ```
 
 <div id="Platform_model_file_and_folder_setup">
@@ -365,11 +351,10 @@ First, set the `QIMSDK_USER_CONTENTS_ROOT` environment variable to match where y
 export QIMSDK_USER_CONTENTS_ROOT="${HOME}/Downloads/qimsdk_samples"
 ```
 
-Then push the CDI and ENV files and run the container.
+Then push the CDI file and run the container.
 
 ```bash
 adb push qimsdk-debian/cdi/<hardware>-<platform>-qimsdk.json /etc/cdi/qimsdk.json
-adb push qimsdk-debian/env/<hardware>-<platform>-qimsdk.env /etc/docker/env/qimsdk.env
 ```
 
 >**Note:** When the `QIMSDK_USER_CONTENTS_ROOT` environment variable value is `/root` or `/home/ubuntu`** (the model content shall be mounted into the `${HOME}` folder inside the container).
@@ -391,7 +376,6 @@ Now run the deploy Docker container
 ```bash
 export QIMSDK_CONTAINER_HOME="/home/qimsdk"
 adb shell docker run -it -d --net host \
-  --env-file /etc/docker/env/qimsdk.env \
   --device qualcomm.com/device=qimsdk \
   -v ${HOME}/Downloads/qimsdk_samples:${QIMSDK_CONTAINER_HOME}/Downloads/qimsdk_samples \
   -h qimsdk --name qimsdk <desired-image-name>
@@ -461,7 +445,7 @@ vi /etc/cdi/qimsdk.json
 ```bash
 # After that's done, the container needs to be removed and a new one needs to be run, if already running
 docker rm -f qimsdk
-docker run -it -d --net host --env-file /etc/docker/env/qimsdk.env --device qualcomm.com/device=qimsdk -h qimsdk --name qimsdk <desired-image-name>
+docker run -it -d --net host --device qualcomm.com/device=qimsdk -h qimsdk --name qimsdk <desired-image-name>
 ```
 
 <div id="Important_notes">

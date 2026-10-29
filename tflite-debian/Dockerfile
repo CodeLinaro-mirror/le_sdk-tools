@@ -336,6 +336,31 @@ RUN ulimit -n 16192
 # Copy installed binaries to device image
 COPY --from=tflite_build ${TFLITE_INSTALL_DIR}/usr /usr
 
+# Environment variables
+ENV OCL_ICD_FILENAMES=/usr/lib/aarch64-linux-gnu/libOpenCL_adreno.so.1
+
+# Add GPU/Vulkan environment initialization
+RUN {                                                                                              \
+        echo '#!/bin/sh';                                                                          \
+        echo '';                                                                                   \
+        echo '# GPU/Vulkan configuration';                                                         \
+        echo 'if [ -e /dev/kgsl-3d0 ]; then';                                                      \
+        echo '    export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/adrenovk.json';                   \
+        echo '    export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_adreno.json'; \
+        echo 'else';                                                                               \
+        echo '    export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/freedreno_icd.json';              \
+        echo '    export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json'; \
+        echo 'fi';                                                                                 \
+        echo '';                                                                                   \
+    } > /etc/profile.d/tflite-gpu.sh                                                            && \
+    chmod 644 /etc/profile.d/tflite-gpu.sh
+
+# Source tflite-gpu for root bash sessions
+RUN echo '[ -f /etc/profile.d/tflite-gpu.sh ] && . /etc/profile.d/tflite-gpu.sh' >> /root/.bashrc
+
+# Source tflite-gpu for tflite bash sessions
+RUN echo '[ -f /etc/profile.d/tflite-gpu.sh ] && . /etc/profile.d/tflite-gpu.sh' >> /home/tflite/.bashrc
+
 # Change workdir to user home
 WORKDIR /home/tflite
 
