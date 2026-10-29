@@ -76,13 +76,29 @@ ENV QIMSDK_PATH_TO_PULSEAUDIO_META=""
 ENV QIMSDK_PATH_TO_PULSEAUDIO=""
 ENV QIMSDK_PATH_TO_GSTD_PATCHES=""
 
-# Clone yocto poky project
+# Optional branch or tag for meta layers. Defaults to scarthgap when unset or empty
+ARG META_QCOM_HWE_TAG
+ARG META_QCOM_QIM_PRODUCT_SDK_TAG
+
+# Clone yocto poky project and meta layers. Meta layer refs are fetched explicitly so that
+# branches, tags and commit hashes are all supported
 RUN git -C ${QIMSDK_TMP_DIR} clone https://git.yoctoproject.org/poky                               \
-            --single-branch --branch scarthgap                                                  && \
-    git -C ${QIMSDK_TMP_DIR} clone https://github.com/qualcomm-linux/meta-qcom-hwe                 \
-            --single-branch --branch scarthgap                                                  && \
-    git -C ${QIMSDK_TMP_DIR} clone https://github.com/qualcomm-linux/meta-qcom-qim-product-sdk     \
-            --single-branch --branch scarthgap
+             --single-branch --branch scarthgap                                                 && \
+     mkdir -p ${QIMSDK_TMP_DIR}/meta-qcom-hwe                                                   && \
+     git -C ${QIMSDK_TMP_DIR}/meta-qcom-hwe init                                                && \
+     git -C ${QIMSDK_TMP_DIR}/meta-qcom-hwe remote add origin                                      \
+             https://github.com/qualcomm-linux/meta-qcom-hwe.git                                && \
+     git -C ${QIMSDK_TMP_DIR}/meta-qcom-hwe fetch --depth 1 origin                                 \
+             ${META_QCOM_HWE_TAG:-scarthgap}                                                    && \
+     git -C ${QIMSDK_TMP_DIR}/meta-qcom-hwe checkout FETCH_HEAD                                 && \
+                                                                                                   \
+     mkdir -p ${QIMSDK_TMP_DIR}/meta-qcom-qim-product-sdk                                       && \
+     git -C ${QIMSDK_TMP_DIR}/meta-qcom-qim-product-sdk init                                    && \
+     git -C ${QIMSDK_TMP_DIR}/meta-qcom-qim-product-sdk remote add origin                          \
+             https://github.com/qualcomm-linux/meta-qcom-qim-product-sdk.git                    && \
+     git -C ${QIMSDK_TMP_DIR}/meta-qcom-qim-product-sdk fetch --depth 1 origin                     \
+             ${META_QCOM_QIM_PRODUCT_SDK_TAG:-scarthgap}                                        && \
+     git -C ${QIMSDK_TMP_DIR}/meta-qcom-qim-product-sdk checkout FETCH_HEAD
 
 # Set up download directory
 ENV QIMSDK_DOWNLOAD_DIR=${QIMSDK_BASE_DIR}/downloads

@@ -211,6 +211,33 @@ function qimsdk-get-device-id() {
     return 0
 }
 
+# Get META_QCOM tags from json (optional, empty when not set)
+#   $1 - (mandatory) path to target config json
+#   $2 - (mandatory) give META_QCOM_HWE_TAG as argument
+#   $3 - (mandatory) give META_QCOM_QIM_PRODUCT_SDK_TAG as argument
+function qimsdk-get-meta-tags() {
+    local PATH_TO_CONFIG_JSON=${1}
+    local -n OUT_META_QCOM_HWE_TAG=${2}
+    local -n OUT_META_QCOM_QIM_PRODUCT_SDK_TAG=${3}
+
+    [ ! -f "${PATH_TO_CONFIG_JSON}" ] && {
+        print-red "Path to target configuration json must be provided as first argument !!!"
+        return -1
+    }
+
+    local JSON_CONTENT=$(cat ${PATH_TO_CONFIG_JSON})
+
+    OUT_META_QCOM_HWE_TAG=$(echo ${JSON_CONTENT} | jq '.Meta_qcom_hwe_tag' | tr -d '"')
+    [ "${OUT_META_QCOM_HWE_TAG}" == "null" ] && OUT_META_QCOM_HWE_TAG=""
+
+    OUT_META_QCOM_QIM_PRODUCT_SDK_TAG=$(
+        echo ${JSON_CONTENT} | jq '.Meta_qcom_qim_product_sdk_tag' | tr -d '"'
+    )
+    [ "${OUT_META_QCOM_QIM_PRODUCT_SDK_TAG}" == "null" ] && OUT_META_QCOM_QIM_PRODUCT_SDK_TAG=""
+
+    return 0
+}
+
 # Get Platform_Specific_Mappings from json
 #   $1 - (mandatory) path to target config json
 #   $2 - (mandatory) give Platform specific map as argument

@@ -263,6 +263,18 @@ function qimsdk-dev-docker-build-image() {
         return ${rc}
     }
 
+    local META_QCOM_HWE_TAG
+    local META_QCOM_QIM_PRODUCT_SDK_TAG
+
+    qimsdk-get-meta-tags ${PATH_TO_CONFIG_JSON} META_QCOM_HWE_TAG META_QCOM_QIM_PRODUCT_SDK_TAG
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-meta-tags !!!"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+        return ${rc}
+    }
+
     DOCKER_BUILDKIT=1 docker build                                                                 \
             --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_BASE_DIR}                                     \
             --build-arg QIMSDK_ARG_DOCKER_IMAGE_PATH=${DOCKER_IMAGE_PATH}                          \
@@ -273,6 +285,8 @@ function qimsdk-dev-docker-build-image() {
             --build-arg QIMSDK_ARG_NO_PROXY=${no_proxy}                                            \
             --build-arg QIMSDK_ARG_SUPPORTED_TARGETS=${QIMSDK_SUPPORTED_TARGETS}                   \
             --build-arg QIMSDK_ARG_QAIRT_SDK_VERSION=${QIMSDK_QAIRT_SDK_VERSION}                   \
+            --build-arg META_QCOM_HWE_TAG=${META_QCOM_HWE_TAG}                                     \
+            --build-arg META_QCOM_QIM_PRODUCT_SDK_TAG=${META_QCOM_QIM_PRODUCT_SDK_TAG}             \
             --progress=plain --target QIMSDK_dev_image                                             \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}_dev
 
@@ -321,6 +335,18 @@ function qimsdk-docker-build-image() {
         return ${rc}
     }
 
+    local META_QCOM_HWE_TAG
+    local META_QCOM_QIM_PRODUCT_SDK_TAG
+
+    qimsdk-get-meta-tags ${PATH_TO_CONFIG_JSON} META_QCOM_HWE_TAG META_QCOM_QIM_PRODUCT_SDK_TAG
+
+    rc=$?
+    [ ${rc} -ne 0 ] && {
+        print-red "FAILED: qimsdk-get-meta-tags !!!"
+        rm -rf ${QIMSDK_TMP_FOLDER}
+        return ${rc}
+    }
+
     DOCKER_BUILDKIT=1 docker build                                                                 \
             --build-arg QIMSDK_ARG_BASE_DIR=${QIMSDK_BASE_DIR}                                     \
             --build-arg QIMSDK_ARG_HTTP_PROXY=${http_proxy}                                        \
@@ -328,6 +354,8 @@ function qimsdk-docker-build-image() {
             --build-arg QIMSDK_ARG_NO_PROXY=${no_proxy}                                            \
             --build-arg QIMSDK_ARG_SUPPORTED_TARGETS=${QIMSDK_SUPPORTED_TARGETS}                   \
             --build-arg QIMSDK_ARG_QAIRT_SDK_VERSION=${QIMSDK_QAIRT_SDK_VERSION}                   \
+            --build-arg META_QCOM_HWE_TAG=${META_QCOM_HWE_TAG}                                     \
+            --build-arg META_QCOM_QIM_PRODUCT_SDK_TAG=${META_QCOM_QIM_PRODUCT_SDK_TAG}             \
             --progress=plain --target QIMSDK_device_image                                          \
             ${QIMSDK_DOCKER_DIR} -t ${QIMSDK_IMAGE_NAME}
 

@@ -286,6 +286,8 @@ Config json files *(config.json)* must contain the following data:
  10. ***MANDATORY*** - **LE_Services_Source_Dir** - PATH to le-services directory, which contains source code of camera recorder client and camera metadata libs compiled inside dev container. ***Note: Path provided must point to le-services directory!***
  11. ***MANDATORY*** - **Path_to_eSDK_dir** - Path to extended SDK directory ***Note: Should be unarchived***
  12. ***OPTIONAL*** - **MAP_sources_to_dev_container** - If IM_SDK_Source_Dir, LE_Services_Source_Dir or Solution_Microservices_Dir is wanted to be mapped to the development container, then this attribute should be filled as "TRUE" or "ENABLE" or "ENABLED" ***Note: Default is FALSE***
+ 14. ***OPTIONAL*** - **Meta_qcom_hwe_tag** - Branch, tag or commit hash of qualcomm-linux/meta-qcom-hwe to clone. ***Note: Empty value uses the scarthgap branch***
+ 15. ***OPTIONAL*** - **Meta_qcom_qim_product_sdk_tag** - Branch, tag or commit hash of qualcomm-linux/meta-qcom-qim-product-sdk to clone. ***Note: Empty value uses the scarthgap branch***
 
 Target specific json files *(\<target-name\>.json)* must contain the following data:
  1. ***OPTIONAL*** - **Exports** - set of variables, which will be exported in docker container in platform
