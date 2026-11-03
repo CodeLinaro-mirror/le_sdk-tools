@@ -1,0 +1,33 @@
+# Docker Compose template for running a qimsdk_app_deploy image (qimsdk-debian deploy image + app)
+# as a microservice on the target device. Mirrors the qimsdk-debian README's deploy `docker run`.
+#
+# Copy per app (e.g. targets/<tag>.yml) and replace every <...> placeholder:
+#   <service-name>    container and service name, e.g. restricted-zone
+#   <image>           tag given to the qimsdk_app_deploy build, e.g. qimsdk-deploy-restricted-zone
+#   <app-binary>      file name of the binary in /usr/bin, e.g. gst-restricted-zone
+#   <app-args>        one list item per argument, e.g. "-c", "/home/qimsdk/config.json"; if the app
+#                     takes none, delete the whole `, "<app-args>"` part, keeping the brackets
+#
+# Device prerequisites (see qimsdk-debian README "How to run the qimsdk device deploy container"):
+#   /etc/cdi/qimsdk.json         CDI spec for the platform, from qimsdk-debian/cdi/
+#   /etc/docker/env/qimsdk.env   env file for the platform, from qimsdk-debian/env/
+#   ${HOME}/Downloads/qimsdk_samples/{media,models,labels,configs}
+# ${HOME} is the home of whoever runs docker compose on the device: /root on QLI, /home/ubuntu on
+# Ubuntu. The service runs as the image's qimsdk user, through its entrypoint.
+#
+# Run on the device:  docker compose -f <service-name>.yml up -d
+
+services:
+  <service-name>:
+    image: <image>
+    container_name: <service-name>
+    hostname: qimsdk
+    network_mode: host
+    env_file:
+      - /etc/docker/env/qimsdk.env
+    devices:
+      - qualcomm.com/device=qimsdk
+    volumes:
+      - ${HOME}/Downloads/qimsdk_samples:/home/qimsdk/Downloads/qimsdk_samples
+    command: ["/usr/bin/<app-binary>", "<app-args>"]
+    restart: unless-stopped

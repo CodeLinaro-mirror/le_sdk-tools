@@ -1,0 +1,11 @@
+{
+    "Additional_tag_container": "<Additional-tag-container>",
+    "Additional_tag_image": "<Additional-tag-image>",
+    "Docker_image_path": "<path-to-save-docker-images-and-artifacts>",
+    "Target_device_ID": "<adb-device-id-or-ipv4-address>",
+    "Target_deploy_container_name": "<optional-name-of-deploy-docker-container-running-on-device>",
+
+    "QIMSDK_Source_Dir" : "<path-to-qimsdk-dir>",
+    "QIMSDK_Source_git_tag" : "<optional-git-tag-for-qimsdk>",
+    "MAX_build_cpu_threads": "<optional-number-of-jobs>"
+}
